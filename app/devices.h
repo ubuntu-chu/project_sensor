@@ -1,0 +1,64 @@
+#ifndef _DEVICES_H_
+#define _DEVICES_H_
+
+#include "../bsp/hal/hal.h"
+#include "../includes/macro.h"
+
+enum PROC_PHASE{
+
+	PROC_PREPARE 		= 0,
+	PROC_DONE,
+};
+
+class CDevice_base:noncopyable{
+public:
+    portBASE_TYPE open(void);
+    portBASE_TYPE close(void);
+    portSIZE_TYPE read(char *buffer, portSIZE_TYPE size);
+    portSIZE_TYPE write(char *buffer, portSIZE_TYPE size);
+	DeviceStatus_TYPE ioctl(uint8 cmd, void *args);
+	uint8	device_stat_get(void);
+	uint8	device_is_valid(void);
+	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
+    virtual portBASE_TYPE process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
+    //portBASE_TYPE   name_set(const char *pname);
+
+protected:
+    CDevice_base(const char *pname, uint16 oflag);
+    virtual ~CDevice_base();
+	//recv buffer
+	uint8			*m_pbuf_recv;
+	//recv data seg
+	uint8			*m_pbuf_data;
+	//send buffer
+	uint8			*m_pbuf_send;
+	//total recv len
+	uint16			m_len_recv;
+	uint16			m_len_send;
+	//recv data len
+	uint16			m_len_data;
+	//recv buff len  
+	uint16          m_buf_recv_len;
+    device_t        *m_pdevice;
+
+private:
+    uint16          m_oflag;
+    uint8			m_offline_cnt;
+    char            m_name[DEVICE_NAME_MAX];
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif
+
+
