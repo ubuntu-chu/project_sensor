@@ -51,7 +51,7 @@ enum {
 class monitor_manage: noncopyable{
 
 public:
-	monitor_manage():m_bitmap(0), m_size(def_TIME_MONITOR_NR), m_precision(1){}
+	monitor_manage():m_precision(1), m_size(def_TIME_MONITOR_NR), m_bitmap(0){}
 	~monitor_manage(){}
 
 	//return handle for monitor

@@ -60,4 +60,12 @@ cscope.*
 .cproject
 .project
 
+/obj
+*.txt
+*.ini
+*.bak
+
+
+
+project_sensor*
 
