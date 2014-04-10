@@ -5,6 +5,9 @@
 #include <string.h> // memcpy
 #include <string>
 
+using std::string;
+using std::snprintf;
+
 #ifdef LOG_IN_EMBEDED
 static const long int kMilliSecondsPerSecond = 1000;
 static const long int kSecondsPerSecond      = kMilliSecondsPerSecond;

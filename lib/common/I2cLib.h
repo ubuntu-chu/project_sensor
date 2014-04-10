@@ -15,7 +15,14 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 
 extern int I2cMCfg(int iDMACfg, int iIntSources, int iConfig);
@@ -39,3 +46,8 @@ extern int I2cSIDCfg(int iSlaveID0, int iSlaveID1, int iSlaveID2, int iSlaveID3)
 
 #define STRETCH_DIS 0
 #define STRETCH_EN 1
+
+#ifdef __cplusplus
+}
+#endif
+

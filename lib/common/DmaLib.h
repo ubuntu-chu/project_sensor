@@ -16,7 +16,14 @@ The user assumes any and all risk from the use of this code.
 It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 **/
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef struct
 {
@@ -135,5 +142,9 @@ extern int DmaCycleCntCtrl(unsigned int iChan, int iNumx, int iCfg);
 #define iPrimary        0
 #define ALTERNATE      CCD_SIZE
 
+
+#ifdef __cplusplus
+}
+#endif
 
 

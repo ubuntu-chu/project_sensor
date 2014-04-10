@@ -18,11 +18,23 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int ReadRstSta(void);
 extern int ClearRstSta(int iStaClr );
 
 //Reset status.
 #define RST_NONE	0	
+
+#ifdef __cplusplus
+}
+#endif
 
 

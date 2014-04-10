@@ -21,8 +21,21 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 
 **/
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 extern int DacCfg(int iDisable, int iRef, int iDrv, int iMode);
 extern int DacWr(int iChan, int iData);
 extern int DacSync(int iChan, int iSync, int iTime);
 extern int DacDma(int iChan, int iDmaSel);
+
+#ifdef __cplusplus
+}
+#endif
 

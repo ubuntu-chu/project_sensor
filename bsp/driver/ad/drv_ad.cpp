@@ -82,19 +82,6 @@ portuBASE_TYPE drv_adregister(void){
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
     
-	//// Internal ref = 1.5V
-    ADC12CTL0 = ADC12ON+ADC12SHT0_8
-                    +ADC12REFON; // Turn on ADC12, set sampling time
-											// set multiple sample conversion
-	ADC12CTL1 = ADC12SHP+ADC12CONSEQ_0;       // Use sampling timer, set mode
-	
-    ADC12CTL2 = ADC12RES1+ADC12RES0;                            //12bit
-    //ADC12MCTL0为第一个起始转换控制寄存器  在ADC12CTL1中指定
-    ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_11;   //ref: internal 1.5v 
-    
-    ADC12CTL0 |= ADC12ENC;                    // Enable conversions
-    
-    ADC12IE = 0x00;                           // disable ADC12IFG.0
 	
     return DEVICE_OK;
 }
@@ -118,7 +105,7 @@ static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, voi
   
     uint16  rt;
     uint8   *prt    = (uint8 *)buffer;
-    
+#if 0    
     ADC12CTL0 |= ADC12SC;                     // Start conversion
     
     while (!(ADC12IFG & 0x01));
@@ -128,6 +115,7 @@ static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, voi
         *prt = rt & 0x00ff;
     }
     while ((ADC12IFG & 0x01));
+#endif
     size   = 2;
     return size; 
 }

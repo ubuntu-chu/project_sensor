@@ -22,6 +22,15 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 extern int ClkCfg(int iCd, int iClkSrc, int iSysClockDiv, int iClkOut);
 extern int ClkSel(int iSpiCd, int iI2cCd, int iUrtCd, int iPwmCd);
 extern int ClkDis(int iClkDis);
@@ -52,3 +61,9 @@ extern int XOSCCfg(int iXosc);
 #define	CLK_XOFF	0
 #define	CLK_XON		1
 #define	CLK_XON2	5
+
+#ifdef __cplusplus
+}
+#endif
+
+

@@ -2,6 +2,7 @@
 #define _MAIN_H_
 
 #include "../includes/includes.h"
+#if 1
 #include "devices.h"
 #include "protocol.h"
 
@@ -23,11 +24,11 @@ enum{
 };
 
 struct _app_runinfo_{
-    CDevice_base        *m_pdevice_rf231;
+    CDevice_base        *m_pdevice_commu;
     CDevice_base        *m_pdevice_battery;
     CDevice_base        *m_pdevice_log;
     CDevice_base        *m_pdevice_pin;
-    CDevice_base        *m_pdevice_24c02;
+    CDevice_base        *m_pdevice_storage;
 	uint8				m_status;
 	uint8 				m_mode;
 
@@ -50,7 +51,6 @@ private:
     ~CApplication(){}
     CApplication(const CApplication &other);
     CApplication &operator =(const CApplication &other);
-	portBASE_TYPE card_status_send(void);
 	static portBASE_TYPE package_event_handler(frame_ctl_t *pframe_ctl, uint8 func_code, uint8 *pbuf, uint16 len);
 
 	static void period_handle(void *pdata);
@@ -60,7 +60,7 @@ private:
     struct _app_runinfo_    m_app_runinfo;
 };
     
-
+#endif
 
 
 

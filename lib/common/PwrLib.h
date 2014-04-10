@@ -14,8 +14,20 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 		
 **/
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int PwrCfg(int iMode);
 extern int PwrRead(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 

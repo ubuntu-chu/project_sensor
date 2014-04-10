@@ -108,7 +108,7 @@ private:
 class monitor_unit{
 
 public:
-	monitor_unit():m_start(0), m_cnts(0), m_expired_time(0), m_expired(0), m_mode(enum_MODE_ONESHOT){}
+	monitor_unit():m_cnts(0), m_expired_time(0), m_start(0), m_mode(enum_MODE_ONESHOT), m_expired(0){}
 	~monitor_unit(){}
 
 	volatile uint16 			m_cnts;
@@ -127,8 +127,6 @@ public:
 };
 
 extern monitor_manage 	t_monitor_manage;
-
-
 
 #ifdef MINI_TIME_LIBRARY
 

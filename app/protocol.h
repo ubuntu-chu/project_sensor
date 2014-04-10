@@ -136,7 +136,7 @@ public:
 class protocol_mac:public protocol{
 public:
 	protocol_mac();
-	~protocol_mac();
+	virtual ~protocol_mac();
 
 	virtual void init(void);
 	virtual uint16 pack(mac_frame_t* mac_frm_ptr, app_frame_t* app_frm_ptr, uint8_t* ptr, uint8_t* pData);

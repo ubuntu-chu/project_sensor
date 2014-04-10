@@ -33,6 +33,8 @@ private:
 extern class CModelInfo 	c_modeinfo;
 
 
+extern portBASE_TYPE 	errno;
+
 
 
 

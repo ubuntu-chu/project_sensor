@@ -1,8 +1,8 @@
 /******************************************************************************
  *                          ���ļ������õ�ͷ�ļ�
 ******************************************************************************/ 
-#include "battery.h"
-#include "stdio.h"
+#include "ad.h"
+//#include "stdio.h"
 
 CDevice_battery::CDevice_battery(const char *pname, uint16 oflag):CDevice_base(pname, oflag)
 {

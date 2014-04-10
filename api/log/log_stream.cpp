@@ -28,7 +28,7 @@ size_t convert(char buf[], T value)
     *p++ = '-';
   }
   *p = '\0';
-  reverse(buf, p);
+  std::reverse(buf, p);
 
   return p - buf;
 }
@@ -46,7 +46,7 @@ size_t convertHex(char buf[], uintptr_t value)
   } while (i != 0);
 
   *p = '\0';
-  reverse(buf, p);
+  std::reverse(buf, p);
 
   return p - buf;
 }

@@ -41,6 +41,8 @@
 
 #include <string>
 
+using std::string;
+
 class StringPiece {
  private:
   const char*   ptr_;

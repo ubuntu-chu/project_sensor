@@ -18,6 +18,14 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int EiCfg(int iEiNr, int iEnable, int iMode);
 extern int EiClr(int iEiNr);
@@ -43,4 +51,9 @@ extern int EiClr(int iEiNr);
 #define INT_EDGES 0x2
 #define INT_HIGH 0x3
 #define INT_LOW	0x4	
+
+#ifdef __cplusplus
+}
+#endif
+
 

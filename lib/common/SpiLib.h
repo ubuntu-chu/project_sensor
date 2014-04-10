@@ -18,7 +18,14 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int SpiCfg(ADI_SPI_TypeDef *pSPI, int iFifoSize, int iMasterEn, int iConfig);
 extern int SpiRx(ADI_SPI_TypeDef *pSPI);
@@ -30,4 +37,9 @@ extern int SpiTxFifoFlush(ADI_SPI_TypeDef *pSPI, int iTxFlush);
 extern int SpiRxFifoFlush(ADI_SPI_TypeDef *pSPI, int iRxFlush);
 extern int SpiDma(ADI_SPI_TypeDef *pSPI, int iDmaRxSel, int iDmaTxSel, int iDmaEn);
 extern int SpiCountRd(ADI_SPI_TypeDef *pSPI);
+
+#ifdef __cplusplus
+}
+#endif
+
 

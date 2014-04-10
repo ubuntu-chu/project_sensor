@@ -4,6 +4,8 @@
 #include "env_datum.h"
 
 
+portBASE_TYPE 	errno	= 0;
+
 
 #define		_MODEL_NAME 			("card_term")
 //volt:3.0 V

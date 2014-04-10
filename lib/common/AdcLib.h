@@ -28,7 +28,14 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 
 **/
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int AdcRng(ADI_ADC_TypeDef *pPort, int iRef, int iGain, int iCode);
 extern int AdcGo(ADI_ADC_TypeDef *pPort, int iStart);
@@ -62,4 +69,8 @@ extern int AdcDmaCon(int iChan, int iEnable);
 #define	DETCON_RATE_6ms 2
 #define	DETCON_RATE_8ms 3
 
+
+#ifdef __cplusplus
+}
+#endif
 

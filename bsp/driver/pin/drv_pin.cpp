@@ -79,14 +79,8 @@ portuBASE_TYPE drv_pinregister(void){
     return API_DeviceRegister(&st_Device_pin);
 }
 
-#define _PIN_VALUE  		((1UL << 4) | (1UL << 5))
-
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
     
-	//p6.4  p6.5    input pin
-	P6SEL 		&= ~_PIN_VALUE;
-	P6DIR 		&= ~_PIN_VALUE;
-	P6REN 		|= _PIN_VALUE;
 
     return DEVICE_OK;
 }
@@ -109,14 +103,6 @@ static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, co
 static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
   
     uint8   *ptr    = (uint8 *)buffer;
-    
-    //two pin unpressed
-    if ((P6IN & _PIN_VALUE) == _PIN_VALUE){
-
-    	*ptr 	= 0;
-    }else {
-    	*ptr 	= 1;
-    }
 
     return 1;
 }

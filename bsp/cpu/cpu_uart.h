@@ -1,12 +1,14 @@
 #ifndef __CPU_UART_H
 #define __CPU_UART_H
 
-/******************************************************************************
- *                             锟斤拷锟侥硷拷锟斤拷锟斤�?******************************************************************************/
-
-#ifndef    _INCLUDES_H_
-	#include    "../../includes/includes.h"
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 enum{
 	UART_0         =             0,
@@ -54,5 +56,10 @@ void com_info_framedone_set(uint8 uart, uint8 stat);
 /******************************************************************************
  *                             END  OF  FILE                                                                          
 ******************************************************************************/
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

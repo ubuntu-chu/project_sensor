@@ -1,15 +1,9 @@
 #ifndef _INCLUEDES_H_
 #define _INCLUEDES_H_
 
-#include    "types.h"
-#include    "config.h"
-#include    "macro.h"
+#include    "includes-low.h"
 
 //#define		__LINUX_OS__
-
-#include <string.h>
-#include <stdlib.h>
-
 #ifdef	__LINUX_OS__
 
 #include <stdio.h>
@@ -24,8 +18,8 @@
 
 #endif
 
-
 #include "../api/utils.h"
+#include "../app/env_datum.h"
 #include "../bsp/bsp_startup.h"
 #include "../bsp/hal/hal.h"
 #include "../bsp/driver/drv_interface.h"
@@ -35,17 +29,6 @@
 #include "../bsp/cpu/cpu_uart.h"
 #include "../bsp/cpu/cpu_spi.h"
 #include "../bsp/cpu/cpu_iic.h"
-#include "../app/env_datum.h"
-
-
-
-
-
-
-
-
-
-
 
 #endif
 

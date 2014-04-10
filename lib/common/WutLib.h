@@ -15,7 +15,15 @@ to ensure that the resulting application performs as required and is safe.
 **/
 
 
-#include <ADuCM360.h>
+
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int WutCfg(int iMode, int iWake, int iPre, int iClkSrc);
 extern int WutLdWr(int iField, unsigned long lTld);
@@ -26,4 +34,8 @@ extern int WutCfgInt(int iSource, int iEnable);
 extern long WutVal(void);
 extern int WutSta(void);
 extern int WutGo(int iEnable);
+
+#ifdef __cplusplus
+}
+#endif
 

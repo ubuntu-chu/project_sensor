@@ -18,7 +18,14 @@ to ensure that the resulting application performs as required and is safe.
 **/
 
 
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define FA_KEYH (*(volatile unsigned long *) 0x1FFF4)
 #define FA_KEYL (*(volatile unsigned long *) 0x1FFF0)
@@ -37,3 +44,8 @@ extern int FeeIntAbt(unsigned int iAEN0, unsigned int iAEN1, unsigned int iAEN2)
 extern int FeeAbtAdr(void);
 extern int FeeSign(unsigned long ulStartAddr, unsigned long ulEndAddr);
 extern int FeeSig(void);
+
+#ifdef __cplusplus
+}
+#endif
+

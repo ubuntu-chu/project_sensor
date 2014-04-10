@@ -14,6 +14,15 @@ to ensure that the resulting application performs as required and is safe.
 
 *****************************************************************************/
 
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 extern int PwmInit(unsigned int iPWMCP, unsigned int iPWMIEN, unsigned int iSYNC, unsigned int iTRIP);
 extern int PwmClrInt(unsigned int iSource);
 extern int PwmTime(int iPair, unsigned int uiFreq, unsigned int uiPWMH_High, unsigned int uiPWML_High); 
@@ -34,3 +43,8 @@ extern int PwmLoad(int iLoad);
 #define	PWM0_1 0
 #define	PWM2_3 1
 #define	PWM4_5 2
+
+#ifdef __cplusplus
+}
+#endif
+

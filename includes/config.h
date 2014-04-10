@@ -37,9 +37,6 @@
 
 //******************************************************************************
 // WDT_CFG
-//#define WDT_ARST_16000  (WDTPW+WDTCNTCL+WDTSSEL0+WDTIS1+WDTIS0)                         /* 1000ms  " */
-#define WDT_ARST_16000  (WDTPW+WDTCNTCL+WDTSSEL__ACLK + WDTIS__512K)
-#define WDT_CFG         WDT_ARST_16000
 
 
 #define def_FRAME_delimiter	        0x5AA5
@@ -64,13 +61,13 @@
 
 
 //debug  define
-#define    DBG_UART					(UART_0)
+#define    DBG_UART								(UART_0)
 
 
 
 
 
-#define		DEBUG_SWITCH	(1)
+#define		DEBUG_SWITCH	(0)
 
 #define    SYS_LOG_LEV_EMERG		(0)
 #define    SYS_LOG_LEV_ALERT		(1)

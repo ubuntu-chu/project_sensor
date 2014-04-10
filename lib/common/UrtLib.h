@@ -26,7 +26,14 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int UrtCfg(ADI_UART_TypeDef *pPort, int iBaud, int iBits, int iFormat);
 extern int UrtBrk(ADI_UART_TypeDef *pPort, int iBrk);
@@ -52,3 +59,8 @@ extern int UrtIntSta(ADI_UART_TypeDef *pPort);
 #define B115200	115200
 #define B230400	230400
 #define B430800	430800
+
+#ifdef __cplusplus
+}
+#endif
+

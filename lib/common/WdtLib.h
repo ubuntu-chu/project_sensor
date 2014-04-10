@@ -19,10 +19,23 @@ to ensure that the resulting application performs as required and is safe.
 
 **/
 
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 extern int WdtCfg(int iPre, int iInt, int iPd);
 extern int WdtGo(int iEnable);
 extern int WdtLd(int iTld);
 extern int WdtVal(void);
 extern int WdtSta(void);
 extern int WdtClrInt(void);
+
+#ifdef __cplusplus
+}
+#endif
 

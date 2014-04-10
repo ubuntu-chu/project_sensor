@@ -15,7 +15,14 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 
 **/
-#include <ADuCM360.h>
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern int GptCfg(ADI_TIMER_TypeDef *pTMR, int iClkSrc, int iScale, int iMode);
 extern int GptLd(ADI_TIMER_TypeDef *pTMR, int iTLd);
@@ -26,4 +33,8 @@ extern int GptSta(ADI_TIMER_TypeDef *pTMR);
 extern int GptClrInt(ADI_TIMER_TypeDef *pTMR, int iSource);
 extern int GptBsy(ADI_TIMER_TypeDef *pTMR);
 
+
+#ifdef __cplusplus
+}
+#endif
 

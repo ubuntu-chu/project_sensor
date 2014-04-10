@@ -123,7 +123,7 @@ void buf_dump_hex(const char *buf, uint16 len)
 #endif
 }
 
-void bzero(void *s, size_t len)  //把s的前 len 字节设为 0
+void bzero(void *s, size_t len)
 {
     memset(s, 0, len);
 }
@@ -139,8 +139,7 @@ char *reverse(char *str)
     char            *ptail  = str + len -1;
     char            temp;  
     
-    for(portuBASE_TYPE i = 0; i < len/2; ++i){   
-        // 交换前后两个相应位置的字符   
+    for(portuBASE_TYPE i = 0; i < len/2; ++i){    
         temp    = *phead;   
         *phead  = *ptail;   
         *ptail  = temp;   
@@ -152,7 +151,7 @@ void _delay_ms(uint16_t num)
 {
 	uint16_t i = num;
 	for(;i > 0;i--){
-		__delay_cycles(def_MCLK/1000);
+		//__delay_cycles(def_MCLK/1000);
 	}
 }
 
@@ -160,7 +159,7 @@ void _delay_us(uint16_t num)
 {
 	uint16_t i = num;
 	for(;i > 0;i--){
-		__delay_cycles(def_MCLK/1000000);
+		//__delay_cycles(def_MCLK/1000000);
 	}
 }
 

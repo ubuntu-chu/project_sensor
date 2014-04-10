@@ -19,6 +19,14 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 
 **/
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 int IexcCfg(int iPd, int iRefsel, int iPinsel1, int iPinsel0);
 int IexcDat(int iIDAT, int iIDAT0);
@@ -26,4 +34,8 @@ int IexcDat(int iIDAT, int iIDAT0);
 #define IDAT0En   1
 #define IDAT0Dis  0
 
+
+#ifdef __cplusplus
+}
+#endif
 

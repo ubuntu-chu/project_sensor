@@ -143,7 +143,7 @@ Logger::~Logger()
   if (impl_.level_ == FATAL)
   {
     g_flush();
-    abort();
+    while (1);
   }
 }
 

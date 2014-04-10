@@ -92,7 +92,8 @@ portSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
     if (this->process_read(PROC_DONE, buffer, size)){
 		return -1;
 	}
-	if ((buffer != NULL) && (NULL != m_pbuf_data)){
+	if ((buffer != NULL) && (NULL != m_pbuf_data) 
+        && (buffer != reinterpret_cast<char *>(m_pbuf_data))){
 		memcpy(buffer, m_pbuf_data, m_len_data);
 	}
     

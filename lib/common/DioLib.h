@@ -20,7 +20,14 @@ It is the responsibility of the person integrating this code into an application
 to ensure that the resulting application performs as required and is safe.
 
 *****************************************************************************/
-#include "ADuCM360.h"
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define PIN0 0x0 
 #define PIN1 0x1 
@@ -53,5 +60,9 @@ extern int DioClr(ADI_GPIO_TypeDef *pPort, int iVal);
 extern int DioTgl(ADI_GPIO_TypeDef *pPort, int iVal);
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 
