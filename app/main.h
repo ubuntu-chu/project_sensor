@@ -25,7 +25,7 @@ enum{
 
 struct _app_runinfo_{
     CDevice_base        *m_pdevice_commu;
-    CDevice_base        *m_pdevice_battery;
+    CDevice_base        *m_pdevice_ad;
     CDevice_base        *m_pdevice_log;
     CDevice_base        *m_pdevice_pin;
     CDevice_base        *m_pdevice_storage;

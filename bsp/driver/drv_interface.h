@@ -42,9 +42,10 @@
  *                              �豸����
 ******************************************************************************/ 
 
-#include "ad/drv_ad.h"
-#include "pin/drv_pin.h"
-
+#include    "ad/drv_ad.h"
+#include    "pin/drv_pin.h"
+#include    "commu/drv_commu.h"
+#include    "storage/drv_storage.h"
 
 /******************************************************************************
  *                            �ļ��ӿں�������

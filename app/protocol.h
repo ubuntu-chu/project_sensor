@@ -78,8 +78,6 @@ typedef struct{
 
 // BASE FILE
 #define def_FRAME_PHY_LEN_LEN		1
-
-
 #define def_FRAME_DELIMITER_LEN     2
 
 
@@ -123,14 +121,14 @@ enum{
 
 class protocol{
 public:
-	protocol();
-	virtual ~protocol();
+	protocol(){};
+	virtual ~protocol(){};
 
 	virtual void init(void) = 0;
-	virtual uint16 pack(mac_frame_t* mac_frm_ptr, app_frame_t* app_frm_ptr, uint8_t* ptr, uint8_t* pData) = 0;
-	virtual int8	unpack(uint8_t* pbuf, uint16 len, frame_ctl_t *pfrm_ctl)	= 0;
-	virtual void frm_ctl_init(frame_ctl_t *pfrm_ctl, mac_frm_ctrl_t frm_ctl, uint8 total, uint8 index, uint8 func_code, uint8 *pbuf, uint16 len) = 0;
-	virtual mac_frm_ctrl_t mac_frm_ctrl_init(uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type) = 0;
+	virtual uint16 pack(mac_frame_t* mac_frm_ptr, app_frame_t* app_frm_ptr, uint8_t* ptr, uint8_t* pData){return 0;}
+	virtual int8	unpack(uint8_t* pbuf, uint16 len, frame_ctl_t *pfrm_ctl){return 0;}
+	virtual void frm_ctl_init(frame_ctl_t *pfrm_ctl, mac_frm_ctrl_t frm_ctl, uint8 total, uint8 index, uint8 func_code, uint8 *pbuf, uint16 len){}
+	virtual void mac_frm_ctrl_init(mac_frm_ctrl_t *pfrm_ctrl, uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type){}
 };
 
 class protocol_mac:public protocol{
@@ -142,7 +140,7 @@ public:
 	virtual uint16 pack(mac_frame_t* mac_frm_ptr, app_frame_t* app_frm_ptr, uint8_t* ptr, uint8_t* pData);
 	virtual int8	unpack(uint8_t* pbuf, uint16 len, frame_ctl_t *pfrm_ctl);
 	virtual void frm_ctl_init(frame_ctl_t *pfrm_ctl, mac_frm_ctrl_t frm_ctl, uint8 total, uint8 index, uint8 func_code, uint8 *pbuf, uint16 len);
-	virtual mac_frm_ctrl_t mac_frm_ctrl_init(uint8 ack_mask, uint8 dir, uint8 ack_req, uint8 frm_type);
+	virtual void mac_frm_ctrl_init(mac_frm_ctrl_t *pfrm_ctrl, uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type);
 };
 
 extern class protocol_mac 	t_protocol_mac;

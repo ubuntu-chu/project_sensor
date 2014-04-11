@@ -2,6 +2,8 @@
 #include "devices.h"
 #include "ad.h"
 #include "pin.h"
+#include "commu.h"
+#include "storage.h"
 #include "../api/log/log.h"
 
 #if 1
@@ -56,15 +58,14 @@ portBASE_TYPE CApplication::package_event_handler(frame_ctl_t *pframe_ctl, uint8
 
 portBASE_TYPE CApplication::init()
 {
-    static CDevice_battery 		device_battery(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
-    static CDevice_pin 			device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);
-#if 0    
+    static CDevice_ad 		    device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
+    static CDevice_pin 			device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
+    static CDevice_storage 		device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
     static CDevice_commu   		device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
                                              &t_protocol_mac, 
-                                             CApplication::package_event_handler);
-#endif    
+                                             CApplication::package_event_handler);  
     //log setting
-   // Logger::setOutput(debug_output);
+    Logger::setOutput(debug_output);
 #if 0
     {
         struct tm   tm_time;
@@ -81,33 +82,36 @@ portBASE_TYPE CApplication::init()
     }
 #endif
     //device setting
-    m_app_runinfo.m_pdevice_battery 		= &device_battery;
-  //  m_app_runinfo.m_pdevice_rf231 			= &device_rf231;
+    m_app_runinfo.m_pdevice_ad 		        = &device_ad;
+    m_app_runinfo.m_pdevice_commu 			= &device_commu;
+    m_app_runinfo.m_pdevice_storage 	    = &device_storage;
     m_app_runinfo.m_pdevice_pin 			= &device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
 
-	m_app_runinfo.m_handle_period 			= t_monitor_manage.monitor_register(1000, enum_MODE_PERIODIC, period_handle, this);
-	t_monitor_manage.monitor_start(m_app_runinfo.m_handle_period);
-#if 0    
+	m_app_runinfo.m_handle_period 			= t_monitor_manage.monitor_register(1000, 
+                                                enum_MODE_PERIODIC, 
+                                                period_handle, 
+                                                this);
+	t_monitor_manage.monitor_start(m_app_runinfo.m_handle_period);  
     if (m_app_runinfo.m_pdevice_commu->open()){
 		//SYS_LOG("commu device open failed\n");
     }
-#endif
     if (m_app_runinfo.m_pdevice_pin->open()){
 		//SYS_LOG("pin device open failed\n");
     }
-#if 0 
+    if (m_app_runinfo.m_pdevice_ad->open()){
+		//SYS_LOG("pin device open failed\n");
+    }
     if (m_app_runinfo.m_pdevice_storage->open()){
 		//SYS_LOG("storage device open failed\n");
     }
-#endif
     
     return 0;
 }
 
 portBASE_TYPE CApplication::run()
 {
-	//CDevice_rf231 		*pdevice_commu		= (CDevice_rf231 *)m_app_runinfo.m_pdevice_commu;
+	CDevice_commu 		*pdevice_commu		= (CDevice_commu *)m_app_runinfo.m_pdevice_commu;
 	CDevice_pin 	    *pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
     uint8               key;
     
@@ -115,7 +119,7 @@ portBASE_TYPE CApplication::run()
         pdevice_pin->read((char *)&key, sizeof(key)); 
         //key pressed   rf231 in recv mode
         if (!key){
-      //      pdevice_rf231->package_event_fetch();
+            pdevice_commu->package_event_fetch();
         }else {
             if (cpu_timetrig_1s()){
                 

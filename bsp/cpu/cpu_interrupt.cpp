@@ -84,6 +84,11 @@ void cpu_sleep_enter(void)
 	cpu_sleep_status 	= 1; 				   //atomic ops
 }
 
+void cpu_sleep_exit(void)
+{
+	cpu_sleep_status 	= 0; 				   //atomic ops
+}
+
 uint8 cpu_sleep_status_pend(void)
 {
    uint8 tmp 	= cpu_sleep_status;

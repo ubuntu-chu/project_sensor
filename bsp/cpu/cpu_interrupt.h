@@ -38,12 +38,6 @@
 	#include    "../../includes/includes-low.h"
 #endif
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 /******************************************************************************
  *                            文件接口函数声明
 ******************************************************************************/ 
@@ -55,15 +49,12 @@ void cpu_enter_critical(void);
 void cpu_exit_critical(void);
 
 void cpu_sleep_enter(void);
+void cpu_sleep_exit(void);
 uint8 cpu_sleep_status_pend(void);
 
 
 /******************************************************************************
  *                             END  OF  FILE                                                                          
 ******************************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

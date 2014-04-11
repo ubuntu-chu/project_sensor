@@ -11,5 +11,12 @@
 
 #include    "../lib/lib.h"
 
+#include    "../bsp/cpu/cpu_interrupt.h"
+#include    "../bsp/cpu/cpu_tick.h"
+#include    "../bsp/cpu/cpu_gpio.h"
+#include    "../bsp/cpu/cpu_uart.h"
+#include    "../bsp/cpu/cpu_spi.h"
+#include    "../bsp/cpu/cpu_iic.h"
+
 
 #endif

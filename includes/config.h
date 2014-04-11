@@ -43,22 +43,25 @@
 #define def_FRAME_END_delimiter		0xAA55
 
 /*------------------------------------------------------------------
+ *              OS settings
+**------------------------------------------------------------------*/
+#define		LINUX_OS
+
+/*------------------------------------------------------------------
  *              APIs settings
 **------------------------------------------------------------------*/
 //define little endian format
-#define BIG_ENDIAN              				(0)
-
+#define 	BIG_ENDIAN              				(0)
 //define logger
-#define LOGGER
-#define LOG_IN_EMBEDED
-
+#define 	LOGGER
+#define 	LOG_IN_EMBEDED
 //define time monitor count
-#define MONITOR_MANAGE							(1)
-#define def_TIME_MONITOR_NR						(2)
-
+#define 	MONITOR_MANAGE							(1)
+#define 	def_TIME_MONITOR_NR						(2)
 //define time lib
-#define MINI_TIME_LIBRARY
-
+#define 	MINI_TIME_LIBRARY
+#define 	circular buffer
+#define    CIRCULAR_BUFFER
 
 //debug  define
 #define    DBG_UART								(UART_0)

@@ -5,11 +5,6 @@
 	#include    "../../includes/includes-low.h"
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 enum{
 	UART_0         =             0,
 	UART_1,
@@ -56,10 +51,5 @@ void com_info_framedone_set(uint8 uart, uint8 stat);
 /******************************************************************************
  *                             END  OF  FILE                                                                          
 ******************************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif

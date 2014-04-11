@@ -5,19 +5,14 @@
 #ifndef __CPU_TICK_H
 #define __CPU_TICK_H
 
-#include "../../includes/macro.h"
-
 /******************************************************************************
  *                             ���ļ�����
 ******************************************************************************/
 
-#ifndef    _INCLUDES_H_
-	#include    "../../includes/includes.h"
+#ifndef INCLUDES_LOW_H
+	#include    "../../includes/includes-low.h"
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /******************************************************************************
  *                            �ļ��ӿں�������
@@ -37,9 +32,5 @@ portuBASE_TYPE cpu_sys_monitor_run(void);
 /******************************************************************************
  *                             END  OF  FILE                                                                          
 ******************************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

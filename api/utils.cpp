@@ -100,12 +100,11 @@ char *utils_itoa(int num, char *str, int radix) {
 
 void buf_dump_hex(const char *buf, uint16 len)
 {
-#if 	DEBUG_SWITCH > 0
 	uint16 i;
 	uint16 index;
 	uint8 buff[] = "0x00\r\n";
 	uint8 prefix[] = "buf[000] = ";
-	char  chartable[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	char  chartable[] = "0123456789ABCDEF";
 
 	for (i = 0; i < len; i++) {
 
@@ -120,7 +119,6 @@ void buf_dump_hex(const char *buf, uint16 len)
 		buff[3] = chartable[(buf[i] & 0x0f)];
 		SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, buff, strlen((char const * )buff));
 	}
-#endif
 }
 
 void bzero(void *s, size_t len)
@@ -179,6 +177,9 @@ int8 skbuf_queue_put(skbuf_queue_t* lq, uint8 *pbuf, uint16 len)
 		return -1;
 	}
 	pnet_recv_skbuf 		= &(lq->m_net_recv_skbuff[lq->rear]);
+	if (len > _NET_SKBUF_LEN){
+		len 					= _NET_SKBUF_LEN;
+	}
 	pnet_recv_skbuf->m_framelen	= len;
 	if (NULL != pbuf){
 		memcpy(pnet_recv_skbuf->m_buffer, pbuf, len);
@@ -474,3 +475,70 @@ int gettimeofday(struct timeval *tp, void *ignore)
 #endif
 
 
+#ifdef		CIRCULAR_BUFFER
+
+template<int CAPACITY>
+circular_buffer<CAPACITY>::circular_buffer() :
+		beg_index_(0), end_index_(0), size_(0){
+}
+
+template<int CAPACITY>
+circular_buffer<CAPACITY>::~circular_buffer() {
+}
+
+template<int CAPACITY>
+size_t circular_buffer<CAPACITY>::write(const char *data, size_t len) {
+
+	if (len == 0)
+		return 0;
+
+	size_t bytes_to_write = MIN(len, CAPACITY - size_);
+
+	// Write in a single step
+	if (bytes_to_write <= CAPACITY - end_index_) {
+		memcpy(data_ + end_index_, data, bytes_to_write);
+		end_index_ += bytes_to_write;
+		if (end_index_ == CAPACITY)
+			end_index_ = 0;
+	}
+	// Write in two steps
+	else {
+		size_t size_1 = CAPACITY - end_index_;
+		memcpy(data_ + end_index_, data, size_1);
+		size_t size_2 = bytes_to_write - size_1;
+		memcpy(data_, data + size_1, size_2);
+		end_index_ = size_2;
+	}
+
+	size_ += bytes_to_write;
+	return bytes_to_write;
+}
+
+template<int CAPACITY>
+size_t circular_buffer<CAPACITY>::read(char *data, size_t len) {
+	if (len == 0)
+		return 0;
+
+	size_t bytes_to_read = MIN(len, size_);
+
+	// Read in a single step
+	if (bytes_to_read <= CAPACITY - beg_index_) {
+		memcpy(data, data_ + beg_index_, bytes_to_read);
+		beg_index_ += bytes_to_read;
+		if (beg_index_ == CAPACITY)
+			beg_index_ = 0;
+	}
+	// Read in two steps
+	else {
+		size_t size_1 = CAPACITY - beg_index_;
+		memcpy(data, data_ + beg_index_, size_1);
+		size_t size_2 = bytes_to_read - size_1;
+		memcpy(data + size_1, data_, size_2);
+		beg_index_ = size_2;
+	}
+
+	size_ -= bytes_to_read;
+	return bytes_to_read;
+}
+
+#endif

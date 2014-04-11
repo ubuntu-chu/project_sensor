@@ -4,8 +4,36 @@
 #include "../includes/includes.h"
 
 
-#define 						_NET_SKBUF_CNTS					 (5)
-#define 						_NET_SKBUF_LEN					 (130)
+#ifdef		CIRCULAR_BUFFER
+
+template<int CAPACITY>
+class circular_buffer: copyable
+{
+public:
+	circular_buffer();
+	~circular_buffer();
+
+	size_t size() const {
+		return size_;
+	}
+	size_t capacity() const {
+		return CAPACITY;
+	}
+	size_t write(const char *data, size_t bytes);
+	size_t read(char *data, size_t bytes);
+
+private:
+	size_t beg_index_, end_index_, size_;
+	char data_[CAPACITY];
+};
+
+#endif
+
+
+
+
+#define		_NET_SKBUF_CNTS					 	(5)
+#define		_NET_SKBUF_LEN					 	(130)
 
 struct net_recv_skbuff{
 	uint8 			m_buffer[_NET_SKBUF_LEN];

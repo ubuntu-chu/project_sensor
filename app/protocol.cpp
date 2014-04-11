@@ -1,10 +1,6 @@
-/******************************************************************************
- *                          锟斤拷锟侥硷拷锟斤拷锟斤拷锟矫碉拷头锟侥硷拷
- ******************************************************************************/
-
 #include "protocol.h"
 
-uint16_t          seq_id;
+uint16_t    seq_id = 0;
 
 uint16_t seq_id_get(void)
 {
@@ -20,16 +16,6 @@ uint16_t frm_ck_sum(uint8_t * ptr, uint16_t len) {
 	}
 
 	return val;
-}
-
-protocol::protocol()
-{
-
-}
-
-protocol::~protocol()
-{
-
 }
 
 protocol_mac::protocol_mac()
@@ -176,17 +162,13 @@ void protocol_mac::frm_ctl_init(frame_ctl_t *pfrm_ctl, mac_frm_ctrl_t frm_ctl, u
 	pfrm_ctl->data_ptr 			= (uint8_t *)pbuf;
 }
 
-mac_frm_ctrl_t protocol_mac::mac_frm_ctrl_init(uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type)
+void protocol_mac::mac_frm_ctrl_init(mac_frm_ctrl_t *pfrm_ctrl, uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type)
 {
-	mac_frm_ctrl_t t_frm_ctrl;
-
-	memset(&t_frm_ctrl, 0, sizeof(mac_frm_ctrl_t));
-    t_frm_ctrl.ack_mask 		= ack;
-    t_frm_ctrl.direction 		= dir;
-	t_frm_ctrl.ack_req 			= ack_req;
-	t_frm_ctrl.frm_type 		= frm_type;
-
-	return t_frm_ctrl;
+	memset(pfrm_ctrl, 0, sizeof(mac_frm_ctrl_t));
+    pfrm_ctrl->ack_mask 		= ack;
+    pfrm_ctrl->direction 		= dir;
+	pfrm_ctrl->ack_req 			= ack_req;
+	pfrm_ctrl->frm_type 		= frm_type;
 }
 
 class protocol_mac 	t_protocol_mac;

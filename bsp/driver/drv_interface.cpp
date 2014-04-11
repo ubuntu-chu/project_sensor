@@ -12,6 +12,8 @@ static FP_pfregister *const sc_pfdriverarray[]               = {
     
         drv_adregister,
         drv_pinregister,
+        drv_commuregister,
+        drv_storageregister,
     };
 
 /******************************************************************************

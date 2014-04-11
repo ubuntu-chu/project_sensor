@@ -32,8 +32,11 @@ typedef int 										portBASE_TYPE;
 typedef unsigned int 								portuBASE_TYPE;
 //中断寄存器类型定义
 typedef unsigned int 								portCPSR_TYPE;
+#ifndef		LINUX_OS
 //时间类型定义
 typedef unsigned long int 						time_t;
+//typedef int 										size_t;
+#endif
 //intptr_t ,uintptr_t : 表示当前平台下能够安全地对指针进行转型的整型变量
 typedef unsigned int      						uintptr_t;
 typedef int               							intptr_t;

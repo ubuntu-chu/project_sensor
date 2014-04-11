@@ -1,18 +1,18 @@
-#ifndef _APP_BATTERY_
-#define _APP_BATTERY_
+#ifndef _APP_AD_
+#define _APP_AD_
 
 #include "../includes/includes.h"
 #include "devices.h"
 
 
 
-class CDevice_battery:public CDevice_base{
+class CDevice_ad:public CDevice_base{
 public:
-    CDevice_battery(const char *pname, uint16 oflag);
-    virtual ~CDevice_battery();
+    CDevice_ad(const char *pname, uint16 oflag);
+    virtual ~CDevice_ad();
 private:
-    CDevice_battery(const CDevice_battery &other);
-    CDevice_battery &operator =(const CDevice_battery &other);
+    CDevice_ad(const CDevice_ad &other);
+    CDevice_ad &operator =(const CDevice_ad &other);
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 
     uint8           m_data[2];
