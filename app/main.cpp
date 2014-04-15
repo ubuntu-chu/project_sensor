@@ -25,10 +25,8 @@ CApplication *CApplication::GetInstance(void)
     return (m_pcapplicaiton);
 }
 
-portBASE_TYPE CApplication::package_event_handler(frame_ctl_t *pframe_ctl, uint8 func_code, uint8 *pbuf, uint16 len)
+portBASE_TYPE CApplication::package_event_handler(uint8 func_code, uint8 *pbuf, uint16 len)
 {
-	uint8			rsp						= RSP_OK;
-    uint8           fliter                  = 0;
     CApplication  	*pcapplication    		= CApplication::GetInstance();
 
 #if 0    
@@ -62,7 +60,7 @@ portBASE_TYPE CApplication::init()
     static CDevice_pin 			device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
     static CDevice_storage 		device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
     static CDevice_commu   		device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
-                                             &t_protocol_mac, 
+                                             &t_protocol_modbus_rtu,
                                              CApplication::package_event_handler);  
     //log setting
     Logger::setOutput(debug_output);
@@ -106,7 +104,16 @@ portBASE_TYPE CApplication::init()
     if (m_app_runinfo.m_pdevice_storage->open()){
 		//SYS_LOG("storage device open failed\n");
     }
-    
+    t_protocol_modbus_rtu.slave_set(1);
+    t_protocol_modbus_rtu.modbus_mapping_set(def_NR_TAB_BITS,
+                                        def_NR_TAB_INPUT_BITS,
+                                        def_NR_TAB_INPUT_REGS,
+                                        def_NR_TAB_REGS,
+                                        t_modeinfo.m_tab_bits,
+                                        t_modeinfo.m_tab_input_bits,
+                                        t_modeinfo.m_tab_input_registers,
+                                        t_modeinfo.m_tab_registers);
+
     return 0;
 }
 
@@ -114,48 +121,45 @@ portBASE_TYPE CApplication::run()
 {
 	CDevice_commu 		*pdevice_commu		= (CDevice_commu *)m_app_runinfo.m_pdevice_commu;
 	CDevice_pin 	    *pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
-    uint8               key = 1;
     
     while(1){
         //pdevice_pin->read((char *)&key, sizeof(key)); 
         //key pressed   rf231 in recv mode
-        if (!key){
-            pdevice_commu->package_event_fetch();
+        pdevice_commu->package_event_fetch();
+#if 0
+        uint8 buffer[100];
+        uint8 len_buf[10];
+        portSIZE_TYPE len = 100;
+        portSIZE_TYPE len_len;
+        
+        //pdevice_commu->write((char *)("wait for recv\n"));
+        if (-1 == (len = pdevice_commu->read(reinterpret_cast<char *>(buffer), len))){
+            
+//                 pdevice_commu->write((char *)("wait for recv timeout\n"));
         }else {
-            uint8 buffer[100];
-            uint8 len_buf[10];
-            portSIZE_TYPE len = 100;
-            portSIZE_TYPE len_len;
+               len_len = sprintf((char *)len_buf, "len = %d\n", len);
+//                 pdevice_commu->write((char *)len_buf, len_len);
+//                 pdevice_commu->write((char *)("buf = "));
+//                 pdevice_commu->write((char *)buffer, len);
+//                 pdevice_commu->write((char *)("\n"));
+        }
+  #endif      
+        if (cpu_timetrig_1s()){
             
-            pdevice_commu->write((char *)("wait for recv\n"));
-            if (-1 == (len = pdevice_commu->read(reinterpret_cast<char *>(buffer), len))){
-                
-                pdevice_commu->write((char *)("wait for recv timeout\n"));
-            }else {
-                len_len = sprintf((char *)len_buf, "len = %d\n", len);
-                pdevice_commu->write((char *)len_buf, len_len);
-                pdevice_commu->write((char *)("buf = "));
-                pdevice_commu->write((char *)buffer, len);
-                pdevice_commu->write((char *)("\n"));
-            }
             
-            if (cpu_timetrig_1s()){
-                
-                
-                //LOG_INFO << "now time is:" << cpu_sys_time_get();
+            //LOG_INFO << "now time is:" << cpu_sys_time_get();
 #undef DEBUG_SWITCH
 #define DEBUG_SWITCH  0
 #if(DEBUG_SWITCH > 0)       
-                {
-                    uint8 buffer[100];
-                    uint16 len;
-                    
-                    len  = sprintf((char *)buffer, "now time is: %ld\n", cpu_sys_time_get());
-                    pdevice_commu->write(reinterpret_cast<char *>(buffer), len);
-                    //SYS_LOG_LEV_TINY(SYS_LOG_LEV_NOTICE, buffer);
-                }
-#endif
+            {
+                uint8 buffer[100];
+                uint16 len;
+                
+                len  = sprintf((char *)buffer, "now time is: %ld\n", cpu_sys_time_get());
+                pdevice_commu->write(reinterpret_cast<char *>(buffer), len);
+                //SYS_LOG_LEV_TINY(SYS_LOG_LEV_NOTICE, buffer);
             }
+#endif
         }
     };
     
@@ -167,7 +171,6 @@ void CApplication::period_handle(void *pdata)
 	CApplication *papplication  = static_cast<CApplication *> (pdata);
     
     cpu_led_toggle();
-//	t_monitor_manage.monitor_start(papplication->m_app_runinfo.m_handle_period);
 }
 #endif
 

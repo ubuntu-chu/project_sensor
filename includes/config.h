@@ -34,6 +34,14 @@
 #define     CIRCULAR_BUFFER
 #define     BUF_QUEUE
 
+//define  crc16
+#define     CRC16
+//#define    SUM16
+
+//define  modbus
+#define     MODBUS
+//#define    RAW_MAC
+
 //debug  define
 #define    DBG_UART								(UART_0)
 

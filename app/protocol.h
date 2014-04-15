@@ -3,6 +3,36 @@
 
 #include "../includes/includes.h"
 
+
+
+class protocol{
+public:
+	protocol(){};
+	virtual ~protocol(){};
+
+	virtual void init(void) = 0;
+    virtual uint16 pack(uint8_t*dst, uint8 *src, uint16 len){return 0;}
+	virtual int8   unpack(uint8_t* pbuf, uint16 len){return 0;}
+};
+
+#ifdef RAW_MAC
+
+
+// BASE FILE
+#define def_FRAME_PHY_LEN_LEN		1
+#define def_FRAME_DELIMITER_LEN     2
+
+enum{
+	RSP_OK		= 0,
+	RSP_INVALID_CMD,
+	RSP_INVALID_PARAM,
+	RSP_EXEC_FAILURE,
+	RSP_INVALID_PARAM_LEN,
+	RSP_ABILITY_ERR,
+	//主动模式丿收到应答帿	RSP_ACK_IN_ACTIVE_MODE,
+	RSP_TYPE_ERR,
+};
+
 typedef enum{
 	FRAME_TYPE_CTRL = 0x00,		//
 	FRAME_TYPE_HEARTBEAT,		//
@@ -23,17 +53,6 @@ enum{
 enum{
 	NO_ACK_FRAME		= 0,
 	ACK_FRAME,
-};
-
-enum{
-	RSP_OK		= 0,
-	RSP_INVALID_CMD,
-	RSP_INVALID_PARAM,
-	RSP_EXEC_FAILURE,
-	RSP_INVALID_PARAM_LEN,
-	RSP_ABILITY_ERR,
-	//主动模式�?收到应答�?	RSP_ACK_IN_ACTIVE_MODE,
-	RSP_TYPE_ERR,
 };
 
 typedef struct{
@@ -75,13 +94,6 @@ typedef struct{
 	uint8_t*	data_ptr;
 }frame_ctl_t;
 
-
-// BASE FILE
-#define def_FRAME_PHY_LEN_LEN		1
-#define def_FRAME_DELIMITER_LEN     2
-
-
-
 //function code
 enum{
 	def_FUNC_CODE_HEARBEAT	= 1,
@@ -119,18 +131,6 @@ enum{
 #define def_FRAME_APP_HEAD_LEN		def_FRAME_FUN_LEN + def_FRAME_SUM_PACK_LEN
 
 
-class protocol{
-public:
-	protocol(){};
-	virtual ~protocol(){};
-
-	virtual void init(void) = 0;
-	virtual uint16 pack(mac_frame_t* mac_frm_ptr, app_frame_t* app_frm_ptr, uint8_t* ptr, uint8_t* pData){return 0;}
-	virtual int8	unpack(uint8_t* pbuf, uint16 len, frame_ctl_t *pfrm_ctl){return 0;}
-	virtual void frm_ctl_init(frame_ctl_t *pfrm_ctl, mac_frm_ctrl_t frm_ctl, uint8 total, uint8 index, uint8 func_code, uint8 *pbuf, uint16 len){}
-	virtual void mac_frm_ctrl_init(mac_frm_ctrl_t *pfrm_ctrl, uint8 ack, uint8 dir, uint8 ack_req, uint8 frm_type){}
-};
-
 class protocol_mac:public protocol{
 public:
 	protocol_mac();
@@ -145,14 +145,7 @@ public:
 
 extern class protocol_mac 	t_protocol_mac;
 
-
-
-
-
-
-
-
-
+#endif
 
 #endif
 

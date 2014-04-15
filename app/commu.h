@@ -11,22 +11,18 @@ enum{
 	EVENT_CMD,
 };
 
-typedef portBASE_TYPE (*package_event_handler)(frame_ctl_t *pframe_ctl, uint8 func_code, uint8 *pbuf, uint16 len);
+typedef portBASE_TYPE (*package_event_handler)(uint8 func_code, uint8 *pbuf, uint16 len);
 
 class CDevice_commu:public CDevice_base{
 public:
     CDevice_commu(const char *pname, uint16 oflag, class protocol *pprotocol, package_event_handler handler);
     virtual ~CDevice_commu();
-	portBASE_TYPE package_send_status(char *pbuf, uint16 len);
-	portBASE_TYPE package_send_rsp(uint8 func_code, uint8 *prsp, uint16 len);
 	portBASE_TYPE package_event_fetch(void);
-	frame_ctl_t *frame_ctl_ptr_get(void);
 private:
     CDevice_commu(const CDevice_commu &other);
     CDevice_commu &operator =(const CDevice_commu &other);
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 	virtual portBASE_TYPE process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
-	portBASE_TYPE package_send(uint8 func_code, mac_frm_ctrl_t frm_ctl, char *pbuf, uint16 len);
 	portBASE_TYPE package_recv_handle(uint8 event, uint8 func_code, uint8 *pcontinue);
     uint8					m_buffrecv[155];
     uint8					m_buffsend[200];
@@ -34,7 +30,6 @@ private:
 
     //pointer to protocol
     class protocol			*m_pprotocol;
-    frame_ctl_t 			m_frm_ctl;
 
 };    
     

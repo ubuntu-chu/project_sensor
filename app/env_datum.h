@@ -3,34 +3,31 @@
 
 #include "../includes/includes.h"
 
+#define     def_NR_TAB_BITS                 1
+#define     def_NR_TAB_INPUT_BITS           1
+#define     def_NR_TAB_INPUT_REGS           10
+#define     def_NR_TAB_REGS                 10
 
 
 class 	CModelInfo{
 public:
-	CModelInfo(uint8 *pname, uint8 battery_volt, uint8 dev_type, 
-               uint32 dev_addr, uint32 sensor_addr):m_name(pname),
-                m_battery_volt(battery_volt), m_dev_type(dev_type), 
-                m_dev_addr(dev_addr), m_sensor_addr(sensor_addr){}
+	CModelInfo(uint8 *pname):m_name(pname){}
     ~CModelInfo(){}
     
-    uint8	battery_volt_get(void) {return m_battery_volt;}
-    uint8	dev_type_get(void) {return m_dev_type;}
-    uint32	dev_addr_get(void) {return m_dev_addr;}
-    uint32	sensor_addr_get(void) {return m_sensor_addr;}
 
 private:
     CModelInfo( CModelInfo &other);
     CModelInfo &operator =( CModelInfo &other);
 
-     uint8 			    *m_name;
-
-     uint8              m_battery_volt;
-     uint8				m_dev_type;
-     uint32				m_dev_addr;
-     uint32				m_sensor_addr;
+public:
+    uint8                   *m_name;
+    uint8 			        m_tab_bits[def_NR_TAB_BITS];
+    uint8 			        m_tab_input_bits[def_NR_TAB_INPUT_BITS];
+    uint16 			        m_tab_input_registers[def_NR_TAB_INPUT_REGS];
+    uint16			        m_tab_registers[def_NR_TAB_REGS];
 };
 
-extern class CModelInfo 	c_modeinfo;
+extern class CModelInfo 	t_modeinfo;
 
 
 extern portBASE_TYPE 	errno;

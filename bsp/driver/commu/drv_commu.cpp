@@ -59,15 +59,17 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     DeviceStatus_TYPE   rt = DEVICE_OK;
     
     
-
+    _drv_ioctl(pdev, COMMU_IOC_RX_ENTER, NULL);
     return rt;
 }
 
 static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
     void *pbuf  = const_cast<void *>(buffer);
+    portSIZE_TYPE  len = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
     
-    return uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
+    _drv_ioctl(pdev, COMMU_IOC_RX_ENTER, NULL);
+    return len;
 }
 
 static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
@@ -83,7 +85,10 @@ static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, voi
     }
     size = static_cast<portSIZE_TYPE>(uart_poll(UART_0, (int8 *)buffer, &len, timeout));
     if (static_cast<portSIZE_TYPE>(-1) == size){
-        API_DeviceErrorInfoSet((timeout == 0)?(DEVICE_EAGAIN):(DEVICE_ETIMEOUT));
+        API_DeviceErrorInfoSet(DEVICE_ETIMEOUT);
+    }if (static_cast<portSIZE_TYPE>(0) == size){
+        API_DeviceErrorInfoSet(DEVICE_EAGAIN);
+        size                            = -1;
     }else {
         size                            = len;
     }

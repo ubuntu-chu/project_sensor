@@ -248,6 +248,14 @@ int gettimeofday(struct timeval *tp, void *ignore);
 
 #endif
 
+#ifdef		CRC16
+uint16 crc16(const int8 *buf, uint16 len);
+#endif
+
+#ifdef		SUM16
+uint16 sum16(const uint8 * ptr, uint16 len)
+#endif
+
 #endif
 
 

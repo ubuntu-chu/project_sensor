@@ -5,6 +5,7 @@
 #if 1
 #include "devices.h"
 #include "protocol.h"
+#include "modbus.h"
 
 enum{
 	STAT_OK				= 0,
@@ -51,7 +52,7 @@ private:
     ~CApplication(){}
     CApplication(const CApplication &other);
     CApplication &operator =(const CApplication &other);
-	static portBASE_TYPE package_event_handler(frame_ctl_t *pframe_ctl, uint8 func_code, uint8 *pbuf, uint16 len);
+	static portBASE_TYPE package_event_handler(uint8 func_code, uint8 *pbuf, uint16 len);
 
 	static void period_handle(void *pdata);
 

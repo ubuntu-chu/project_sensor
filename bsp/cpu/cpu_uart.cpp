@@ -117,6 +117,7 @@ portBASE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
                                                 "poll timeout");
             ASSERT(m_handle_rx != (monitor_handle_type)-1);
         }
+        t_monitor_manage.monitor_stop(m_handle_rx);
         t_monitor_manage.monitor_expired_time_set(m_handle_rx, timeout);
         t_monitor_manage.monitor_start(m_handle_rx);
     }
