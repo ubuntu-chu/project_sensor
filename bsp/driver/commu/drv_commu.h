@@ -11,8 +11,8 @@
 
 
 
-#define        DEVICE_NAME_COMMU                                  ("COMMU")
-
+#define     DEVICE_NAME_COMMU                       ("COMMU")
+#define		COMMU_IOC_RX_ENTER				        (DEVICE_IOC_USER+1)
 
 
 

@@ -62,18 +62,12 @@ portBASE_TYPE bsp_startup(void)
     
 	//init hal
     hal_init();
+#ifdef		SKBUF_QUEUE
     //net queue init
     net_queue_init();
+#endif
     //enable int
 	cpu_interruptEnableNow();
-
-
-//	while (1){
-//
-////		_delay_ms(1);
-//		_delay_us(40);
-//		cpu_led_toggle();
-	//}
     
     return 0;
 }

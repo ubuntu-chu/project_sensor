@@ -18,22 +18,36 @@ void cpu_sys_time_set(time_t val)
 	cpu_interruptEnable(level);
 }
 
+void tick_handle(void *pvoid)
+{
+    sys_tick++;
+    time_trig_1s 		= 1;
+}
+
 //time: 500 ms  interrupt
 portBASE_TYPE cpu_sys_tick_run(void)
 {
-	
-    t_monitor_manage.precision_set(1000);     //unit: ms
-#if 0
+	monitor_handle_type handle_tick;
+    
+    t_monitor_manage.precision_set(50);     //unit: ms
+    handle_tick   = t_monitor_manage.monitor_register(1000, 
+                                                enum_MODE_PERIODIC, 
+                                                tick_handle, 
+                                                NULL,
+                                                "tick handle");
+    t_monitor_manage.monitor_start(handle_tick);  
+#if 1
 	//Timer 0 setup to re-start every 64mS
-	GptLd(pADI_TM0, 0x1000);// Time-out period of 256 clock pulese
-	GptCfg(pADI_TM0, TCON_CLK_UCLK, TCON_PRE_DIV256,
-			TCON_MOD | TCON_RLD | TCON_ENABLE);  // T0 config, Uclk/256,
-#endif
+	GptLd(pADI_TM0, 50000);// Time-out period of 50ms
+	GptCfg(pADI_TM0, TCON_CLK_UCLK, TCON_PRE_DIV16,
+			TCON_MOD | TCON_RLD | TCON_ENABLE);  // T0 config, Uclk/16, 1MHz
+    NVIC_EnableIRQ(TIMER0_IRQn);
+#else
 	//Timer 1 setup
-	   GptLd(pADI_TM1,0xFFFA);                                  // Set timeout period for 5 seconds
-	   GptCfg(pADI_TM1,TCON_CLK_LFOSC,TCON_PRE_DIV32768,TCON_MOD_PERIODIC|TCON_UP|TCON_RLD|TCON_ENABLE);
-	   NVIC_EnableIRQ(TIMER1_IRQn);                          // Enable Timer1 IRQ
-
+	GptLd(pADI_TM1,0xFFFA);                                  // Set timeout period for 5 seconds
+	GptCfg(pADI_TM1,TCON_CLK_LFOSC,TCON_PRE_DIV32768,TCON_MOD_PERIODIC|TCON_UP|TCON_RLD|TCON_ENABLE);
+	NVIC_EnableIRQ(TIMER1_IRQn);                          // Enable Timer1 IRQ
+#endif
 	return 0;
 }
 
@@ -46,32 +60,23 @@ portBASE_TYPE cpu_timetrig_1s(void)
 	return (rt)?(1):(0);
 }
 
+extern "C" void GP_Tmr0_Int_Handler(void)
+{
+    portCPSR_TYPE	level = cpu_interruptDisable();
+    
+    GptClrInt(pADI_TM0,TSTA_TMOUT);  // Clear T0 interrupt
+    t_monitor_manage.run();
+    if (cpu_sleep_status_pend()){
+        cpu_sleep_exit();
+    }
+    cpu_interruptEnable(level);
+}
+
 extern "C" void GP_Tmr1_Int_Handler(void)
 {
-    static portBASE_TYPE s_loop 	= 0;
-    
-    GptClrInt(pADI_TM1,TSTA_TMOUT);  // Clear T1 interrupt
-   
-	s_loop++;
-	if (s_loop >= 1){
-		s_loop				= 0;
-		sys_tick++;
-		time_trig_1s 		= 1;
-		t_monitor_manage.run();
-        //cpu_led_toggle();
-		if (cpu_sleep_status_pend()){
-			cpu_sleep_exit();
-		}
-	}
 }
 
-
-void GP_Tmr0_Int_Handler(void)
-{
-}
-
-
-void WDog_Tmr_Int_Handler(void)
+extern "C" void WDog_Tmr_Int_Handler(void)
 {
 }
 

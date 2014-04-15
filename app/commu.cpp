@@ -28,14 +28,19 @@ portBASE_TYPE CDevice_commu::process_read(enum PROC_PHASE phase, char *pbuf, por
 {
 	switch (phase){
 	case PROC_PREPARE:
+		CDevice_base::process_read(phase, pbuf, size);
 		break;
 
 	case PROC_DONE:
+
+#if 0
 		if (0 != m_pprotocol->unpack(m_pbuf_recv, m_len_recv, &m_frm_ctl)) {
 			return -1;
 		}
 		m_pbuf_data 		= m_frm_ctl.data_ptr;
 		m_len_data 	        = m_frm_ctl.app_frm_ptr.len;
+#endif
+        m_len_data      = size;
 		break;
 
 	default:
@@ -49,12 +54,15 @@ portBASE_TYPE CDevice_commu::process_write(enum PROC_PHASE phase, char *pbuf, po
 {
 	switch (phase){
 	case PROC_PREPARE:
+#if 0
 		{
 			frame_ctl_t *pframe_ctl  	= (frame_ctl_t *)pbuf;
 			//format  send buff
 			m_len_send = m_pprotocol->pack(&(pframe_ctl->mac_frm_ptr), &(pframe_ctl->app_frm_ptr),
 							m_pbuf_send, pframe_ctl->data_ptr);
 		}
+#endif
+		CDevice_base::process_write(phase, pbuf, size);
 		break;
 
 	case PROC_DONE:

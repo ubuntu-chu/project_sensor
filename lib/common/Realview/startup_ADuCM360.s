@@ -117,6 +117,7 @@ __Vectors_Size  EQU  __Vectors_End - __Vectors
 
                 AREA    |.text|, CODE, READONLY
 
+
 ; Reset handler
 Reset_Handler    PROC
                  EXPORT  Reset_Handler             [WEAK]
@@ -124,6 +125,7 @@ Reset_Handler    PROC
         IMPORT  __main
                  ;LDR     R0, =SystemInit
                  ;BLX     R0
+                 CPSID    I    ;PRIMASK=1，关中断
                  LDR     R0, =__main
                  BX      R0
                  ENDP
@@ -262,7 +264,6 @@ PWM2_Int_Handler
                 B       .
 
                 ENDP
-
                 ALIGN
 
 ;*******************************************************************************
@@ -298,14 +299,14 @@ __user_initial_stackheap
 
 
 
+            AREA |.text|, CODE, READONLY, ALIGN=2
+            THUMB
+                REQUIRE8
+                PRESERVE8
 
 
 
-
-
-
-
-
+                END
 
 
 

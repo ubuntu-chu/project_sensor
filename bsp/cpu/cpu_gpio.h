@@ -10,6 +10,7 @@
 ******************************************************************************/
 
 #ifndef INCLUDES_LOW_H
+#define INCLUDES_LOW_H
 	#include    "../../includes/includes-low.h"
 #endif
 
@@ -75,7 +76,7 @@ typedef enum{
 
 extern portBASE_TYPE cpu_gpioinit(void);
 
-extern void cpu_led_toggle(void);
+void cpu_led_toggle(void);
 
 /******************************************************************************
  *                             END  OF  FILE                                                                          

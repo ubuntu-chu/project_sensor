@@ -1,7 +1,11 @@
 #include "utils.h"
 
 
-monitor_handle_type monitor_manage::monitor_register(uint16 expired_time, uint8 mode, pf_void *func, void *data)
+monitor_handle_type monitor_manage::monitor_register(uint16 expired_time, 
+                                                    uint8 mode, 
+                                                    pf_void *func, 
+                                                    void *data,
+                                                    const char *pname)
 {
 	monitor_handle_type handle;
 	portuBASE_TYPE 		i;
@@ -22,6 +26,7 @@ monitor_handle_type monitor_manage::monitor_register(uint16 expired_time, uint8 
 	monitor_expired_time_set(handle, expired_time);
 	m_monitor[handle].m_pfunc 				= func;
 	m_monitor[handle].m_pdata 				= data;
+    m_monitor[handle].m_pname 				= pname;
     
     return handle;
 }
@@ -37,6 +42,7 @@ bool monitor_manage::monitor_unregister(monitor_handle_type handle)
     return true;
 }
 
+//运行于中断上下文
 void monitor_manage::run(void)
 {
 	portuBASE_TYPE 		i;
@@ -161,107 +167,124 @@ void _delay_us(uint16_t num)
 	}
 }
 
-void skbuf_queue_init(skbuf_queue_t* lq)
-{
+#ifdef		BUF_QUEUE
 
+void buf_queue_init(buf_queue_t* lq)
+{
 	lq->front               = lq->rear = 0;
 	lq->size                = 0;
-    lq->capacity            = _NET_SKBUF_CNTS;
+    lq->capacity            = QUEUE_BUF_CNTS;
 }
 
-int8 skbuf_queue_put(skbuf_queue_t* lq, uint8 *pbuf, uint16 len)
+int8 buf_queue_put(buf_queue_t* lq, int8 *pbuf, uint16 len)
 {
-	net_recv_skbuff_t 	*pnet_recv_skbuf;
+	rx_buf_t 	*prx_buf;
+    uint8 		 rear;
+    portCPSR_TYPE	level;
 
 	if (lq->size >= lq->capacity){
 		return -1;
 	}
-	pnet_recv_skbuf 		= &(lq->m_net_recv_skbuff[lq->rear]);
-	if (len > _NET_SKBUF_LEN){
-		len 					= _NET_SKBUF_LEN;
-	}
-	pnet_recv_skbuf->m_framelen	= len;
-	if (NULL != pbuf){
-		memcpy(pnet_recv_skbuf->m_buffer, pbuf, len);
-	}
-	lq->rear = (lq->rear + 1) % lq->capacity;
+    level 		                = cpu_interruptDisable();
+    rear                        = lq->rear;
+    lq->rear = (lq->rear + 1) % lq->capacity;
 	lq->size++;
+    cpu_interruptEnable(level);
+    
+	prx_buf 		            = &(lq->m_rx_buf[rear]);
+	if (len > QUEUE_BUF_LEN){
+		len 					= QUEUE_BUF_LEN;
+	}
+	prx_buf->m_len	= len;
+	if (NULL != pbuf){
+		memcpy(prx_buf->m_buf, pbuf, len);
+	}
 
 	return 0;
 }
 
-int8 skbuf_queue_get(skbuf_queue_t* lq, uint8 *pbuf, uint16 *len)
+int8 buf_queue_get(buf_queue_t* lq, int8 *pbuf, uint16 *len)
 {
-	net_recv_skbuff_t 	*pnet_recv_skbuf;
-	portCPSR_TYPE	level 		= cpu_interruptDisable();
+	rx_buf_t 	    *prx_buf;
+    uint8			front;
+	portCPSR_TYPE	level;
 
 	if (lq->size <= 0){
-		cpu_interruptEnable(level);
 		return -1;
 	}
+    level 		                = cpu_interruptDisable();
 	lq->size--;
+    front                       = lq->front;
+    lq->front = (lq->front + 1) % lq->capacity;
 	cpu_interruptEnable(level);
-	pnet_recv_skbuf 		= &(lq->m_net_recv_skbuff[lq->front]);
+    
+	prx_buf 		= &(lq->m_rx_buf[front]);
 	if (NULL != len){
-		*len				= pnet_recv_skbuf->m_framelen;
+		*len				    = prx_buf->m_len;
 	}
 	if (NULL != pbuf){
-		memcpy(pbuf, pnet_recv_skbuf->m_buffer, pnet_recv_skbuf->m_framelen);
+		memcpy(pbuf, prx_buf->m_buf, prx_buf->m_len);
 	}
-	lq->front = (lq->front + 1) % lq->capacity;
-
+	
 	return 0;
 }
 
-int8 skbuf_queue_pick(skbuf_queue_t* lq, uint8 *pbuf, uint16 *len)
+int8 buf_queue_pick(buf_queue_t* lq, int8 *pbuf, uint16 *len)
 {
-	net_recv_skbuff_t 	*pnet_recv_skbuf;
+	rx_buf_t 	    *prx_buf;
+    portCPSR_TYPE	level;
 
 	if (lq->size <= 0){
 		return -1;
 	}
-	pnet_recv_skbuf 		= &(lq->m_net_recv_skbuff[lq->front]);
+    level 		            = cpu_interruptDisable();
+	prx_buf 		        = &(lq->m_rx_buf[lq->front]);
 	if (NULL != len){
-		*len				= pnet_recv_skbuf->m_framelen;
+		*len				= prx_buf->m_len;
 	}
 	if (NULL != pbuf){
-		memcpy(pbuf, pnet_recv_skbuf->m_buffer, pnet_recv_skbuf->m_framelen);
+		memcpy(pbuf, prx_buf->m_buf, prx_buf->m_len);
 	}
+    cpu_interruptEnable(level);
 
 	return 0;
 }
 
-int8 skbuf_queue_pop(skbuf_queue_t* lq)
+int8 buf_queue_pop(buf_queue_t* lq)
 {
-	portCPSR_TYPE	level 		= cpu_interruptDisable();
+	portCPSR_TYPE	level;
 
 	if (lq->size <= 0){
-		cpu_interruptEnable(level);
 		return -1;
 	}
+    level 		            = cpu_interruptDisable();
 	lq->size--;
 	lq->front = (lq->front + 1) % lq->capacity;
 	cpu_interruptEnable(level);
     
     return 0;
 }
+#endif
 
-skbuf_queue_t 	t_skbuf_queue;
+#ifdef		SKBUF_QUEUE
 
-void net_queue_init(void)
+buf_queue_t 	t_skbuf_queue;
+
+void skbuf_queue_init(void)
 {
-	skbuf_queue_init(&t_skbuf_queue);
+	buf_queue_init(&t_skbuf_queue);
 }
 
-int8 net_queue_put(uint8 *pbuf, uint16 len)
+int8 skbuf_queue_put(int8 *pbuf, uint16 len)
 {
-	return skbuf_queue_put(&t_skbuf_queue, pbuf, len);
+	return buf_queue_put(&t_skbuf_queue, pbuf, len);
 }
 
-int8 net_queue_get(uint8 *pbuf, uint16 *len)
+int8 skbuf_queue_get(int8 *pbuf, uint16 *len)
 {
-	return skbuf_queue_get(&t_skbuf_queue, pbuf, len);
+	return buf_queue_get(&t_skbuf_queue, pbuf, len);
 }
+#endif
 
 #ifdef MINI_TIME_LIBRARY
 

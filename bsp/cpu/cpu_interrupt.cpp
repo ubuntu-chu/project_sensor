@@ -5,33 +5,7 @@
 #include    "cpu_interrupt.h"
 #include "../../includes/macro.h"
 
-/******************************************************************************
- *                       本文件所定义的静态全局变量
-******************************************************************************/ 
-
-
-/******************************************************************************
- *  函数名称 :                                                                
- *                                                                           
- *  函数功能 :                                                               
- *                                                                           
- *  入口参数 :                                                          
- *                                                                             
- *  出口参数 :                                                              
- *                                                                              
- *  编 写 者 :                                                                
- *                                                                                 
- *  日    期 :                                                                 
- *                                                                              
- *  审 核 者 :                                                                                                                               
- *                                                                             
- *  日    期 :                                                                
- *                                                                                                                                       
- *  附    注 : 系统中的中端应该由其一套中断管理体系进行管理                                                            
- *                                                                            
- *                                                                            
-******************************************************************************/ 
-
+#if 0
 static uint8 nesting_level 	= 0;
 
 void cpu_enter_critical(void)
@@ -51,29 +25,35 @@ void cpu_exit_critical(void)
 #endif
 	} 
 }
+#endif
 
 //max nesting level is 255
 portCPSR_TYPE cpu_interruptDisable(void)
 {
 #ifndef		__LINUX_OS__
+    //return rt_hw_interrupt_disable();
+    register uint32_t __regPriMask         __ASM("primask");
+    register portCPSR_TYPE rt   = __regPriMask; 
+    __regPriMask = 1;
     
-#endif
-          
-    return TRUE;
+    return rt;
+#endif 
 }
 
 void cpu_interruptEnable(portCPSR_TYPE level)
 {
 #ifndef		__LINUX_OS__
-    
+    register uint32_t __regPriMask         __ASM("primask");
+    __regPriMask = level;
+    //hw_interrupt_enable(level);
 #endif
 }
 
 void cpu_interruptEnableNow(void)
 {
-	nesting_level 					= 0;
 #ifndef		__LINUX_OS__
-    
+    register uint32_t __regPriMask         __ASM("primask");
+    __regPriMask = 0;
 #endif
 }
 

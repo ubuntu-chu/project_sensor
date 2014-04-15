@@ -5,38 +5,9 @@
  *              cpu relative settings
 **------------------------------------------------------------------*/
 
-#define MCLK_1MHz   1
-#define MCLK_2MHz   2
-#define MCLK_4MHz   3
-#define MCLK_8MHz   4
-#define MCLK_16MHz   5
-#define MCLK_25MHz   6
 
-#define def_VLOCLK	12000
-#define def_WATCH_SOURCE 32768
-#define SYS_MCLK     MCLK_16MHz
-
-#if SYS_MCLK == MCLK_25MHz
-#define def_MCLK 25000000
-
-#elif SYS_MCLK == MCLK_16MHz
-#define def_MCLK 16000000UL
-
-#elif SYS_MCLK == MCLK_8MHz
-#define def_MCLK    8000000
-#define def_RSELX_CONFIG def_RSELX_8M
-#elif SYS_MCLK == MCLK_4MHz
-#define def_MCLK    4250000
-#define def_RSELX_CONFIG def_RSELX_4M
-#endif
-
-#define def_WDT_SOURCE def_VLOCLK
-#define def_ACLK_SOURCE def_WATCH_SOURCE
-#define MAX_1MS_BASE	65
-#define def_os_tick_rate 1000
 
 //******************************************************************************
-// WDT_CFG
 
 
 #define def_FRAME_delimiter	        0x5AA5
@@ -57,11 +28,11 @@
 #define 	LOG_IN_EMBEDED
 //define time monitor count
 #define 	MONITOR_MANAGE							(1)
-#define 	def_TIME_MONITOR_NR						(2)
+#define 	MONITOR_TIME_NR						    (5)
 //define time lib
 #define 	MINI_TIME_LIBRARY
-#define 	circular buffer
-#define    CIRCULAR_BUFFER
+#define     CIRCULAR_BUFFER
+#define     BUF_QUEUE
 
 //debug  define
 #define    DBG_UART								(UART_0)

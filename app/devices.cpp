@@ -116,6 +116,11 @@ portSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
     return size;
 }
 
+portSIZE_TYPE CDevice_base::write(char *buffer)
+{
+	return write(buffer, strlen(buffer));
+}
+
 DeviceStatus_TYPE CDevice_base::ioctl(uint8 cmd, void *args)
 {
     if (NULL == m_pdevice){
@@ -148,6 +153,8 @@ portBASE_TYPE CDevice_base::process_write(enum PROC_PHASE phase, char *pbuf, por
 {
 	switch (phase){
 	case PROC_PREPARE:
+		m_pbuf_send								= reinterpret_cast<uint8 *>(pbuf);
+		m_len_send								= size;
 		break;
 
 	case PROC_DONE:
