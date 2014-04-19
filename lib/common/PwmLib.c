@@ -114,7 +114,7 @@ int PwmTime(int iPair, unsigned int uiFreq, unsigned int uiPWMH_High,unsigned in
     pADI_PWM->PWM0LEN = uiFreq;
 	pADI_PWM->PWM0COM0 = pADI_PWM->PWM0LEN;
 	pADI_PWM->PWM0COM1 = uiPWMH_High;
-	if ( uiPWML_High < pADI_PWM->PWM0COM1)
+	if ( uiPWML_High <= pADI_PWM->PWM0COM1)
 		pADI_PWM->PWM0COM2 = uiPWML_High;
 	else			   // PWML output is dictated by PWMH. PWML high period will be PWMLEN-PWMH_HIGH
 		return 2;    
@@ -123,7 +123,7 @@ int PwmTime(int iPair, unsigned int uiFreq, unsigned int uiPWMH_High,unsigned in
     pADI_PWM->PWM1LEN = uiFreq;
 	pADI_PWM->PWM1COM0 = pADI_PWM->PWM1LEN;
 	pADI_PWM->PWM1COM1 = uiPWMH_High;
-	if ( uiPWML_High < pADI_PWM->PWM1COM1)
+	if ( uiPWML_High <= pADI_PWM->PWM1COM1)
 		pADI_PWM->PWM1COM2 = uiPWML_High;
 	else			   // PWML output is dictated by PWMH. PWML high period will be PWMLEN-PWMH_HIGH
 		return 2;    
@@ -132,7 +132,7 @@ int PwmTime(int iPair, unsigned int uiFreq, unsigned int uiPWMH_High,unsigned in
    pADI_PWM->PWM2LEN = uiFreq;
 	pADI_PWM->PWM2COM0 = pADI_PWM->PWM2LEN;
 	pADI_PWM->PWM2COM1 = uiPWMH_High;
-	if ( uiPWML_High < pADI_PWM->PWM2COM1)
+	if ( uiPWML_High <= pADI_PWM->PWM2COM1)
 		pADI_PWM->PWM2COM2 = uiPWML_High;
 	else			   // PWML output is dictated by PWMH. PWML high period will be PWMLEN-PWMH_HIGH
 		return 2;    

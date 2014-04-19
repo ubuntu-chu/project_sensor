@@ -6,6 +6,7 @@
 #include "devices.h"
 #include "protocol.h"
 #include "modbus.h"
+#include "../app/env_datum.h"
 
 enum{
 	STAT_OK				= 0,
@@ -30,6 +31,7 @@ struct _app_runinfo_{
     CDevice_base        *m_pdevice_log;
     CDevice_base        *m_pdevice_pin;
     CDevice_base        *m_pdevice_storage;
+    CDevice_base        *m_pdevice_pwm;
 	uint8				m_status;
 	uint8 				m_mode;
 
@@ -53,8 +55,11 @@ private:
     CApplication(const CApplication &other);
     CApplication &operator =(const CApplication &other);
 	static portBASE_TYPE package_event_handler(uint8 func_code, uint8 *pbuf, uint16 len);
-
 	static void period_handle(void *pdata);
+        
+    portBASE_TYPE load_env_datum(void);
+    uint16  hold_reg_get(enum hold_reg_index index);
+    void hold_reg_set(enum hold_reg_index index, uint16 value);
 
 
     static CApplication 	*m_pcapplicaiton;

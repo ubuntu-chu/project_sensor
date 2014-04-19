@@ -642,8 +642,8 @@ static const uint8_t table_crc_lo[] = {
     0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42,
     0x43, 0x83, 0x41, 0x81, 0x80, 0x40
 };
-
-uint16 crc16(const int8 *buf, uint16 len)
+#if 1
+uint16 crc16(const uint8 *buf, uint16 len)
 {
     uint8_t crc_hi = 0xFF; /* high CRC byte initialized */
     uint8_t crc_lo = 0xFF; /* low CRC byte initialized */
@@ -658,6 +658,26 @@ uint16 crc16(const int8 *buf, uint16 len)
 
     return (crc_hi << 8 | crc_lo);
 }
+#else
+
+uint16 crc16(const uint8 *buf, uint16 len)
+{
+	unsigned char i,j;
+	unsigned short wCRC = 0xFFFF;
+	for ( i = 0; i < len; i++)
+	{
+		wCRC ^= buf[i];
+
+		for ( j = 0; j < 8; j++)
+			if (wCRC & 0x0001)
+				wCRC = (wCRC >> 1) ^ 0xA001;
+			else
+				wCRC = wCRC >> 1;
+	}
+	return wCRC;
+}
+#endif
+
 
 #endif
 

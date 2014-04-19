@@ -50,6 +50,8 @@ portuBASE_TYPE drv_commuregister(void){
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
     
+    uart_ctl_init();
+	uart_init(UART_0, 9600);
     return DEVICE_OK;
 }
 
@@ -58,8 +60,8 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 
     DeviceStatus_TYPE   rt = DEVICE_OK;
     
-    
     _drv_ioctl(pdev, COMMU_IOC_RX_ENTER, NULL);
+    uart_enableIRQ(UART_0);
     return rt;
 }
 
@@ -67,8 +69,6 @@ static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, co
 
     void *pbuf  = const_cast<void *>(buffer);
     portSIZE_TYPE  len = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
-    
-    _drv_ioctl(pdev, COMMU_IOC_RX_ENTER, NULL);
     return len;
 }
 

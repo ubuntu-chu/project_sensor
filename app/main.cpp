@@ -1,10 +1,12 @@
-#include "main.h"
-#include "devices.h"
-#include "ad.h"
-#include "pin.h"
-#include "commu.h"
-#include "storage.h"
-#include "../api/log/log.h"
+#include    "main.h"
+#include    "devices.h"
+#include    "ad.h"
+#include    "pwm.h"
+#include    "pin.h"
+#include    "commu.h"
+#include    "storage.h"
+#include    "../api/log/log.h"
+
 
 #if 1
 void debug_output(const char* msg, int len)
@@ -16,10 +18,10 @@ CApplication 	*CApplication::m_pcapplicaiton = NULL;
 
 CApplication *CApplication::GetInstance(void)
 {
-	static CApplication 	c_application;
+	static CApplication 	t_application;
   
     if (NULL == m_pcapplicaiton){
-        m_pcapplicaiton         = &c_application;
+        m_pcapplicaiton         = &t_application;
     }
     
     return (m_pcapplicaiton);
@@ -29,39 +31,57 @@ portBASE_TYPE CApplication::package_event_handler(uint8 func_code, uint8 *pbuf, 
 {
     CApplication  	*pcapplication    		= CApplication::GetInstance();
 
-#if 0    
-    //key pressed   rf231 in recv mode
-    if (pframe_ctl->mac_frm_ptr.ctl.ack_mask == 1){
-		return 0;
-	}else if(func_code != def_FUNC_CODE_SET){
-		fliter              				= 1;
-		rsp									= RSP_EXEC_FAILURE;
-	}
-	if (1 == fliter){
-		pdevice_rf231->package_send_rsp(func_code, &rsp, sizeof(rsp));
-		return 0;
-	}
-	switch (func_code) {
-		case def_FUNC_CODE_SET:
-			pdevice_rf231->package_send_rsp(pframe_ctl->app_frm_ptr.fun, &rsp, sizeof(rsp));
-			break;
-		default:
-			rsp					= RSP_INVALID_CMD;
-			pdevice_rf231->package_send_rsp(func_code, &rsp, sizeof(rsp));
-			break;
-	}
-#endif
+    switch (func_code){
+    case _FC_WRITE_SINGLE_REGISTER: 
+    case _FC_WRITE_MULTIPLE_REGISTERS:
+    {
+        //write hold regs to storage device
+        CDevice_storage *pdevice_storage    = 
+            (CDevice_storage *)(pcapplication->m_app_runinfo.m_pdevice_storage);
+        
+        pdevice_storage->write((char *)&t_modeinfo.m_regs, sizeof(struct regs));
+    }
+        break;
+    
+    default:
+        break;
+    }
+    
 	return 0;
 }
 
-portBASE_TYPE CApplication::init()
+volatile CDevice_commu *pCDevice_commu;
+
+portBASE_TYPE CApplication::load_env_datum(void)
 {
-    static CDevice_ad 		    device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
-    static CDevice_pin 			device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
-    static CDevice_storage 		device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
-    static CDevice_commu   		device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
+    CDevice_storage *pdevice_storage    = 
+            static_cast<CDevice_storage *>(m_app_runinfo.m_pdevice_storage);
+    
+    pdevice_storage->read((char *)&t_modeinfo.m_regs, sizeof(struct regs));
+    
+    
+    
+    return 0;
+}
+
+uint16  CApplication::hold_reg_get(enum hold_reg_index index)
+{
+    return t_modeinfo.hold_reg_get(index);
+}
+void CApplication::hold_reg_set(enum hold_reg_index index, uint16 value)
+{
+    t_modeinfo.hold_reg_set(index, value);
+}
+
+portBASE_TYPE CApplication::init(void)
+{
+    static CDevice_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
+    static CDevice_pin 			t_device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
+    static CDevice_storage 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
+    static CDevice_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
+    static CDevice_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
                                              &t_protocol_modbus_rtu,
-                                             CApplication::package_event_handler);  
+                                             CApplication::package_event_handler);
     //log setting
     Logger::setOutput(debug_output);
 #if 0
@@ -80,11 +100,13 @@ portBASE_TYPE CApplication::init()
     }
 #endif
     //device setting
-    m_app_runinfo.m_pdevice_ad 		        = &device_ad;
-    m_app_runinfo.m_pdevice_commu 			= &device_commu;
-    m_app_runinfo.m_pdevice_storage 	    = &device_storage;
-    m_app_runinfo.m_pdevice_pin 			= &device_pin;
+    m_app_runinfo.m_pdevice_pwm             = &t_device_pwm;
+    m_app_runinfo.m_pdevice_ad 		        = &t_device_ad;
+    m_app_runinfo.m_pdevice_commu 			= &t_device_commu;
+    m_app_runinfo.m_pdevice_storage 	    = &t_device_storage;
+    m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
+    pCDevice_commu= &t_device_commu;
 
 	m_app_runinfo.m_handle_period 			= t_monitor_manage.monitor_register(1000, 
                                                 enum_MODE_PERIODIC, 
@@ -101,19 +123,48 @@ portBASE_TYPE CApplication::init()
     if (m_app_runinfo.m_pdevice_ad->open()){
 		//SYS_LOG("pin device open failed\n");
     }
+    if (m_app_runinfo.m_pdevice_pwm->open()){
+		//SYS_LOG("pin device open failed\n");
+    }
     if (m_app_runinfo.m_pdevice_storage->open()){
 		//SYS_LOG("storage device open failed\n");
     }
-    t_protocol_modbus_rtu.slave_set(1);
+    //load env_datum from storage device
+    if (load_env_datum()){
+        //SYS_LOG("load_env_datum failed\n");
+    }
+    t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
     t_protocol_modbus_rtu.modbus_mapping_set(def_NR_TAB_BITS,
                                         def_NR_TAB_INPUT_BITS,
                                         def_NR_TAB_INPUT_REGS,
                                         def_NR_TAB_REGS,
-                                        t_modeinfo.m_tab_bits,
-                                        t_modeinfo.m_tab_input_bits,
-                                        t_modeinfo.m_tab_input_registers,
-                                        t_modeinfo.m_tab_registers);
-
+                                        t_modeinfo.m_regs.m_tab_bits,
+                                        t_modeinfo.m_regs.m_tab_input_bits,
+                                        t_modeinfo.m_regs.m_tab_input_registers,
+                                        t_modeinfo.m_regs.m_tab_registers);
+    memset(t_modeinfo.m_regs.m_tab_input_registers, 0x55, def_NR_TAB_INPUT_REGS);
+    memset(t_modeinfo.m_regs.m_tab_registers, 0x55, def_NR_TAB_REGS);
+    
+    hold_reg_set(enum_REG_RHREF_RREQ, 200);
+    hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
+    hold_reg_set(enum_REG_HEAT_RREQ, 400);
+    hold_reg_set(enum_REG_HEAT_DUTY_CYCLE, 150);
+    
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_H, NULL);
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_L, NULL);
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_H, NULL);
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
+    
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FREQ, 
+            (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_RREQ)));
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_DUTY_CYCLE, 
+            (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_DUTY_CYCLE)));
+        
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FREQ, 
+            (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_RREQ)));
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE, 
+            (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_DUTY_CYCLE)));
+    
     return 0;
 }
 

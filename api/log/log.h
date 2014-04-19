@@ -5,6 +5,8 @@
 #include "log_stream.h"
 #include "timestamp.h"
 
+extern portBASE_TYPE 	errno;
+
 #ifdef LOGGER
 
 /*-----------------------------------------------

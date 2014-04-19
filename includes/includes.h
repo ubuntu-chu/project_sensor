@@ -19,7 +19,6 @@
 #endif
 
 #include 	 "../api/utils.h"
-#include 	 "../app/env_datum.h"
 #include 	 "../bsp/bsp_startup.h"
 #include 	 "../bsp/hal/hal.h"
 #include 	 "../bsp/driver/drv_interface.h"

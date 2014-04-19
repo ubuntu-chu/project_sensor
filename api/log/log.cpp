@@ -1,5 +1,7 @@
 #include "log.h"
 
+portBASE_TYPE 	errno	= 0;
+
 const char *strerror_array[] = {
     "Einit",
 };

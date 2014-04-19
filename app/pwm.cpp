@@ -1,12 +1,14 @@
 /******************************************************************************
  *                          ���ļ������õ�ͷ�ļ�
 ******************************************************************************/ 
-#include "env_datum.h"
+#include "pwm.h"
 
+CDevice_pwm::CDevice_pwm(const char *pname, uint16 oflag):CDevice_base(pname, oflag)
+{
+}
 
+CDevice_pwm::~CDevice_pwm()
+{
+}
 
-#define		_MODEL_NAME 			("sensor")
-
-//global model info
-class CModelInfo 	t_modeinfo((uint8 *)_MODEL_NAME);
 

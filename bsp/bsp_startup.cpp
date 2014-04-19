@@ -4,10 +4,10 @@ void sys_clock_init(void)
 {
 	ClkDis(
 			CLKDIS_DISSPI0CLK | CLKDIS_DISSPI1CLK 
-					| CLKDIS_DISPWMCLK 
 					| CLKDIS_DISDACCLK 
 					);
 	ClkCfg(CLK_CD0, CLK_HF, CLKSYSDIV_DIV2EN_DIS, CLK_UCLKCG); // Select CD0 for CPU clock - 16Mhz clock
+    ClkSel(CLK_CD0, CLK_CD0, CLK_CD0, CLK_CD0);
 }
 
 void sys_wdt_on(void)
@@ -57,9 +57,6 @@ portBASE_TYPE bsp_startup(void)
     //start sys monitor
 //    cpu_sys_monitor_run();
 	//uart
-	uart_ctl_init();
-	uart_init(DBG_UART, 9600);
-    
 	//init hal
     hal_init();
 #ifdef		SKBUF_QUEUE

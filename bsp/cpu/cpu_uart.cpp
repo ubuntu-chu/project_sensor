@@ -71,6 +71,7 @@ portBASE_TYPE transceiver::force_done(void)
             buf_queue_put(&m_buf_queue, m_rx_buf, m_rx_index);
         }
         if (m_duplex == HALF_DUPLEX){
+            m_rx_index = 0;
             status_set(RECV_STAT_DONE); 
         }else {
             recv_init();
@@ -147,7 +148,9 @@ public:
     {
         if (0 == m_clock_init){
             m_clock_init            = 1;
-            ClkSel(CLK_CD6,CLK_CD7,CLK_CD0,CLK_CD7);     // Select CD0 for UART System clock
+            pADI_CLKCTL->CLKCON1 = ((pADI_CLKCTL->CLKCON1)&(~(BIT(9)|BIT(10)|BIT(11))))|(CLK_CD7<<9);
+            
+            //ClkSel(CLK_CD0,CLK_CD7,CLK_CD0,CLK_CD7);     // Select CD0 for UART System clock
         }
     }
         
@@ -167,9 +170,7 @@ public:
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits
 		UrtIntCfg(pADI_UART,
 				COMIEN_ERBFI | COMIEN_ELSI | COMIEN_EDSSI); // Setup UART IRQ sources
-
-		NVIC_EnableIRQ (UART_IRQn);
-		recv_init();
+        recv_init();
 	}
 
 	virtual uint16 transmit(int8 *pdata, uint16 len)
@@ -258,6 +259,18 @@ void uart_init(uint8_t uart_id, uint32_t baud_rate)
 	switch (uart_id) {
 	case UART_0:
 		t_transceiver_uart0.init();
+		break;
+
+	default:
+		break;
+	}
+}
+
+void uart_enableIRQ(uint8_t uart_id)
+{
+    switch (uart_id) {
+	case UART_0:
+		NVIC_EnableIRQ (UART_IRQn);
 		break;
 
 	default:

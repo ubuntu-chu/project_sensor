@@ -36,7 +36,7 @@ static int _modbus_rtu_prepare_response_tid(const uint8_t *req, int *req_length)
 
 static int _modbus_rtu_send_msg_pre(uint8_t *req, int req_length)
 {
-    uint16_t crc = crc16(reinterpret_cast<const int8 *>(req), req_length);
+    uint16_t crc = crc16(reinterpret_cast<const uint8 *>(req), req_length);
     req[req_length++] = crc >> 8;
     req[req_length++] = crc & 0x00FF;
 
@@ -234,7 +234,7 @@ int8   protocol_modbus_rtu::unpack(uint8_t* pbuf, uint16 len)
         return -1;
     }
 
-    crc_calculated = crc16(reinterpret_cast<const int8 *>(pbuf), len - 2);
+    crc_calculated = crc16(reinterpret_cast<const uint8 *>(pbuf), len - 2);
     crc_received = (pbuf[len - 2] << 8) | pbuf[len - 1];
 
     /* Check CRC of msg */

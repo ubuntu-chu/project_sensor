@@ -43,6 +43,7 @@
 ******************************************************************************/ 
 
 #include    "ad/drv_ad.h"
+#include    "pwm/drv_pwm.h"
 #include    "pin/drv_pin.h"
 #include    "commu/drv_commu.h"
 #include    "storage/drv_storage.h"
