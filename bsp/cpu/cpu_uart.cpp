@@ -164,7 +164,8 @@ public:
                                 "byte monitor");
         ASSERT(m_handle_uart != (monitor_handle_type)-1);
         //Select IO pins for UART.
-		pADI_GP0->GPCON |= 0x3C;                 // Configure P0.1/P0.2 for UART
+        // Configure P0.1/P0.2 for UART
+        pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
 		//    pADI_GP0->GPCON |= 0x9000;                   // Configure P0.6/P0.7 for UART
 		UrtCfg(pADI_UART, B9600, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits

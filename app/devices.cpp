@@ -64,8 +64,7 @@ uint8	CDevice_base::device_is_valid(void)
 	return (m_pdevice == NULL)?(0):(1);
 }
 
-//Note: read return m_len_data  if the cmd rsp no data, then read return 0!
-portSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
+portSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if ((NULL == m_pdevice)){
         return -1;
@@ -100,7 +99,23 @@ portSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
     return m_len_data;
 }
 
+//Note: read return m_len_data  if the cmd rsp no data, then read return 0!
+portSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
+{
+	return read(0, buffer, size);
+}
+
 portSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
+{
+	return write(0, buffer, size);
+}
+
+portSIZE_TYPE CDevice_base::write(char *buffer)
+{
+	return write(0, buffer, strlen(buffer));
+}
+
+portSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if ((NULL == m_pdevice) || (m_pbuf_send == NULL)){
         return -1;
@@ -108,17 +123,12 @@ portSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
     if (this->process_write(PROC_PREPARE, buffer, size)){
     	return -1;
     }
-    size = API_DeviceWrite(m_pdevice, 0, m_pbuf_send, m_len_send);
+    size = API_DeviceWrite(m_pdevice, pos, m_pbuf_send, m_len_send);
     if (this->process_write(PROC_DONE, buffer, size)){
     	return -1;
     }
     
     return size;
-}
-
-portSIZE_TYPE CDevice_base::write(char *buffer)
-{
-	return write(buffer, strlen(buffer));
 }
 
 DeviceStatus_TYPE CDevice_base::ioctl(uint8 cmd, void *args)

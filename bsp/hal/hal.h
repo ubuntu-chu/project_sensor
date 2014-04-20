@@ -35,7 +35,7 @@
 ******************************************************************************/ 
 
 #ifndef    _INCLUDES_H_
-	#include    "../../includes/includes.h"
+	#include    "../../includes/includes-low.h"
 #endif
 
 /******************************************************************************
@@ -43,8 +43,12 @@
 ******************************************************************************/ 
 
 #define             DEVICE_NAME_MAX	                        (8)
-typedef             int16                                   portSIZE_TYPE;
-typedef             portSIZE_TYPE                           portOFFSET_TYPE;
+#ifndef 	portSIZE_TYPE
+	typedef             int16                                   portSIZE_TYPE;
+#endif
+#ifndef 	portOFFSET_TYPE
+	typedef             portSIZE_TYPE                           portOFFSET_TYPE;
+#endif
 
 
 /* device flags */

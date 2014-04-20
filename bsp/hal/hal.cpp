@@ -48,6 +48,7 @@ portuBASE_TYPE hal_init(void)
     //设备管理器初始化
 	API_DeviceManageInit();
     //驱动注册
+    extern portuBASE_TYPE drv_driverregister(void);
     drv_driverregister();
     //所有硬件设备初始化
     API_DeviceInitAll();

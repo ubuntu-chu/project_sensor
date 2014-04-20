@@ -15,8 +15,10 @@ public:
     portBASE_TYPE open(void);
     portBASE_TYPE close(void);
     portSIZE_TYPE read(char *buffer, portSIZE_TYPE size);
+    portSIZE_TYPE read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size);
     portSIZE_TYPE write(char *buffer, portSIZE_TYPE size);
 	portSIZE_TYPE write(char *buffer);
+    portSIZE_TYPE write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size);
 	DeviceStatus_TYPE ioctl(uint8 cmd, void *args);
 	uint8	device_stat_get(void);
 	uint8	device_is_valid(void);

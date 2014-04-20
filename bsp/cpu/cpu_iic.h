@@ -52,6 +52,12 @@ typedef uint16_t	iic_addr_mode_t;
 typedef uint8_t		iic_addr_mode_t;
 #endif
 
+enum iic_numb{
+    enum_NUMB_IIC0 = 0,
+    enum_NUMB_IIC_MAX,
+};
+
+#if 0
 #define iic_wr_addr 		0xA0
 #define iic_rd_addr 		0xA1
 
@@ -77,13 +83,36 @@ typedef uint8_t		iic_addr_mode_t;
 #define iic_rst_scl()	(scl_out_pt &= ~scl_pin)
 
 #define iic_sda_in		(sda_in_pt & sda_pin)
-
+#endif
 
 void iic_wr_nbyte(iic_addr_mode_t addr, uint8_t *ptr, uint8_t cnt);
 void iic_rd_nbyte(iic_addr_mode_t addr, uint8_t *ptr, uint8_t cnt);
 
+#define    I2C_NONE                                (0)       		//子地址已经处理或者不需要子地址
+#define    I2C_READ                                (1)       		//读取操作
+#define    I2C_WRITE                               (2)       		//写操作
+#define    I2C_ABNORMAL                            (0xff)    		//I2C异常
 
-void cpu_iic_init(void);
+typedef struct iic_ctrl
+{
+    uint16                              m_subAddr;                     //子地址 器件内地址
+    uint8                               m_slaAddr;                     //I2C器件从地址
+    uint8                               m_accessNumbBytes;             //存取字节数
+    volatile uint8               		m_accessFinished;              //存取完成
+    uint8                               m_accessCtrl;                  //存取控制
+    uint8                               m_subAddrCnt;                  //子地址数目
+    uint8                              *m_paccessAddr;                 //存取地址
+
+}I2CCtrlInfo;
+
+
+extern volatile I2CCtrlInfo t_I2CCtrlInfo;
+
+
+portBASE_TYPE cpu_iic_init(enum iic_numb numb);
+portSIZE_TYPE cpu_iic_transfer(struct iic_ctrl *pctrl);
+
+
 
 /******************************************************************************
  *                             END  OF  FILE                                                                          
