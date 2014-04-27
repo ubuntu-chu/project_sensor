@@ -93,24 +93,27 @@ void iic_rd_nbyte(iic_addr_mode_t addr, uint8_t *ptr, uint8_t cnt);
 #define    I2C_WRITE                               (2)       		//写操作
 #define    I2C_ABNORMAL                            (0xff)    		//I2C异常
 
-typedef struct iic_ctrl
+typedef struct iic_transfer
 {
     uint16                              m_subAddr;                     //子地址 器件内地址
+    uint16 								m_timeout;					   //unit: ms
     uint8                               m_slaAddr;                     //I2C器件从地址
     uint8                               m_accessNumbBytes;             //存取字节数
+    uint8 								m_index;
+    uint8 								m_lock;
     volatile uint8               		m_accessFinished;              //存取完成
     uint8                               m_accessCtrl;                  //存取控制
     uint8                               m_subAddrCnt;                  //子地址数目
     uint8                              *m_paccessAddr;                 //存取地址
 
-}I2CCtrlInfo;
+}iic_transfer_t;
 
 
-extern volatile I2CCtrlInfo t_I2CCtrlInfo;
+extern iic_transfer_t t_iic_transfer;
 
 
 portBASE_TYPE cpu_iic_init(enum iic_numb numb);
-portSIZE_TYPE cpu_iic_transfer(struct iic_ctrl *pctrl);
+portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer);
 
 
 

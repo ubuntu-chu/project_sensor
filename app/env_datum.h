@@ -36,6 +36,10 @@ public:
     {
         hold_reg_set(enum_REG_MODBUS_ADDR, 1);
     }
+	CModelInfo()
+    {
+        hold_reg_set(enum_REG_MODBUS_ADDR, 1);
+    }
     ~CModelInfo(){}
     
     uint16  hold_reg_get(enum hold_reg_index index)
@@ -47,12 +51,21 @@ public:
         m_regs.m_tab_registers[index] = value;
     }
 
+    const uint8 *name_get(void)
+    {
+        return m_name;
+    }
+    void name_set(const uint8 *pname)
+    {
+        m_name 				= pname;
+    }
+
 private:
     CModelInfo( CModelInfo &other);
     CModelInfo &operator =( CModelInfo &other);
 
 public:
-    uint8                   *m_name;
+    const uint8             *m_name;
     struct regs             m_regs;
 };
 

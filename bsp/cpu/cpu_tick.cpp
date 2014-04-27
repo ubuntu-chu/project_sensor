@@ -2,7 +2,17 @@
 #include    "../../api/utils.h"
 
 
-#define _MONITOR_INVALID_VALUE          (0xff)
+void cpu_delay_ms(uint16 ms)
+{
+    
+    
+}
+
+void cpu_delay_us(uint16 us)
+{
+    
+    
+}
 
 static time_t 		sys_tick		= 0;
 static portBASE_TYPE 	time_trig_1s = 0;
@@ -36,18 +46,20 @@ portBASE_TYPE cpu_sys_tick_run(void)
                                                 NULL,
                                                 "tick handle");
     t_monitor_manage.monitor_start(handle_tick);  
-#if 1
+
 	//Timer 0 setup to re-start every 64mS
 	GptLd(pADI_TM0, 50000);// Time-out period of 50ms
 	GptCfg(pADI_TM0, TCON_CLK_UCLK, TCON_PRE_DIV16,
 			TCON_MOD | TCON_RLD | TCON_ENABLE);  // T0 config, Uclk/16, 1MHz
     NVIC_EnableIRQ(TIMER0_IRQn);
-#else
+#if  0    
 	//Timer 1 setup
 	GptLd(pADI_TM1,0xFFFA);                                  // Set timeout period for 5 seconds
-	GptCfg(pADI_TM1,TCON_CLK_LFOSC,TCON_PRE_DIV32768,TCON_MOD_PERIODIC|TCON_UP|TCON_RLD|TCON_ENABLE);
-	NVIC_EnableIRQ(TIMER1_IRQn);                          // Enable Timer1 IRQ
+	GptCfg(pADI_TM1,TCON_CLK_LFOSC,TCON_PRE_DIV32768,TCON_MOD_FREERUN|TCON_UP|TCON_RLD|TCON_ENABLE);
+	GptCfg(pADI_TM0, TCON_CLK_UCLK, TCON_PRE_DIV16,
+			TCON_MOD | TCON_RLD | TCON_ENABLE);  // T0 config, Uclk/16, 1MHz
 #endif
+
 	return 0;
 }
 

@@ -110,7 +110,7 @@ enum{
 };
 
 
-static portuBASE_TYPE PWM_ParamGet(int channel, uint16 *plen, uint16 *pcom, int *ppair)
+static portBASE_TYPE PWM_ParamGet(int channel, uint16 *plen, uint16 *pcom, int *ppair)
 {
     portuBASE_TYPE  rt  = 0;
     
@@ -128,6 +128,8 @@ static portuBASE_TYPE PWM_ParamGet(int channel, uint16 *plen, uint16 *pcom, int 
         *pcom                           = pADI_PWM->PWM1COM1;
         *ppair                          = PWM2_3;
     }
+    
+    return rt;
 }
 
 unsigned char PWM_Freq(int channel, uint16 freq)

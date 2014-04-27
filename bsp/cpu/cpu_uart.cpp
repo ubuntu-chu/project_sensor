@@ -19,8 +19,8 @@ enum RECV_STAT{
 
 };
 
-#define     TRANSCEIVER_RX_BUF_SIZE                     (100)
-#define     TRANSCEIVER_TX_BUF_SIZE                     (100)
+#define     def_TRANSCEIVER_RX_BUF_SIZE                     (100)
+#define     def_TRANSCEIVER_TX_BUF_SIZE                     (100)
 
 class transceiver:noncopyable {
 public:
@@ -50,8 +50,8 @@ private:
 	uint16					m_tx_index;
 	uint16					m_tx_len;
 	enum RECV_STAT 			m_rx_status;
-	int8 					m_rx_buf[TRANSCEIVER_RX_BUF_SIZE];
-	int8 					m_tx_buf[TRANSCEIVER_TX_BUF_SIZE];
+	int8 					m_rx_buf[def_TRANSCEIVER_RX_BUF_SIZE];
+	int8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
     monitor_handle_type     m_handle_rx;
     struct buf_queue        m_buf_queue;    
 };

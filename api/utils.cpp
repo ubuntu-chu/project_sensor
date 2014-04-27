@@ -151,29 +151,37 @@ char *reverse(char *str)
     return str;   
 }
 
-void _delay_ms(uint16_t num)
+void delay_ms(uint16_t num)
 {
 	uint16_t i = num;
+    uint16   j;
+    
 	for(;i > 0;i--){
-		//__delay_cycles(def_MCLK/1000);
+		for (j = 0; j < 1000; j++){
+            
+        }
 	}
 }
 
-void _delay_us(uint16_t num)
+void delay_us(uint16_t num)
 {
 	uint16_t i = num;
+    uint16   j;
+    
 	for(;i > 0;i--){
-		//__delay_cycles(def_MCLK/1000000);
+		for (j = 0; j < 1; j++){
+            
+        }
 	}
 }
 
-#ifdef		BUF_QUEUE
+#ifdef		def_BUF_QUEUE
 
 void buf_queue_init(buf_queue_t* lq)
 {
 	lq->front               = lq->rear = 0;
 	lq->size                = 0;
-    lq->capacity            = QUEUE_BUF_CNTS;
+    lq->capacity            = def_QUEUE_BUF_CNTS;
 }
 
 int8 buf_queue_put(buf_queue_t* lq, int8 *pbuf, uint16 len)
@@ -192,8 +200,8 @@ int8 buf_queue_put(buf_queue_t* lq, int8 *pbuf, uint16 len)
     cpu_interruptEnable(level);
     
 	prx_buf 		            = &(lq->m_rx_buf[rear]);
-	if (len > QUEUE_BUF_LEN){
-		len 					= QUEUE_BUF_LEN;
+	if (len > def_QUEUE_BUF_LEN){
+		len 					= def_QUEUE_BUF_LEN;
 	}
 	prx_buf->m_len	= len;
 	if (NULL != pbuf){
@@ -266,7 +274,7 @@ int8 buf_queue_pop(buf_queue_t* lq)
 }
 #endif
 
-#ifdef		SKBUF_QUEUE
+#ifdef		def_SKBUF_QUEUE
 
 buf_queue_t 	t_skbuf_queue;
 
@@ -286,7 +294,7 @@ int8 skbuf_queue_get(int8 *pbuf, uint16 *len)
 }
 #endif
 
-#ifdef MINI_TIME_LIBRARY
+#ifdef def_MINI_TIME_LIBRARY
 
 /* days per month -- nonleap! */
 const short __spm[13] =
@@ -498,7 +506,7 @@ int gettimeofday(struct timeval *tp, void *ignore)
 #endif
 
 
-#ifdef		CIRCULAR_BUFFER
+#ifdef		def_CIRCULAR_BUFFER
 
 template<int CAPACITY>
 circular_buffer<CAPACITY>::circular_buffer() :
@@ -566,7 +574,7 @@ size_t circular_buffer<CAPACITY>::read(char *data, size_t len) {
 
 #endif
 
-#ifdef		SUM16
+#ifdef		def_SUM16
 
 //check sum
 uint16 sum16(const uint8 * ptr, uint16 len)
@@ -581,7 +589,7 @@ uint16 sum16(const uint8 * ptr, uint16 len)
 }
 #endif
 
-#ifdef		CRC16
+#ifdef		def_CRC16
 
 /* Table of CRC values for high-order byte */
 static const uint8_t table_crc_hi[] = {

@@ -64,6 +64,7 @@ private:
 
     static CApplication 	*m_pcapplicaiton;
     struct _app_runinfo_    m_app_runinfo;
+	class CModelInfo 	     m_modeinfo;
 };
     
 #endif

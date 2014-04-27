@@ -98,6 +98,7 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
     {
         return -1;
     }
+    //subaddr should be align with page size
 
     for (i = 0; i <= pageNumbs; i++, subAddr += BYTES_PER_PAGE, acessAddr += BYTES_PER_PAGE)
     {
@@ -117,42 +118,34 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
             //子地址类型判断
         	case ONE_BYTE_SUBA:
                 //子地址为单字节
-        		t_I2CCtrlInfo.m_slaAddr     	= (uint8)(slaAddr);					        //器件的从地址
-        		t_I2CCtrlInfo.m_subAddr    	    = subAddr;								    //器件子地址
-        		t_I2CCtrlInfo.m_subAddrCnt	    = 1;								        //器件子地址为1字节
+        		t_iic_transfer.m_slaAddr     	= (uint8)(slaAddr);					        //器件的从地址
+        		t_iic_transfer.m_subAddr    	    = subAddr;								    //器件子地址
+        		t_iic_transfer.m_subAddrCnt	    = 1;								        //器件子地址为1字节
         		break;
         	case TWO_BYTE_SUBA:
         		//子地址为双字节
-                t_I2CCtrlInfo.m_slaAddr     	= (uint8)(slaAddr);						    //器件的从地址
-        		t_I2CCtrlInfo.m_subAddr   	 	= subAddr;								    //器件子地址
-        		t_I2CCtrlInfo.m_subAddrCnt	    = 2;								        //器件子地址为2字节
+                t_iic_transfer.m_slaAddr     	= (uint8)(slaAddr);						    //器件的从地址
+        		t_iic_transfer.m_subAddr   	 	= subAddr;								    //器件子地址
+        		t_iic_transfer.m_subAddrCnt	    = 2;								        //器件子地址为2字节
         		break;
         	case X_PLUS_BYTE_SUBA:
 				//子地址结构为8+X   the eight of slaaadr is r/w bit
-				t_I2CCtrlInfo.m_slaAddr			= (uint8)(slaAddr + ((subAddr >> 7) & 0x0e));	//器件的从地址
-        		t_I2CCtrlInfo.m_subAddr		    = subAddr & 0x0ff;						    //器件子地址
-        		t_I2CCtrlInfo.m_subAddrCnt	    = 1;								        //器件子地址为8+x
+				t_iic_transfer.m_slaAddr			= (uint8)(slaAddr + ((subAddr >> 7) & 0x0e));	//器件的从地址
+        		t_iic_transfer.m_subAddr		    = subAddr & 0x0ff;						    //器件子地址
+        		t_iic_transfer.m_subAddrCnt	    = 1;								        //器件子地址为8+x
         		break;
         	default:
         		break;
         	}
-            t_I2CCtrlInfo.m_paccessAddr         = acessAddr;							    //数据接收缓冲区指针
-        	t_I2CCtrlInfo.m_accessNumbBytes     = accessBytes;								//要读取的个数
-        	t_I2CCtrlInfo.m_accessFinished      = FALSE;
-            t_I2CCtrlInfo.m_accessCtrl          = accessCtrl;
+            t_iic_transfer.m_paccessAddr         = acessAddr;							    //数据接收缓冲区指针
+        	t_iic_transfer.m_accessNumbBytes     = accessBytes;								//要读取的个数
+        	t_iic_transfer.m_accessFinished      = FALSE;
+            t_iic_transfer.m_accessCtrl          = accessCtrl;
+            t_iic_transfer.m_timeout 			 = 800;										//wait for timeout:800 ms
 
-            //等待I2C操作完成
-            do {
-            }while (t_I2CCtrlInfo.m_accessFinished == FALSE);
-
-            //存取异常
-            if (I2C_ABNORMAL == t_I2CCtrlInfo.m_accessFinished)
-            {
-                return -1;
-            }
-            else if (I2C_WRITE == accessCtrl)
-            {
-//                APIDelayUs(15000);                                                      //等待器件编程 15ms
+            rt                                   = cpu_iic_transfer(&t_iic_transfer);
+            if ((I2C_WRITE == accessCtrl) && (t_iic_transfer.m_accessNumbBytes == rt)){
+                delay_ms(25);                                                               //等待器件编程
             }
         }
     }

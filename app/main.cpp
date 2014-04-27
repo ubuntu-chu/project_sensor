@@ -39,7 +39,7 @@ portBASE_TYPE CApplication::package_event_handler(uint8 func_code, uint8 *pbuf, 
         CDevice_storage *pdevice_storage    = 
             (CDevice_storage *)(pcapplication->m_app_runinfo.m_pdevice_storage);
         
-        pdevice_storage->write((char *)&t_modeinfo.m_regs, sizeof(struct regs));
+        pdevice_storage->write((char *)&(pcapplication->m_modeinfo.m_regs), sizeof(struct regs));
     }
         break;
     
@@ -57,7 +57,7 @@ portBASE_TYPE CApplication::load_env_datum(void)
     CDevice_storage *pdevice_storage    = 
             static_cast<CDevice_storage *>(m_app_runinfo.m_pdevice_storage);
     
-    pdevice_storage->read((char *)&t_modeinfo.m_regs, sizeof(struct regs));
+    pdevice_storage->read((char *)&m_modeinfo.m_regs, sizeof(struct regs));
     
     
     
@@ -66,11 +66,11 @@ portBASE_TYPE CApplication::load_env_datum(void)
 
 uint16  CApplication::hold_reg_get(enum hold_reg_index index)
 {
-    return t_modeinfo.hold_reg_get(index);
+    return m_modeinfo.hold_reg_get(index);
 }
 void CApplication::hold_reg_set(enum hold_reg_index index, uint16 value)
 {
-    t_modeinfo.hold_reg_set(index, value);
+    m_modeinfo.hold_reg_set(index, value);
 }
 
 portBASE_TYPE CApplication::init(void)
@@ -106,6 +106,7 @@ portBASE_TYPE CApplication::init(void)
     m_app_runinfo.m_pdevice_storage 	    = &t_device_storage;
     m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
+	m_modeinfo.name_set(def_MODEL_NAME);
     pCDevice_commu= &t_device_commu;
 
 	m_app_runinfo.m_handle_period 			= t_monitor_manage.monitor_register(1000, 
@@ -138,12 +139,12 @@ portBASE_TYPE CApplication::init(void)
                                         def_NR_TAB_INPUT_BITS,
                                         def_NR_TAB_INPUT_REGS,
                                         def_NR_TAB_REGS,
-                                        t_modeinfo.m_regs.m_tab_bits,
-                                        t_modeinfo.m_regs.m_tab_input_bits,
-                                        t_modeinfo.m_regs.m_tab_input_registers,
-                                        t_modeinfo.m_regs.m_tab_registers);
-    memset(t_modeinfo.m_regs.m_tab_input_registers, 0x55, def_NR_TAB_INPUT_REGS);
-    memset(t_modeinfo.m_regs.m_tab_registers, 0x55, def_NR_TAB_REGS);
+                                        m_modeinfo.m_regs.m_tab_bits,
+                                        m_modeinfo.m_regs.m_tab_input_bits,
+                                        m_modeinfo.m_regs.m_tab_input_registers,
+                                        m_modeinfo.m_regs.m_tab_registers);
+    memset(m_modeinfo.m_regs.m_tab_input_registers, 0x55, def_NR_TAB_INPUT_REGS);
+    memset(m_modeinfo.m_regs.m_tab_registers, 0x55, def_NR_TAB_REGS);
     
     hold_reg_set(enum_REG_RHREF_RREQ, 200);
     hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
@@ -220,6 +221,7 @@ portBASE_TYPE CApplication::run()
 void CApplication::period_handle(void *pdata)
 {
 	CApplication *papplication  = static_cast<CApplication *> (pdata);
+    (void)papplication;
     
     cpu_led_toggle();
 }

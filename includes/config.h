@@ -14,6 +14,12 @@
 #define def_FRAME_END_delimiter		0xAA55
 
 /*------------------------------------------------------------------
+ *              APP settings
+**------------------------------------------------------------------*/
+
+#define		def_MODEL_NAME 			("sensor")
+
+/*------------------------------------------------------------------
  *              OS settings
 **------------------------------------------------------------------*/
 #define		LINUX_OS
@@ -27,15 +33,15 @@
 #define 	LOGGER
 #define 	LOG_IN_EMBEDED
 //define time monitor count
-#define 	MONITOR_MANAGE							(1)
-#define 	MONITOR_TIME_NR						    (5)
+#define 	def_MONITOR_MANAGE							(1)
+#define 	def_MONITOR_TIME_NR						(6)
 //define time lib
-#define 	MINI_TIME_LIBRARY
-#define     CIRCULAR_BUFFER
-#define     BUF_QUEUE
+#define 	def_MINI_TIME_LIBRARY
+#define     def_CIRCULAR_BUFFER
+#define     def_BUF_QUEUE
 
-//define  crc16
-#define     CRC16
+//define  def_crc16
+#define     def_CRC16
 //#define    SUM16
 
 //define  modbus

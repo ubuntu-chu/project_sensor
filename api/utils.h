@@ -4,7 +4,7 @@
 #include "../includes/includes.h"
 
 
-#ifdef		CIRCULAR_BUFFER
+#ifdef		def_CIRCULAR_BUFFER
 
 template<int CAPACITY>
 class circular_buffer: copyable
@@ -29,24 +29,24 @@ private:
 
 #endif
 
-void _delay_ms(uint16_t num);
-void _delay_us(uint16_t num);
+void delay_ms(uint16_t num);
+void delay_us(uint16_t num);
 void buf_dump_hex(const char *buf, uint16 len);
 
-#ifdef		BUF_QUEUE
+#ifdef		def_BUF_QUEUE
 
-#define		QUEUE_BUF_CNTS					 	(3)
-#define		QUEUE_BUF_LEN					 	(130)
+#define		def_QUEUE_BUF_CNTS					 	(3)
+#define		def_QUEUE_BUF_LEN					 	(130)
 
 struct rx_buf{
-	int8 			    m_buf[QUEUE_BUF_LEN];
+	int8 			    m_buf[def_QUEUE_BUF_LEN];
 	uint16 			    m_len;
 };
 typedef struct rx_buf  rx_buf_t;
 
 struct buf_queue {
 
-	rx_buf_t 	        m_rx_buf[QUEUE_BUF_CNTS];
+	rx_buf_t 	        m_rx_buf[def_QUEUE_BUF_CNTS];
 	uint8			 	front;
 	uint8 			 	rear;
 	uint8 			 	size;
@@ -62,7 +62,7 @@ int8 buf_queue_pick(buf_queue_t* lq, int8 *pbuf, uint16 *len);
 int8 buf_queue_pop(buf_queue_t* lq);
 #endif
 
-#ifdef		SKBUF_QUEUE
+#ifdef		def_SKBUF_QUEUE
 
 void skbuf_queue_init(void);
 int8 skbuf_queue_put(int8 *pbuf, uint16 len);
@@ -87,7 +87,7 @@ class monitor_manage: noncopyable{
 
 public:
 	monitor_manage():m_precision(1), 
-                        m_size(MONITOR_TIME_NR), 
+                        m_size(def_MONITOR_TIME_NR), 
                         m_bitmap(0){}
 	~monitor_manage(){}
 
@@ -193,12 +193,12 @@ public:
 	uint16						m_precision;                  //precision  unit: ms
 	uint8 						m_size;
 	uint8 						m_bitmap;
-	monitor_unit 				m_monitor[MONITOR_TIME_NR];
+	monitor_unit 				m_monitor[def_MONITOR_TIME_NR];
 };
 
 extern monitor_manage 	t_monitor_manage;
 
-#ifdef MINI_TIME_LIBRARY
+#ifdef  def_MINI_TIME_LIBRARY
 
 /*
  * Structure returned by gettimeofday(2) system call,
@@ -248,11 +248,11 @@ int gettimeofday(struct timeval *tp, void *ignore);
 
 #endif
 
-#ifdef		CRC16
+#ifdef		def_CRC16
 uint16 crc16(const uint8 *buf, uint16 len);
 #endif
 
-#ifdef		SUM16
+#ifdef		def_SUM16
 uint16 sum16(const uint8 * ptr, uint16 len)
 #endif
 
