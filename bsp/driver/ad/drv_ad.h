@@ -42,7 +42,37 @@
  *                           文件接口信息宏定义
 ******************************************************************************/
 
-#define         DEVICE_NAME_AD                                 ("AD")
+enum{
+    ECS_CUR_0UA     = 0,
+    ECS_CUR_50UA,
+    ECS_CUR_100UA,
+    ECS_CUR_150UA,
+    ECS_CUR_200UA,
+    ECS_CUR_250UA,
+    ECS_CUR_300UA,
+    ECS_CUR_400UA,
+    ECS_CUR_450UA,
+    ECS_CUR_500UA,
+    ECS_CUR_600UA,
+    ECS_CUR_750UA,
+    ECS_CUR_800UA,
+    ECS_CUR_1000UA,
+    ECS_CUR_MAX_NO,
+    ECS_CUR_CLOSE,
+    ECS_CUR_EXTRA_10UA,
+};
+    
+
+#define         DEVICE_NAME_AD                                  ("AD")
+//excitation  current  source
+enum{
+    AD_IOC_ECS0_SET     = (DEVICE_IOC_USER+1),
+    AD_IOC_ECS1_SET,
+    AD_IOC_H_CONV,
+    AD_IOC_T_CONV,
+    AD_IOC_P_CONV,
+    AD_IOC_MAX_NO,
+};
 
 /******************************************************************************
  *                            文件接口函数声明

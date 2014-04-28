@@ -44,7 +44,8 @@
 #define         SBI(reg, bit)                                 	 ((reg) |= BIT(bit))
 #define         CBI(reg, bit)                                 	 ((reg) &= ~BIT(bit))
 #define         XBI(reg, bit)                                 	 ((reg) ^= BIT(bit))
-#define         BIT_CHK(reg, bit)                          		 ((reg) & BIT(bit))
+#define         BIT_IS_SET(reg, bit)                             ((reg) & BIT(bit))
+#define         BIT_IS_CLEAR(reg, bit)                           (!BIT_IS_SET(reg, bit))
 
 //------------------------------------------------------------------------------
 #define         XBYTE(addr)                                     (*(volatile uint8 *)addr)

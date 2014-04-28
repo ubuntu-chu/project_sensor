@@ -7,7 +7,9 @@ void sys_clock_init(void)
 					| CLKDIS_DISDACCLK 
 					);
 	ClkCfg(CLK_CD0, CLK_HF, CLKSYSDIV_DIV2EN_DIS, CLK_UCLKCG); // Select CD0 for CPU clock - 16Mhz clock
+    //spi - 16Mhz     iic - 16Mhz        uart - 16Mhz(uart clock will be changed by uart_init)          pwm - 16Mhz
     ClkSel(CLK_CD0, CLK_CD0, CLK_CD0, CLK_CD0);
+    //fclk hclk pclk - 16Mhz
 }
 
 void sys_wdt_on(void)

@@ -135,16 +135,14 @@ portBASE_TYPE CApplication::init(void)
         //SYS_LOG("load_env_datum failed\n");
     }
     t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
-    t_protocol_modbus_rtu.modbus_mapping_set(def_NR_TAB_BITS,
-                                        def_NR_TAB_INPUT_BITS,
-                                        def_NR_TAB_INPUT_REGS,
-                                        def_NR_TAB_REGS,
+    t_protocol_modbus_rtu.modbus_mapping_set(ARRAY_SIZE(m_modeinfo.m_regs.m_tab_bits),
+                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_bits),
+                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_registers),
+                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_registers),
                                         m_modeinfo.m_regs.m_tab_bits,
                                         m_modeinfo.m_regs.m_tab_input_bits,
                                         m_modeinfo.m_regs.m_tab_input_registers,
                                         m_modeinfo.m_regs.m_tab_registers);
-    memset(m_modeinfo.m_regs.m_tab_input_registers, 0x55, def_NR_TAB_INPUT_REGS);
-    memset(m_modeinfo.m_regs.m_tab_registers, 0x55, def_NR_TAB_REGS);
     
     hold_reg_set(enum_REG_RHREF_RREQ, 200);
     hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
