@@ -44,7 +44,7 @@ portuBASE_TYPE drv_driverregister(void)
     portuBASE_TYPE  i                                           = 0;
 
     //���豸������ע���豸
-    for (; i < GET_ARRAY_COUNT(sc_pfdriverarray); i++)
+    for (; i < ARRAY_SIZE(sc_pfdriverarray); i++)
     {
         if (NULL != sc_pfdriverarray[i]){
             (sc_pfdriverarray[i])();

@@ -146,6 +146,8 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
             rt                                   = cpu_iic_transfer(&t_iic_transfer);
             if ((I2C_WRITE == accessCtrl) && (t_iic_transfer.m_accessNumbBytes == rt)){
                 delay_ms(25);                                                               //µÈ´ýÆ÷¼þ±à³Ì
+            }else if (-1 == rt){
+                break;
             }
         }
     }

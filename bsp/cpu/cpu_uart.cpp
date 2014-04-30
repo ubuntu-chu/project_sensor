@@ -148,9 +148,7 @@ public:
     {
         if (0 == m_clock_init){
             m_clock_init            = 1;
-            pADI_CLKCTL->CLKCON1 = ((pADI_CLKCTL->CLKCON1)&(~(BIT(9)|BIT(10)|BIT(11))))|(CLK_CD7<<9);
-            
-            //ClkSel(CLK_CD0,CLK_CD7,CLK_CD0,CLK_CD7);     // Select CD0 for UART System clock
+            pADI_CLKCTL->CLKCON1 = ((pADI_CLKCTL->CLKCON1)&(~(BIT(9)|BIT(10)|BIT(11))))|(((uint32)CLK_CD0)<<9);
         }
     }
         

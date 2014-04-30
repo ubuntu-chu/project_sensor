@@ -37,9 +37,11 @@ portBASE_TYPE cpu_iic_init(enum iic_numb numb)
         return -1;
     }
     if (numb == enum_NUMB_IIC0){
+        #if 1
         // Configure P2.0/P2.1 as I2C pins   p2.0-SCL   p2.1-SDA
 		pADI_GP2->GPCON = ((pADI_GP2->GPCON)&(~(BIT0|BIT1|BIT2|BIT3)))|0x5;
         pADI_GP2->GPPUL = ((pADI_GP2->GPPUL)&(~(BIT0|BIT1))); //disable external pull ups
+        #endif
     }
 	// Enable I2C Master mode, baud rate and interrupt sources
     //IENCMP:Enable a transaction completed interrupt. If this bit is asserted, an interrupt is generated when a 
@@ -70,7 +72,7 @@ static portBASE_TYPE cpu_iic_interrupt_enable(enum iic_numb numb)
 portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 {
 	portSIZE_TYPE 	rt ;
-    monitor_handle_type     m_handle_iic;
+    monitor_handle_type     handle_iic;
 
 	t_iic_transfer.m_index  = 0;
 	t_iic_transfer.m_lock   = 0;
@@ -81,13 +83,13 @@ portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
         return -2;              
     }
     //unit: ms
-    m_handle_iic = t_monitor_manage.monitor_register(t_iic_transfer.m_timeout,
+    handle_iic = t_monitor_manage.monitor_register(t_iic_transfer.m_timeout,
                                                 enum_MODE_ONESHOT, 
                                                 NULL, 
                                                 NULL,
                                                 "iic timeout");
-    ASSERT(m_handle_iic != (monitor_handle_type)-1);
-    t_monitor_manage.monitor_start(m_handle_iic);
+    ASSERT(handle_iic != (monitor_handle_type)-1);
+    t_monitor_manage.monitor_start(handle_iic);
 
 	if (t_iic_transfer.m_subAddrCnt > 0){
 		if (t_iic_transfer.m_subAddrCnt == 2)
@@ -112,7 +114,7 @@ portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 
 	//等待I2C操作完成
 	do {
-        if (t_monitor_manage.monitor_expired(m_handle_iic)){
+        if (t_monitor_manage.monitor_expired(handle_iic)){
             rt                          = -1;
             break;
         }
@@ -121,7 +123,8 @@ portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
     if (I2C_ABNORMAL == t_iic_transfer.m_accessFinished){
         rt                              = -1;
     }
-    t_monitor_manage.monitor_stop(m_handle_iic);
+    t_monitor_manage.monitor_stop(handle_iic);
+    t_monitor_manage.monitor_unregister(handle_iic);
 
 	return rt;
 }

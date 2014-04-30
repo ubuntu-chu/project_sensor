@@ -44,7 +44,7 @@
 #define         SBI(reg, bit)                                 	 ((reg) |= BIT(bit))
 #define         CBI(reg, bit)                                 	 ((reg) &= ~BIT(bit))
 #define         XBI(reg, bit)                                 	 ((reg) ^= BIT(bit))
-#define         BIT_IS_SET(reg, bit)                             ((reg) & BIT(bit))
+#define         BIT_IS_SET(reg, bit)                             (!!((reg) & BIT(bit)))
 #define         BIT_IS_CLEAR(reg, bit)                           (!BIT_IS_SET(reg, bit))
 
 //------------------------------------------------------------------------------
@@ -59,9 +59,8 @@
 #define         N2C(n)                                          (n + '0')
 
 //------------------------------------------------------------------------------
-#define	         GET_ARRAY_COUNT(addr)					        (sizeof(addr)/sizeof(addr[0]))
 #define         OFFSET(Struct, Field) 				            ((unsigned int)(unsigned int*)&(((Struct *)0)->Field))
-#define 		 ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
+#define 		ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
 
 //------------------------------------------------------------------------------
 
