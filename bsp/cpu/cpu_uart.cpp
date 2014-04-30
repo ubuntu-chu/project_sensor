@@ -1,6 +1,8 @@
 #include    "cpu_uart.h"
 #include    "../../api/utils.h"
 
+#define def_DMA_SEND                
+
 enum{
 	STATUS_TX_IDLE 			= 0x00,
 	STATUS_TX_PROCESSING 	= 0x01,
@@ -37,7 +39,8 @@ public:
 	portBASE_TYPE poll(int8 *pbuf, uint16 * plen, uint16 timeout);
 	virtual bool  is_done(void){return false;}
 	portBASE_TYPE 	force_done(void);
-	void status_set(enum RECV_STAT new_status){ m_rx_status = new_status;}
+	void rx_status_set(enum RECV_STAT new_status){ m_rx_status = new_status;}
+    void status_set(uint8 new_status){ m_status = new_status;}
 	void recv_init(void);
     static void monitor_timeout(void *pvoid);
 
@@ -72,7 +75,7 @@ portBASE_TYPE transceiver::force_done(void)
         }
         if (m_duplex == HALF_DUPLEX){
             m_rx_index = 0;
-            status_set(RECV_STAT_DONE); 
+            rx_status_set(RECV_STAT_DONE); 
         }else {
             recv_init();
         }
@@ -165,10 +168,26 @@ public:
         // Configure P0.1/P0.2 for UART
         pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
 		//    pADI_GP0->GPCON |= 0x9000;                   // Configure P0.6/P0.7 for UART
-		UrtCfg(pADI_UART, B9600, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
+	#ifdef def_DMA_SEND	
+        DmaBase();
+    #endif
+        
+        UrtCfg(pADI_UART, B9600, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits
-		UrtIntCfg(pADI_UART,
-				COMIEN_ERBFI | COMIEN_ELSI | COMIEN_EDSSI); // Setup UART IRQ sources
+		// Setup UART IRQ sources
+        UrtIntCfg(pADI_UART,
+				COMIEN_ERBFI | COMIEN_ELSI | COMIEN_EDSSI
+    #ifdef def_DMA_SEND	
+                |COMIEN_EDMAT); 
+    #else
+                );
+    #endif
+    #ifdef def_DMA_SEND	
+        UrtDma(pADI_UART,COMIEN_EDMAT);        // Enable UART DMA interrupts    
+        DmaPeripheralStructSetup(UARTTX_C,DMA_DSTINC_NO|    // Enable DMA write channel
+            DMA_SRCINC_BYTE|DMA_SIZE_BYTE);  
+        NVIC_EnableIRQ(DMA_UART_TX_IRQn);                  // Enable UART Tx DMA interrupts
+    #endif
         recv_init();
 	}
 
@@ -176,16 +195,30 @@ public:
 	{
 		volatile unsigned char ucCOMSTA0;
 		uint16_t i;
+        (void)i;
 
 		m_status 	= STATUS_TX_PROCESSING;
-		for (i = 0; i < len; i++){
+	#ifndef def_DMA_SEND		
+        
+        for (i = 0; i < len; i++){
 			UrtTx(pADI_UART, pdata[i]);
 			do {
 				ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
 			}while (!(ucCOMSTA0 & BIT5));
 		}
-		//recv_init();
-		m_status 	= STATUS_TX_IDLE;
+        //recv_init();
+		status_set(STATUS_TX_IDLE);
+    #else 
+        DmaStructPtrOutSetup(UARTTX_C, len , reinterpret_cast<uint8 *>(pdata));  // Setup UARTTX source/destination pointers and number of bytes to send
+        DmaCycleCntCtrl(UARTTX_C, len, DMA_DSTINC_NO| // Setup CHNL_CFG settings
+                        DMA_SRCINC_BYTE|DMA_SIZE_BYTE|DMA_BASIC);
+        DmaClr(DMARMSKCLR_UARTTX,0,0,0);           // Disable masking of UARTTX DMA channel
+        DmaSet(0,DMAENSET_UARTTX,0,                // Enable UART TX DMA channel
+                        DMAPRISET_UARTTX);                      // Enable UART DMA primary structure
+        UrtTx(pADI_UART,0);                        // Send byte 0 to the UART to start transfer
+        
+    #endif
+		
 		return len;
 	};
 
@@ -355,6 +388,18 @@ extern "C" void UART_Int_Handler ()
 quit:
     cpu_interruptEnable(level);
 } 
+
+extern "C" void DMA_UART_TX_Int_Handler()
+{
+#ifdef def_DMA_SEND	
+    volatile unsigned char ucCOMSTA0 = 0;
+    volatile unsigned char ucCOMIID0 = 0;
+    
+    ucCOMIID0 = UrtIntSta(pADI_UART);                // Read UART Interrupt ID register 
+    DmaSet(DMARMSKSET_UARTTX,DMAENSET_UARTTX,0,0);   // MASK UART DMA channel to prevent further interrupts triggering - unmask when ready to re-transmit
+    t_transceiver_uart0.status_set(STATUS_TX_IDLE);
+#endif
+}
 
 /*********************************************************************************
  **                            End Of File
