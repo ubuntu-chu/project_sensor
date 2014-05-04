@@ -40,7 +40,7 @@
 #endif
 
 //------------------------------------------------------------------------------
-#define   		 BIT(n)											 (1UL << n)
+#define   		BIT(n)											 (1UL << n)
 #define         SBI(reg, bit)                                 	 ((reg) |= BIT(bit))
 #define         CBI(reg, bit)                                 	 ((reg) &= ~BIT(bit))
 #define         XBI(reg, bit)                                 	 ((reg) ^= BIT(bit))
@@ -49,8 +49,8 @@
 
 //------------------------------------------------------------------------------
 #define         XBYTE(addr)                                     (*(volatile uint8 *)addr)
-#define         XWORD(addr)                                     (*(volatile uint16 *)addr)
-#define         XDWORD(addr)                                    (*(volatile uint32 *)addr)
+#define         XHWORD(addr)                                    (*(volatile uint16 *)addr)
+#define         XWORD(addr)                                     (*(volatile uint32 *)addr)
 
 //------------------------------------------------------------------------------
 #define         MIN(a,b)                                        ((a)<(b)?(a):(b))

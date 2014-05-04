@@ -63,7 +63,8 @@ static portBASE_TYPE cpu_iic_interrupt_enable(enum iic_numb numb)
         return -1;
     }
     if (numb == enum_NUMB_IIC0){
-		NVIC_EnableIRQ(I2CM_IRQn);
+		NVIC_SetPriority(I2CM_IRQn, I2CM_IRQ_PRIO);
+        NVIC_EnableIRQ(I2CM_IRQn);
     }
 
     return rt;

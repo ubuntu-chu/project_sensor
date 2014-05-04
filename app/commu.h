@@ -24,7 +24,6 @@ private:
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 	virtual portBASE_TYPE process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 	portBASE_TYPE package_recv_handle(uint8 event, uint8 func_code, uint8 *pcontinue);
-    uint8					m_buffsend[300];
     package_event_handler	m_handler;
 
     //pointer to protocol

@@ -77,6 +77,39 @@ uint8 cpu_sleep_status_pend(void)
    return tmp;
 }
 
+void cpu_pendsv_init(void)
+{ 
+    //lowest pri
+    NVIC_SetPriority(PendSV_IRQn, PEND_SV_PRIO);
+}
+
+void cpu_pendsv_trig(void)
+{
+    SCB->ICSR                     = SCB_ICSR_PENDSVSET_Msk;
+}
+
+static fp_void_pvoid *fp_pendsv = NULL;
+static void *pendsv_data = NULL;
+
+void cpu_pendsv_register(fp_void_pvoid *fp, void *data)
+{
+    fp_pendsv                   = fp;
+    pendsv_data                 = data;
+}
+
+void cpu_pendsv_unregister(void)
+{
+    fp_pendsv                   = NULL;
+}
+
+extern "C" void PendSV_Handler(void)
+{
+    if (NULL != fp_pendsv){
+        fp_pendsv(pendsv_data);
+    }
+}
+
+
 /*********************************************************************************
 **                            End Of File
 *********************************************************************************/

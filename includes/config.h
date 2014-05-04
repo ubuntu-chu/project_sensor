@@ -5,13 +5,18 @@
  *              cpu relative settings
 **------------------------------------------------------------------*/
 
-
+#define     PEND_SV_PRIO                ((1<<__NVIC_PRIO_BITS) - 1)
+#define     SYS_TICK_PRIO               ((1<<__NVIC_PRIO_BITS) - 1)
+#define     UART_IRQ_PRIO               (1)
+#define     I2CM_IRQ_PRIO               (2)
+#define     DMA_UART_TX_IRQ_PRIO        (0)
 
 //******************************************************************************
 
-
-#define def_FRAME_delimiter	        0x5AA5
-#define def_FRAME_END_delimiter		0xAA55
+#if 0
+#define     def_FRAME_delimiter	        0x5AA5
+#define     def_FRAME_END_delimiter		0xAA55
+#endif
 
 /*------------------------------------------------------------------
  *              APP settings

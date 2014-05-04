@@ -115,6 +115,7 @@ portBASE_TYPE CApplication::init(void)
                                                 this,
                                                 "period handle");
 	t_monitor_manage.monitor_start(m_app_runinfo.m_handle_period);  
+	cpu_pendsv_register(pendsv_handle, this);
     if (m_app_runinfo.m_pdevice_commu->open()){
 		//SYS_LOG("commu device open failed\n");
     }
@@ -175,7 +176,7 @@ portBASE_TYPE CApplication::run()
     while(1){
         //pdevice_pin->read((char *)&key, sizeof(key)); 
         //key pressed   rf231 in recv mode
-        pdevice_commu->package_event_fetch();
+//        pdevice_commu->package_event_fetch();
 #if 0
         uint8 buffer[100];
         uint8 len_buf[10];
@@ -216,6 +217,14 @@ portBASE_TYPE CApplication::run()
     return 0;
 }
 
+void CApplication::pendsv_handle(void *pdata)
+{
+	CApplication *papplication      = static_cast<CApplication *> (pdata);
+	CDevice_commu *pdevice_commu    = static_cast<CDevice_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
+
+	pdevice_commu->package_event_fetch();
+}
+
 void CApplication::period_handle(void *pdata)
 {
 	CApplication *papplication  = static_cast<CApplication *> (pdata);
@@ -236,4 +245,6 @@ int main(void)
 
     return 0;
 }
+
+
 

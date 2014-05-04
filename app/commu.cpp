@@ -7,7 +7,6 @@ CDevice_commu::CDevice_commu(const char *pname,
                              package_event_handler handler)
                             :CDevice_base(pname, oflag)
 {
-	m_pbuf_send			= m_buffsend;
     m_handler			= handler;
 
     //protocol init
@@ -82,13 +81,13 @@ portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event,
                                                  uint8 *pcontinue)
 {
 	portSIZE_TYPE	buf_recv_len;
-	uint8			buf_recv[400];
+	uint8			buf[700];
 	portBASE_TYPE 	rt			= 0;
-	uint8			*pbuf		= buf_recv;
+	uint8			*pbuf		= buf;
     uint8           to_continue = 0;
 
 	API_DeviceControl(m_pdevice, (event == EVENT_ACK)?(DEVICE_IOC_BLOCK):(DEVICE_IOC_NONBLOCK), 0);
-    buf_recv_len = read((char *)pbuf, sizeof(buf_recv));
+    buf_recv_len = read((char *)pbuf, sizeof(buf));
 	if (event == EVENT_ACK){
 		API_DeviceControl(m_pdevice, DEVICE_IOC_NONBLOCK, 0);
 	}
@@ -99,7 +98,9 @@ portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event,
         to_continue                     = 1;
 		if (event == EVENT_ACK){
 		}else {
-        	write((char *)pbuf, buf_recv_len);
+        	//redirect  send buf
+            m_pbuf_send                 = buf;
+            write((char *)pbuf, buf_recv_len);
             if (m_handler != NULL){
 				m_handler(0, pbuf, buf_recv_len);
 			}

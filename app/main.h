@@ -55,6 +55,7 @@ private:
     CApplication(const CApplication &other);
     CApplication &operator =(const CApplication &other);
 	static portBASE_TYPE package_event_handler(uint8 func_code, uint8 *pbuf, uint16 len);
+	static void pendsv_handle(void *pdata);
 	static void period_handle(void *pdata);
         
     portBASE_TYPE load_env_datum(void);

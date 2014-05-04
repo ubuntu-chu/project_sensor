@@ -52,6 +52,12 @@ void cpu_sleep_enter(void);
 void cpu_sleep_exit(void);
 uint8 cpu_sleep_status_pend(void);
 
+void cpu_pendsv_init(void);
+void cpu_pendsv_trig(void);
+
+void cpu_pendsv_register(fp_void_pvoid *fp, void *data);
+void cpu_pendsv_unregister(void);
+
 
 /******************************************************************************
  *                             END  OF  FILE                                                                          

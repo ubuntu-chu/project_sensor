@@ -47,11 +47,14 @@ portBASE_TYPE cpu_sys_tick_run(void)
                                                 "tick handle");
     t_monitor_manage.monitor_start(handle_tick);  
 
+    SysTick_Config(16*1000*50); // Time-out period of 50ms   FCLK = 16MHz
+#if 0
 	//Timer 0 setup to re-start every 64mS
 	GptLd(pADI_TM0, 50000);// Time-out period of 50ms
 	GptCfg(pADI_TM0, TCON_CLK_UCLK, TCON_PRE_DIV16,
 			TCON_MOD | TCON_RLD | TCON_ENABLE);  // T0 config, Uclk/16, 1MHz
     NVIC_EnableIRQ(TIMER0_IRQn);
+#endif
 #if  0    
 	//Timer 1 setup
 	GptLd(pADI_TM1,0xFFFA);                                  // Set timeout period for 5 seconds
@@ -72,8 +75,20 @@ portBASE_TYPE cpu_timetrig_1s(void)
 	return (rt)?(1):(0);
 }
 
+extern "C" void SysTick_Handler(void)
+{
+    //portCPSR_TYPE	level = cpu_interruptDisable();
+    
+    t_monitor_manage.run();
+    if (cpu_sleep_status_pend()){
+        cpu_sleep_exit();
+    }
+    //cpu_interruptEnable(level);
+}
+
 extern "C" void GP_Tmr0_Int_Handler(void)
 {
+#if 0
     portCPSR_TYPE	level = cpu_interruptDisable();
     
     GptClrInt(pADI_TM0,TSTA_TMOUT);  // Clear T0 interrupt
@@ -82,6 +97,7 @@ extern "C" void GP_Tmr0_Int_Handler(void)
         cpu_sleep_exit();
     }
     cpu_interruptEnable(level);
+#endif
 }
 
 extern "C" void GP_Tmr1_Int_Handler(void)

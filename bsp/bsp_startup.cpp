@@ -45,13 +45,13 @@ void sys_wdt_clr(void)
 }
 
 portBASE_TYPE bsp_startup(void)
-{
-	//watch dog
+{    
+    //watch dog
     sys_wdt_init();
     sys_wdt_stop();
     //clock
     sys_clock_init();
-
+    cpu_pendsv_init();
 	//gpio
 	cpu_gpioinit();
 	//start sys tick

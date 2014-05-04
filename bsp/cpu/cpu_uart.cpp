@@ -54,7 +54,7 @@ private:
 	uint16					m_tx_len;
 	enum RECV_STAT 			m_rx_status;
 	int8 					m_rx_buf[def_TRANSCEIVER_RX_BUF_SIZE];
-	int8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
+	//uint8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
     monitor_handle_type     m_handle_rx;
     struct buf_queue        m_buf_queue;    
 };
@@ -66,21 +66,23 @@ void transceiver::recv_init(void)
 }
 
 portBASE_TYPE transceiver::force_done(void)
-    {
-        if (static_cast<int8>(-1) == buf_queue_put(&m_buf_queue, 
-                                                    m_rx_buf, 
-                                                    m_rx_index)){
-            buf_queue_pop(&m_buf_queue);
-            buf_queue_put(&m_buf_queue, m_rx_buf, m_rx_index);
-        }
-        if (m_duplex == HALF_DUPLEX){
-            m_rx_index = 0;
-            rx_status_set(RECV_STAT_DONE); 
-        }else {
-            recv_init();
-        }
-        return 0;
+{
+    if (static_cast<int8>(-1) == buf_queue_put(&m_buf_queue, 
+                                                m_rx_buf, 
+                                                m_rx_index)){
+        buf_queue_pop(&m_buf_queue);
+        buf_queue_put(&m_buf_queue, m_rx_buf, m_rx_index);
     }
+    if (m_duplex == HALF_DUPLEX){
+        m_rx_index = 0;
+        rx_status_set(RECV_STAT_DONE); 
+    }else {
+        recv_init();
+    }
+    //initiative call device handle
+    cpu_pendsv_trig();
+    return 0;
+}
 
 portBASE_TYPE transceiver::push(int8 c)
 {
@@ -186,6 +188,7 @@ public:
         UrtDma(pADI_UART,COMIEN_EDMAT);        // Enable UART DMA interrupts    
         DmaPeripheralStructSetup(UARTTX_C,DMA_DSTINC_NO|    // Enable DMA write channel
             DMA_SRCINC_BYTE|DMA_SIZE_BYTE);  
+        NVIC_SetPriority(DMA_UART_TX_IRQn, DMA_UART_TX_IRQ_PRIO);
         NVIC_EnableIRQ(DMA_UART_TX_IRQn);                  // Enable UART Tx DMA interrupts
     #endif
         recv_init();
@@ -302,7 +305,8 @@ void uart_enableIRQ(uint8_t uart_id)
 {
     switch (uart_id) {
 	case UART_0:
-		NVIC_EnableIRQ (UART_IRQn);
+		NVIC_SetPriority(UART_IRQn, UART_IRQ_PRIO);
+        NVIC_EnableIRQ (UART_IRQn);
 		break;
 
 	default:
@@ -358,7 +362,7 @@ extern "C" void UART_Int_Handler ()
     volatile unsigned char ucCOMIID0;
     volatile unsigned char ucComRx;
    
-    portCPSR_TYPE	level = cpu_interruptDisable();
+    //portCPSR_TYPE	level = cpu_interruptDisable();
     
     ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
     ucCOMIID0 = UrtIntSta(pADI_UART);         // Read UART Interrupt ID register         
@@ -386,7 +390,7 @@ extern "C" void UART_Int_Handler ()
         goto quit;
     }
 quit:
-    cpu_interruptEnable(level);
+    //cpu_interruptEnable(level);
 } 
 
 extern "C" void DMA_UART_TX_Int_Handler()

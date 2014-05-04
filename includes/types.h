@@ -58,7 +58,7 @@ typedef char        								string_char;  	/* Signed    8 bit quantity  */
 #define BYTE_PTR            						uint8_t*
 
 
-typedef         void (*const FP_pfvoid)(void *);
+typedef         void (fp_void_pvoid)(void *);
 
 
 
