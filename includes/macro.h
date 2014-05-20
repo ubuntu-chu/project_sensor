@@ -62,6 +62,15 @@
 #define         OFFSET(Struct, Field) 				            ((unsigned int)(unsigned int*)&(((Struct *)0)->Field))
 #define 		ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
 
+#define         ALIGN_UP(x, a)                                  (((x)+(a))&(~a))
+#define         ALIGN_DOWN(x, a)                                (((x)&(~a))
+
+#define         ROUND_UP(x, y)                                  ((((x) + (y - 1)) / y) * y)
+#define         ROUND_DOWN(x, y)                                ((x) - ((x) % (y)))
+
+#define         DIV_ROUND_UP(n,d)                               (((n) + (d) - 1) / (d))
+#define         DIV_ROUND_DOWN(n,d)                             (((n) / (d))
+
 //------------------------------------------------------------------------------
 
 #if 	0

@@ -44,7 +44,10 @@
 
 #define             DEVICE_NAME_MAX	                        (8)
 #ifndef 	portSIZE_TYPE
-	typedef             int16                                   portSIZE_TYPE;
+	typedef             uint16                                  portSIZE_TYPE;
+#endif
+#ifndef 	portSSIZE_TYPE
+	typedef             int16                                   portSSIZE_TYPE;
 #endif
 #ifndef 	portOFFSET_TYPE
 	typedef             portSIZE_TYPE                           portOFFSET_TYPE;
@@ -139,8 +142,8 @@ typedef     portuBASE_TYPE     (FP_pfregister)   (void);
 typedef     DeviceStatus_TYPE  (FP_pfinit)	     (pDeviceAbstract pdev);
 typedef     DeviceStatus_TYPE  (FP_pfopen)	     (pDeviceAbstract pdev, uint16 oflag);
 typedef     DeviceStatus_TYPE  (FP_pfclose)      (pDeviceAbstract pdev);
-typedef     portSIZE_TYPE      (FP_pfread)	     (pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
-typedef     portSIZE_TYPE      (FP_pfwrite)      (pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+typedef     portSSIZE_TYPE      (FP_pfread)	     (pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+typedef     portSSIZE_TYPE      (FP_pfwrite)      (pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 typedef     DeviceStatus_TYPE  (FP_pfcontrol)    (pDeviceAbstract pdev, uint8 cmd, void *args);
     
 /* device call back */
@@ -212,10 +215,10 @@ extern DeviceStatus_TYPE API_DeviceOpen(pDeviceAbstract pdev, uint16 oflag);
 extern DeviceStatus_TYPE API_DeviceClose(pDeviceAbstract pdev);
 #define hal_deviceclose            API_DeviceClose
 
-extern portSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+extern portSSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 #define hal_deviceread            API_DeviceRead
 
-extern portSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+extern portSSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 #define hal_devicewrite            API_DeviceWrite
 
 extern DeviceStatus_TYPE API_DeviceControl(pDeviceAbstract pdev, uint8 cmd, void *args);

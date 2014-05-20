@@ -120,10 +120,10 @@ void buf_dump_hex(const char *buf, uint16 len)
 		prefix[5] = index / 10 + 0x30;
 		index %= 10;
 		prefix[6] = index + 0x30;
-		SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, prefix, strlen((char const * )prefix));
+		//SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, prefix, strlen((char const * )prefix));
 		buff[2] = chartable[(buf[i] >> 4)];
 		buff[3] = chartable[(buf[i] & 0x0f)];
-		SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, buff, strlen((char const * )buff));
+		//SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, buff, strlen((char const * )buff));
 	}
 }
 
@@ -688,4 +688,11 @@ uint16 crc16(const uint8 *buf, uint16 len)
 
 
 #endif
+
+
+bool is_power_of_2(unsigned long n)
+{
+	return (n != 0 && ((n & (n - 1)) == 0));
+}
+
 

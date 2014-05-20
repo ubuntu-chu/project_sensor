@@ -27,11 +27,11 @@ CApplication *CApplication::GetInstance(void)
     return (m_pcapplicaiton);
 }
 
-portBASE_TYPE CApplication::package_event_handler(uint8 func_code, uint8 *pbuf, uint16 len)
+portBASE_TYPE CApplication::package_event_handler(const uint8 *pbuf, uint16 len)
 {
     CApplication  	*pcapplication    		= CApplication::GetInstance();
 
-    switch (func_code){
+    switch (len){
     case _FC_WRITE_SINGLE_REGISTER: 
     case _FC_WRITE_MULTIPLE_REGISTERS:
     {
@@ -52,7 +52,7 @@ portBASE_TYPE CApplication::package_event_handler(uint8 func_code, uint8 *pbuf, 
 
 volatile CDevice_commu *pCDevice_commu;
 
-portBASE_TYPE CApplication::load_env_datum(void)
+portBASE_TYPE CApplication::load_app_datum(void)
 {
     CDevice_storage *pdevice_storage    = 
             static_cast<CDevice_storage *>(m_app_runinfo.m_pdevice_storage);
@@ -116,24 +116,15 @@ portBASE_TYPE CApplication::init(void)
                                                 "period handle");
 	t_monitor_manage.monitor_start(m_app_runinfo.m_handle_period);  
 	cpu_pendsv_register(pendsv_handle, this);
-    if (m_app_runinfo.m_pdevice_commu->open()){
-		//SYS_LOG("commu device open failed\n");
-    }
-    if (m_app_runinfo.m_pdevice_pin->open()){
-		//SYS_LOG("pin device open failed\n");
-    }
-    if (m_app_runinfo.m_pdevice_ad->open()){
-		//SYS_LOG("pin device open failed\n");
-    }
-    if (m_app_runinfo.m_pdevice_pwm->open()){
-		//SYS_LOG("pin device open failed\n");
-    }
-    if (m_app_runinfo.m_pdevice_storage->open()){
-		//SYS_LOG("storage device open failed\n");
-    }
-    //load env_datum from storage device
-    if (load_env_datum()){
-        //SYS_LOG("load_env_datum failed\n");
+    
+    m_app_runinfo.m_pdevice_commu->open();
+    m_app_runinfo.m_pdevice_pin->open();
+    m_app_runinfo.m_pdevice_ad->open();
+    m_app_runinfo.m_pdevice_pwm->open();
+    m_app_runinfo.m_pdevice_storage->open();
+    
+    //load conf_datum from storage device
+    if (load_app_datum()){
     }
     t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
     t_protocol_modbus_rtu.modbus_mapping_set(ARRAY_SIZE(m_modeinfo.m_regs.m_tab_bits),

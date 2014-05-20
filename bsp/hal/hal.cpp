@@ -520,7 +520,7 @@ DeviceStatus_TYPE API_DeviceClose(pDeviceAbstract pdev)
  *                                                                            
 ******************************************************************************/
 
-portSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size)
+portSSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size)
 {
     DeviceAbstractInfo      *pdevInfo;
     FP_pfread               *read;
@@ -540,7 +540,7 @@ portSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* bu
     //未有此函数接口 设置错误代码
     API_DeviceErrorInfoSet(DEVICE_ENOSYS);
     
-    return -1;
+    return static_cast<portSSIZE_TYPE>(-1);
     
 }
 
@@ -566,7 +566,7 @@ portSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* bu
  *                                                                            
 ******************************************************************************/
 
-portSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size)
+portSSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size)
 {
     DeviceAbstractInfo      *pdevInfo;
     FP_pfwrite              *write;

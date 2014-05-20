@@ -6,8 +6,8 @@
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
-static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
-static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args);
 
 static const DeviceAbstractInfo st_DeviceInfo = {
@@ -65,32 +65,33 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     return rt;
 }
 
-static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
+static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
     void *pbuf  = const_cast<void *>(buffer);
-    portSIZE_TYPE  len = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
+    portSSIZE_TYPE  len = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
     return len;
 }
 
-static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
+static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
     
 	uint16	len;
     //unit:ms 
-    uint16  timeout;             
+    uint16  timeout; 
+    portSSIZE_TYPE      rt;  
     
     if (pdev->m_openFlag & DEVICE_FLAG_NONBLOCK){
         timeout                         = 0;
     }else {
         timeout                         = 20000; 
     }
-    size = static_cast<portSIZE_TYPE>(uart_poll(UART_0, (int8 *)buffer, &len, timeout));
-    if (static_cast<portSIZE_TYPE>(-1) == size){
+    rt = static_cast<portSIZE_TYPE>(uart_poll(UART_0, (int8 *)buffer, &len, timeout));
+    if (static_cast<portSIZE_TYPE>(-1) == rt){
         API_DeviceErrorInfoSet(DEVICE_ETIMEOUT);
-    }if (static_cast<portSIZE_TYPE>(0) == size){
+    }if (static_cast<portSIZE_TYPE>(0) == rt){
         API_DeviceErrorInfoSet(DEVICE_EAGAIN);
-        size                            = -1;
+        rt                              = -1;
     }else {
-        size                            = len;
+        rt                              = len;
     }
 
     return size;

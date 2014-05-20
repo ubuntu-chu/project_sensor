@@ -2,10 +2,11 @@
  *                          本文件所引用的头文件
 ******************************************************************************/ 
 
-#include "devices.h"
+#include    "devices.h"
 
-#include "../bsp/hal/hal.h"
-#include "../includes/Macro.h"
+#include    "../bsp/hal/hal.h"
+#include    "../includes/Macro.h"
+#include    "../api/log/log.h"
 
 CDevice_base::CDevice_base(const char *pname, uint16 oflag)
 {
@@ -34,11 +35,13 @@ portBASE_TYPE CDevice_base::open(void)
     //查找设备
     m_pdevice   = hal_devicefind(m_name);
     if (NULL == m_pdevice){
-	    return (portBASE_TYPE)-1;
+	    LOG_WARN << "device:" << m_name << "find fail!";
+        return (portBASE_TYPE)-1;
     }
     //打开设备
     if (DEVICE_OK != hal_deviceopen(m_pdevice, m_oflag)){
-    	m_pdevice 		= NULL;
+    	LOG_WARN << "device:" << m_name << "open fail!";
+        m_pdevice 		= NULL;
         return (portBASE_TYPE)-2;
     }
     return 0;
@@ -64,7 +67,7 @@ uint8	CDevice_base::device_is_valid(void)
 	return (m_pdevice == NULL)?(0):(1);
 }
 
-portSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if ((NULL == m_pdevice)){
         return -1;
@@ -100,22 +103,22 @@ portSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYP
 }
 
 //Note: read return m_len_data  if the cmd rsp no data, then read return 0!
-portSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
 {
 	return read(0, buffer, size);
 }
 
-portSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
 {
 	return write(0, buffer, size);
 }
 
-portSIZE_TYPE CDevice_base::write(char *buffer)
+portSSIZE_TYPE CDevice_base::write(char *buffer)
 {
 	return write(0, buffer, strlen(buffer));
 }
 
-portSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if ((NULL == m_pdevice) || (m_pbuf_send == NULL)){
         return -1;

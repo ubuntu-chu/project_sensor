@@ -100,9 +100,10 @@ portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event,
 		}else {
         	//redirect  send buf
             m_pbuf_send                 = buf;
+            //format send data to buf
             write((char *)pbuf, buf_recv_len);
             if (m_handler != NULL){
-				m_handler(0, pbuf, buf_recv_len);
+				m_handler(static_cast<const uint8 *>(pbuf), buf_recv_len);
 			}
 		}
 	}

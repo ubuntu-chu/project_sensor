@@ -36,7 +36,7 @@ public:
 	virtual uint16 transmit(int8 *pdata, uint16 len){return 0;};
 	virtual portBASE_TYPE push(int8 c);
 	portBASE_TYPE fetch(int8 *pbuf, uint16 *plen);
-	portBASE_TYPE poll(int8 *pbuf, uint16 * plen, uint16 timeout);
+	portSSIZE_TYPE poll(int8 *pbuf, uint16 * plen, uint16 timeout);
 	virtual bool  is_done(void){return false;}
 	portBASE_TYPE 	force_done(void);
 	void rx_status_set(enum RECV_STAT new_status){ m_rx_status = new_status;}
@@ -110,9 +110,9 @@ portBASE_TYPE transceiver::fetch(int8 *pbuf, uint16 *plen)
 }
 
 //timeout: unit:ms
-portBASE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
+portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
 {
-	portBASE_TYPE		rt 				= 0;
+	portSSIZE_TYPE		rt 				= 0;
 
     if (timeout){
         if (m_handle_rx == (monitor_handle_type)-1){
@@ -342,9 +342,9 @@ void uart_start_rx(uint8_t uart_id)
 	}
 }
 
-portBASE_TYPE uart_poll(uint8_t uart_id, int8 *pbuf, uint16 * plen, uint16 timeout)
+portSSIZE_TYPE uart_poll(uint8_t uart_id, int8 *pbuf, uint16 * plen, uint16 timeout)
 {
-    portBASE_TYPE rt;
+    portSSIZE_TYPE rt;
     
     switch (uart_id) {
 	case UART_0:

@@ -16,8 +16,8 @@
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
-static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
-static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args);
 
 static const DeviceAbstractInfo st_DeviceInfo = {
@@ -155,13 +155,13 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
     return rt;
 }
 
-static portSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
+static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
 
 	return _I2CInnerAccess(DEVICE_ADDR, X_PLUS_BYTE_SUBA, pos, (uint8 *)buffer, size, I2C_WRITE);
 }
 
-static portSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
+static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
     
 	return _I2CInnerAccess(DEVICE_ADDR, X_PLUS_BYTE_SUBA, pos, (uint8 *)buffer, size, I2C_READ);
 }

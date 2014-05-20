@@ -32,8 +32,9 @@ typedef int 										portBASE_TYPE;
 typedef unsigned int 								portuBASE_TYPE;
 //中断寄存器类型定义
 typedef unsigned int 								portCPSR_TYPE;
-typedef int16                     		            portSIZE_TYPE;
-typedef portSIZE_TYPE                          		portOFFSET_TYPE;
+typedef uint16                     		        portSIZE_TYPE;
+typedef int16                     		            portSSIZE_TYPE;
+typedef portSIZE_TYPE                              portOFFSET_TYPE;
 #ifndef		LINUX_OS
 //时间类型定义
 typedef unsigned long int 						time_t;

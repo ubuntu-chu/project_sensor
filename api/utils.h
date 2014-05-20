@@ -256,6 +256,8 @@ uint16 crc16(const uint8 *buf, uint16 len);
 uint16 sum16(const uint8 * ptr, uint16 len)
 #endif
 
+bool is_power_of_2(unsigned long n);
+
 #endif
 
 

@@ -11,7 +11,7 @@ enum{
 	EVENT_CMD,
 };
 
-typedef portBASE_TYPE (*package_event_handler)(uint8 func_code, uint8 *pbuf, uint16 len);
+typedef portBASE_TYPE (*package_event_handler)(const uint8 *pbuf, uint16 len);
 
 class CDevice_commu:public CDevice_base{
 public:

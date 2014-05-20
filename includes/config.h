@@ -57,43 +57,6 @@
 #define    DBG_UART								(UART_0)
 
 
-
-
-
-#define		DEBUG_SWITCH	(0)
-
-#define    SYS_LOG_LEV_EMERG		(0)
-#define    SYS_LOG_LEV_ALERT		(1)
-#define    SYS_LOG_LEV_CRIT			(2)
-#define    SYS_LOG_LEV_ERR			(3)
-#define    SYS_LOG_LEV_WARNING		(4)
-#define    SYS_LOG_LEV_NOTICE		(5)
-#define    SYS_LOG_LEV_INFO			(6)
-#define    SYS_LOG_LEV_DEBUG		(7)
-
-#define    SYS_LOG_LEV				(SYS_LOG_LEV_DEBUG)
-
-#if(DEBUG_SWITCH > 0)
-
-	#ifdef	__LINUX_OS__
-
-		#define		SYS_LOG(format,...)		fprintf(stderr, "FILE: "__FILE__", FUNC: %s , LINE: %d: "format"", __func__, __LINE__, ##__VA_ARGS__)
-		#define		SYS_LOG_LEV_TINY(lev, msg)
-		#define		SYS_LOG_LEV_TINY_LEN(lev, msg, len)
-	#else
-
-		#define    DBG_UART					(UART_0)
-		#define		SYS_LOG(format,...)
-		#define		SYS_LOG_LEV_TINY(lev, msg)	do{if ((lev) <= SYS_LOG_LEV){uart_tx(DBG_UART, (uint8 *)msg, strlen((char const *)msg));}}while(0)
-		#define		SYS_LOG_LEV_TINY_LEN(lev, msg, len)	do{if ((lev) <= SYS_LOG_LEV){uart_tx(DBG_UART, (uint8 *)msg, len);}}while(0)
-	#endif
-#else
-
-	#define		SYS_LOG(format,...)
-	#define		SYS_LOG_LEV_TINY(lev, msg)
-	#define		SYS_LOG_LEV_TINY_LEN(lev, msg, len)
-#endif
-
 /******************************************************************************
  *                             END  OF  FILE
 ******************************************************************************/
