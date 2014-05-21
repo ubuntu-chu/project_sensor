@@ -27,19 +27,33 @@ CApplication *CApplication::GetInstance(void)
     return (m_pcapplicaiton);
 }
 
-portBASE_TYPE CApplication::package_event_handler(const uint8 *pbuf, uint16 len)
+portBASE_TYPE CApplication::package_event_handler(void *pvoid, class protocol_info *pinfo)
 {
-    CApplication  	*pcapplication    		= CApplication::GetInstance();
+    CApplication  	*pcapplication    		= static_cast<CApplication *>(pvoid);
+    class modbus_rtu_info *pmodbus_rtu_info;
+    struct storage_info storage_info;
+    uint16 	offset;
 
-    switch (len){
+	pmodbus_rtu_info = static_cast<class modbus_rtu_info *>(pinfo);
+
+	if (pmodbus_rtu_info->type_get() != enum_MODBUS_RTU){
+		return -1;
+	}
+
+    switch (pmodbus_rtu_info->function_get()){
     case _FC_WRITE_SINGLE_REGISTER: 
     case _FC_WRITE_MULTIPLE_REGISTERS:
     {
         //write hold regs to storage device
         CDevice_storage *pdevice_storage    = 
-            (CDevice_storage *)(pcapplication->m_app_runinfo.m_pdevice_storage);
+            static_cast<CDevice_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
         
-        pdevice_storage->write((char *)&(pcapplication->m_modeinfo.m_regs), sizeof(struct regs));
+        //hold regs type is uint16
+        offset 								= pmodbus_rtu_info->reg_get()<<1;
+        pcapplication->m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
+        pdevice_storage->write(storage_info.m_storage_addr+offset,
+        		(char *)(storage_info.m_pdata + offset),
+        		storage_info.m_len<<1);
     }
         break;
     
@@ -73,6 +87,15 @@ void CApplication::hold_reg_set(enum hold_reg_index index, uint16 value)
     m_modeinfo.hold_reg_set(index, value);
 }
 
+uint16  CApplication::input_reg_get(enum input_reg_index index)
+{
+    return m_modeinfo.input_reg_get(index);
+}
+void CApplication::input_reg_set(enum input_reg_index index, uint16 value)
+{
+    m_modeinfo.input_reg_set(index, value);
+}
+
 portBASE_TYPE CApplication::init(void)
 {
     static CDevice_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
@@ -81,7 +104,8 @@ portBASE_TYPE CApplication::init(void)
     static CDevice_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
     static CDevice_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
                                              &t_protocol_modbus_rtu,
-                                             CApplication::package_event_handler);
+                                             CApplication::package_event_handler,
+                                             this);
     //log setting
     Logger::setOutput(debug_output);
 #if 0

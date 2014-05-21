@@ -107,6 +107,19 @@ struct regs{
     uint16			        m_tab_registers[enum_REG_HOLD_REG_MAX];
 };
 
+enum reg_type{
+	enum_REG_TYPE_INPUT	= 0,
+	enum_REG_TYPE_HOLD,
+
+	enum_REG_TYPE_MAX,
+};
+
+struct storage_info{
+	uint16 					m_storage_addr;      	//´æÖüÆ÷Éè±¸µØÖ·
+	uint8					*m_pdata;				//src data
+	uint16 					m_len;					//src data len
+};
+
 class 	CModelInfo{
 public:
 	CModelInfo(uint8 *pname):m_name(pname)
@@ -128,6 +141,31 @@ public:
         m_regs.m_tab_registers[index] = value;
     }
 
+    uint16  input_reg_get(enum input_reg_index index)
+    {
+        return m_regs.m_tab_input_registers[index];
+    }
+    void input_reg_set(enum input_reg_index index, uint16 value)
+    {
+        m_regs.m_tab_input_registers[index] = value;
+    }
+
+    portBASE_TYPE storage_info_query(enum reg_type type, struct storage_info *pinfo)
+    {
+    	if (pinfo == NULL){
+    		return -1;
+    	}
+    	if (type == enum_REG_TYPE_HOLD){
+    		pinfo->m_storage_addr 						= 16;
+    		pinfo->m_pdata 								= reinterpret_cast<uint8 *>(&m_regs.m_tab_registers[0]);
+    		pinfo->m_len 								= sizeof(m_regs.m_tab_registers);
+    	}else {
+    		return -1;
+    	}
+
+    	return 0;
+    }
+
     const uint8 *name_get(void)
     {
         return m_name;
@@ -144,18 +182,9 @@ private:
 public:
     const uint8             *m_name;
     struct regs             m_regs;
+
+
 };
-
-extern class CModelInfo 	t_modeinfo;
-
-
-
-
-
-
-
-
-
 
 #endif
 

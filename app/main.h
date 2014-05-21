@@ -54,7 +54,7 @@ private:
     ~CApplication(){}
     CApplication(const CApplication &other);
     CApplication &operator =(const CApplication &other);
-	static portBASE_TYPE package_event_handler(const uint8 *pbuf, uint16 len);
+	static portBASE_TYPE package_event_handler(void *pvoid, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
 	static void period_handle(void *pdata);
         
@@ -62,6 +62,8 @@ private:
     uint16  hold_reg_get(enum hold_reg_index index);
     void hold_reg_set(enum hold_reg_index index, uint16 value);
 
+    uint16  input_reg_get(enum input_reg_index index);
+    void input_reg_set(enum input_reg_index index, uint16 value);
 
     static CApplication 	*m_pcapplicaiton;
     struct _app_runinfo_    m_app_runinfo;

@@ -36,7 +36,7 @@ static int _modbus_rtu_prepare_response_tid(const uint8_t *req, int *req_length)
 
 static int _modbus_rtu_send_msg_pre(uint8_t *req, int req_length)
 {
-    uint16_t crc = crc16(reinterpret_cast<const uint8 *>(req), req_length);
+    uint16_t crc = crc16(const_cast<const uint8 *>(req), req_length);
     req[req_length++] = crc >> 8;
     req[req_length++] = crc & 0x00FF;
 
@@ -57,6 +57,7 @@ static int response_exception(modbus_t *ctx, sft_t *sft,
 
     return rsp_length;
 }
+
 
 int modbus_reply(modbus_t *ctx, uint8 *rsp, const uint8_t *req,
                  int req_length, modbus_mapping_t *mb_mapping)
@@ -195,7 +196,7 @@ int modbus_reply(modbus_t *ctx, uint8 *rsp, const uint8_t *req,
 
 protocol_modbus_rtu::protocol_modbus_rtu()
 {
-    
+	m_type 			= enum_MODBUS_RTU;
 }
 
 protocol_modbus_rtu::~protocol_modbus_rtu()
@@ -246,6 +247,29 @@ int8   protocol_modbus_rtu::unpack(uint8_t* pbuf, uint16 len)
 }
 
 
+portBASE_TYPE  protocol_modbus_rtu::info(const uint8_t*package, uint16 len, class protocol_info *pinfo)
+{
+    int offset          = _MODBUS_RTU_HEADER_LENGTH;
+    int function;
+    class modbus_rtu_info *pmodbus_rtu_info;
+
+    pmodbus_rtu_info = static_cast<class modbus_rtu_info *>(pinfo);
+    function        	= package[offset];
+    pinfo->type_set(m_type);
+	pmodbus_rtu_info->function_set(function);
+	if ((function == _FC_READ_HOLDING_REGISTERS)
+			|| (function == _FC_READ_INPUT_REGISTERS)
+			|| (function == _FC_WRITE_SINGLE_REGISTER)
+			|| (function == _FC_WRITE_MULTIPLE_REGISTERS)){
+		pmodbus_rtu_info->reg_set((package[offset + 1] << 8) + package[offset + 2]);
+		pmodbus_rtu_info->len_set((package[offset + 3] << 8) + package[offset + 4]);
+		pmodbus_rtu_info->param_set(const_cast<uint8 *>(&(package[offset + 5])));
+	}else{
+		pmodbus_rtu_info->reg_set(-1);
+		pmodbus_rtu_info->len_set(-1);
+	}
+	return 0;
+}
 
 
 

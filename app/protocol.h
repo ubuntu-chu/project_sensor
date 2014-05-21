@@ -3,6 +3,24 @@
 
 #include "../includes/includes.h"
 
+enum protocol_type{
+	enum_RAW_MAC	= 0,
+	enum_MODBUS_RTU,
+
+	enum_TYPE_MAX,
+};
+
+class protocol_info{
+public:
+	protocol_info(){}
+	~protocol_info(){}
+public:
+	void type_set(enum protocol_type type){m_type = type;}
+	enum protocol_type type_get(void){return m_type;}
+
+protected:
+    enum protocol_type   m_type;             //protocol type
+};
 
 
 class protocol{
@@ -13,6 +31,10 @@ public:
 	virtual void init(void) = 0;
     virtual uint16 pack(uint8_t*dst, uint8 *src, uint16 len){return 0;}
 	virtual int8   unpack(uint8_t* pbuf, uint16 len){return 0;}
+	virtual portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo){return 0;}
+
+protected:
+    enum protocol_type   m_type;             //protocol type
 };
 
 #ifdef RAW_MAC

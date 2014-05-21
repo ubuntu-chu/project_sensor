@@ -64,6 +64,7 @@ cscope.*
 *.txt
 *.ini
 *.bak
+*.mk
 
 
 

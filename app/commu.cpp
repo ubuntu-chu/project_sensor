@@ -1,13 +1,16 @@
 #include "commu.h"
 #include "protocol.h"
+#include "modbus.h"
 
 CDevice_commu::CDevice_commu(const char *pname, 
                              uint16 oflag, 
                              class protocol *pprotocol, 
-                             package_event_handler handler)
+                             package_event_handler handler,
+                             void *pvoid)
                             :CDevice_base(pname, oflag)
 {
     m_handler			= handler;
+    m_pvoid 			= pvoid;
 
     //protocol init
     m_pprotocol			= pprotocol;
@@ -103,7 +106,11 @@ portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event,
             //format send data to buf
             write((char *)pbuf, buf_recv_len);
             if (m_handler != NULL){
-				m_handler(static_cast<const uint8 *>(pbuf), buf_recv_len);
+            	class modbus_rtu_info info;
+            	if (0 == m_pprotocol->info(static_cast<const uint8 *>(pbuf), buf_recv_len, 
+                    static_cast<class protocol_info *>(&info))){
+					m_handler(m_pvoid, static_cast<class protocol_info *>(&info));
+            	}
 			}
 		}
 	}

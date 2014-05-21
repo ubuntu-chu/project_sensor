@@ -4,12 +4,12 @@
 #include    "drv_storage.h"
 #include    "../../../api/log/log.h"
 
-#define		ONE_BYTE_SUBA	                        (1)
-#define		TWO_BYTE_SUBA	                        (2)
-#define    X_PLUS_BYTE_SUBA	                        	(3)
+#define		ONE_BYTE_SUBA	                        (1)				//一字节地址结构
+#define		TWO_BYTE_SUBA	                        (2)				//两字节地址结构
+#define    X_PLUS_BYTE_SUBA	                        (3)				//8+x 地址结构
 
-#define    PAGES_PER_DEVICE			                (128)
-#define    BYTES_PER_PAGE                       	(16)
+#define    PAGES_PER_DEVICE			                (128)			//器件一共有多少页
+#define    BYTES_PER_PAGE                       	(16)			//每一页的尺寸
 
 #define    DEVICE_ADDR                             (0xA0)          //定义器件地址
 
