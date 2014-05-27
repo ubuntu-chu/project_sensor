@@ -65,7 +65,7 @@
 #define         ALIGN_UP(x, a)                                  (((x)+(a))&(~a))
 #define         ALIGN_DOWN(x, a)                                (((x)&(~a))
 
-#define         ROUND_UP(x, y)                                  ((((x) + (y - 1)) / y) * y)
+#define         ROUND_UP(x, y)                                  ((((x) + ((y) - 1)) / y) * y)
 #define         ROUND_DOWN(x, y)                                ((x) - ((x) % (y)))
 
 #define         DIV_ROUND_UP(n,d)                               (((n) + (d) - 1) / (d))

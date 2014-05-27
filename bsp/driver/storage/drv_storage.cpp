@@ -5,14 +5,15 @@
 #include    "../../../api/log/log.h"
 
 #define		ONE_BYTE_SUBA	                        (1)				//一字节地址结构
-#define		TWO_BYTE_SUBA	                        (2)				//两字节地址结构
+#define	    TWO_BYTE_SUBA	                        (2)				//两字节地址结构
 #define    X_PLUS_BYTE_SUBA	                        (3)				//8+x 地址结构
 
-#define    PAGES_PER_DEVICE			                (128)			//器件一共有多少页
-#define    BYTES_PER_PAGE                       	(16)			//每一页的尺寸
-
-#define    DEVICE_ADDR                             (0xA0)          //定义器件地址
-
+struct storage_geometry t_storage_geometry = {
+    0xa0,
+    X_PLUS_BYTE_SUBA,
+    16,
+    128,
+};
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
@@ -74,44 +75,34 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 }
 
 
-static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
+static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
 {
-    uint16   i;
-    uint16   pageNumbs;
     uint16   accessBytes;
-    portSIZE_TYPE  rt 	= numbBytes;
+    uint16   offset;
+    portSSIZE_TYPE  rt 	= numbBytes;
 
     //判断参数是否合法
     if (0 == numbBytes)
     {
         return 0;
     }
-    //计算要操作的页数值
-    pageNumbs                                 = (numbBytes/BYTES_PER_PAGE);
-    //调整要操作的页数值 余数为零时 表示此时操作的页正好为整页值
-    if (0 == (numbBytes%BYTES_PER_PAGE))
-    {
-        pageNumbs--;
-    }
-    //判断要操作的页数值是否超出了器件所允许的最大页数值
-    if ((subAddr/BYTES_PER_PAGE + pageNumbs) > PAGES_PER_DEVICE)
-    {
+    //判断范围
+    if ((subAddr+ numbBytes) > (uint32)t_storage_geometry.m_pages_per_dev*t_storage_geometry.m_bytes_per_page){
         return -1;
     }
     //subaddr should be align with page size
 
-    for (i = 0; i <= pageNumbs; i++, subAddr += BYTES_PER_PAGE, acessAddr += BYTES_PER_PAGE)
+    for (; numbBytes != 0; subAddr += accessBytes, acessAddr += accessBytes)
     {
+        offset                                  = subAddr%t_storage_geometry.m_bytes_per_page;
+        
         //计算要操作的字节数
-        if (numbBytes > BYTES_PER_PAGE)
-        {
-            numbBytes                         -= BYTES_PER_PAGE;
-            accessBytes                        = BYTES_PER_PAGE;
-        }
-        else
-        {
+        if ((offset + numbBytes) > t_storage_geometry.m_bytes_per_page){
+            accessBytes                        = t_storage_geometry.m_bytes_per_page - offset;
+        }else {
             accessBytes                        = numbBytes;
         }
+        numbBytes                           -= accessBytes;
         //I2C实际操作程序段
         {
         	switch (subAddrType){
@@ -129,9 +120,9 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
         		t_iic_transfer.m_subAddrCnt	    = 2;								        //器件子地址为2字节
         		break;
         	case X_PLUS_BYTE_SUBA:
-				//子地址结构为8+X   the eight of slaaadr is r/w bit
-				t_iic_transfer.m_slaAddr			= (uint8)(slaAddr + ((subAddr >> 7) & 0x0e));	//器件的从地址
-        		t_iic_transfer.m_subAddr		    = subAddr & 0x0ff;						    //器件子地址
+				//子地址结构为8+X   the first of slaaadr is r/w bit
+				t_iic_transfer.m_slaAddr		= (uint8)(slaAddr + ((subAddr >> 7) & 0x0e));	//器件的从地址
+        		t_iic_transfer.m_subAddr		= subAddr & 0x0ff;						    //器件子地址
         		t_iic_transfer.m_subAddrCnt	    = 1;								        //器件子地址为8+x
         		break;
         	default:
@@ -145,6 +136,8 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
 
             rt                                   = cpu_iic_transfer(&t_iic_transfer);
             if ((I2C_WRITE == accessCtrl) && (t_iic_transfer.m_accessNumbBytes == rt)){
+                //每一页写完之后 都要进行器件编程  在此期间 器件不响应寻址 当接收到自己的器件地址时 直接NACK
+                //delay ms的时间应以实际为准
                 delay_ms(25);                                                               //等待器件编程
             }else if (-1 == rt){
                 break;
@@ -158,12 +151,14 @@ static portSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 su
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
 
-	return _I2CInnerAccess(DEVICE_ADDR, X_PLUS_BYTE_SUBA, pos, (uint8 *)buffer, size, I2C_WRITE);
+	return _I2CInnerAccess(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+                            pos, (uint8 *)buffer, size, I2C_WRITE);
 }
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
     
-	return _I2CInnerAccess(DEVICE_ADDR, X_PLUS_BYTE_SUBA, pos, (uint8 *)buffer, size, I2C_READ);
+	return _I2CInnerAccess(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+                            pos, (uint8 *)buffer, size, I2C_READ);
 }
 
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)

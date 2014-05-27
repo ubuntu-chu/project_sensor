@@ -88,10 +88,13 @@ enum iic_numb{
 void iic_wr_nbyte(iic_addr_mode_t addr, uint8_t *ptr, uint8_t cnt);
 void iic_rd_nbyte(iic_addr_mode_t addr, uint8_t *ptr, uint8_t cnt);
 
-#define    I2C_NONE                                (0)       		//子地址已经处理或者不需要子地址
-#define    I2C_READ                                (1)       		//读取操作
-#define    I2C_WRITE                               (2)       		//写操作
-#define    I2C_ABNORMAL                            (0xff)    		//I2C异常
+enum{
+    I2C_NONE                    = (0),       		//子地址已经处理或者不需要子地址
+    I2C_READ                    = (1),       		//读取操作
+    I2C_WRITE                   = (2),       		//写操作
+    I2C_ABNORMAL                = (0xff),    		//I2C异常
+    I2C_TIMEOUT                 = (0xfe), 
+};
 
 typedef struct iic_transfer
 {
@@ -113,7 +116,7 @@ extern iic_transfer_t t_iic_transfer;
 
 
 portBASE_TYPE cpu_iic_init(enum iic_numb numb);
-portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer);
+portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer);
 
 
 

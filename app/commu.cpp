@@ -86,7 +86,7 @@ portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event,
 	portSIZE_TYPE	buf_recv_len;
 	uint8			buf[700];
 	portBASE_TYPE 	rt			= 0;
-	uint8			*pbuf		= buf;
+	uint8			*pbuf		= buf; 
     uint8           to_continue = 0;
 
 	API_DeviceControl(m_pdevice, (event == EVENT_ACK)?(DEVICE_IOC_BLOCK):(DEVICE_IOC_NONBLOCK), 0);

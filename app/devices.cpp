@@ -78,7 +78,7 @@ portSSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TY
     if (m_pbuf_recv == NULL){
         return -1;
     }
-    size  = (portSIZE_TYPE)API_DeviceRead(m_pdevice, 0, m_pbuf_recv, m_buf_recv_len);
+    size  = (portSIZE_TYPE)API_DeviceRead(m_pdevice, pos, m_pbuf_recv, m_buf_recv_len);
     if (size == ((portSIZE_TYPE)-1)){
 		if (API_DeviceErrorInfoGet() == DEVICE_ETIMEOUT){
 			m_offline_cnt++;
@@ -120,7 +120,7 @@ portSSIZE_TYPE CDevice_base::write(char *buffer)
 
 portSSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
-    if ((NULL == m_pdevice) || (m_pbuf_send == NULL)){
+    if (NULL == m_pdevice){
         return -1;
     }
     if (this->process_write(PROC_PREPARE, buffer, size)){

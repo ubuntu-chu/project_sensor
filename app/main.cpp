@@ -11,7 +11,7 @@
 #if 1
 void debug_output(const char* msg, int len)
 {
-	uart_tx(DBG_UART, (uint8 *)msg, len);
+	//uart_tx(DBG_UART, (uint8 *)msg, len);
 }
 
 CApplication 	*CApplication::m_pcapplicaiton = NULL;
@@ -68,12 +68,52 @@ volatile CDevice_commu *pCDevice_commu;
 
 portBASE_TYPE CApplication::load_app_datum(void)
 {
+    uint8               magic_string[100];
+    portSSIZE_TYPE      ssize;
+    struct storage_info storage_info_magic;
+    struct storage_info storage_info_modbus;
     CDevice_storage *pdevice_storage    = 
             static_cast<CDevice_storage *>(m_app_runinfo.m_pdevice_storage);
     
-    pdevice_storage->read((char *)&m_modeinfo.m_regs, sizeof(struct regs));
+    m_modeinfo.storage_info_query(enum_REG_TYPE_MAGIC, &storage_info_magic);
+while (1){  
+#if 0    
+    ssize    = pdevice_storage->read(storage_info_magic.m_storage_addr, 
+                    reinterpret_cast<char *>(magic_string), 
+                    storage_info_magic.m_len);
     
-    
+#endif    
+    ssize    = pdevice_storage->write(storage_info_magic.m_storage_addr, 
+                    reinterpret_cast<char *>(storage_info_magic.m_pdata), 
+                    storage_info_magic.m_len);
+
+    ssize    = pdevice_storage->read(storage_info_magic.m_storage_addr, 
+                    reinterpret_cast<char *>(magic_string), 
+                    storage_info_magic.m_len);
+    delay_ms(1000);
+}    
+    if ((ssize <= 0) || (ssize != storage_info_magic.m_len)){
+        LOG_FATAL << "magic load failed!";
+        return -1;
+    }
+    m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info_modbus);
+    //first load   do init - modbus regs
+    if (strcmp(reinterpret_cast<const char *>(magic_string), 
+                reinterpret_cast<const char *>(storage_info_magic.m_pdata))){
+        
+        ssize   = pdevice_storage->write(storage_info_modbus.m_storage_addr,
+                                reinterpret_cast<char *>(storage_info_modbus.m_pdata), 
+                                storage_info_modbus.m_len);
+    }else {
+        //load modbus regs
+        ssize   = pdevice_storage->read(storage_info_modbus.m_storage_addr,
+                                reinterpret_cast<char *>(storage_info_modbus.m_pdata), 
+                                storage_info_modbus.m_len);
+    }
+    if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
+        LOG_FATAL << "modbus regs load/write failed!";
+        return -1;
+    }
     
     return 0;
 }
@@ -189,49 +229,16 @@ portBASE_TYPE CApplication::run()
 	CDevice_pin 	    *pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
     
     while(1){
-        //pdevice_pin->read((char *)&key, sizeof(key)); 
-        //key pressed   rf231 in recv mode
-//        pdevice_commu->package_event_fetch();
-#if 0
-        uint8 buffer[100];
-        uint8 len_buf[10];
-        portSIZE_TYPE len = 100;
-        portSIZE_TYPE len_len;
         
-        //pdevice_commu->write((char *)("wait for recv\n"));
-        if (-1 == (len = pdevice_commu->read(reinterpret_cast<char *>(buffer), len))){
-            
-//                 pdevice_commu->write((char *)("wait for recv timeout\n"));
-        }else {
-               len_len = sprintf((char *)len_buf, "len = %d\n", len);
-//                 pdevice_commu->write((char *)len_buf, len_len);
-//                 pdevice_commu->write((char *)("buf = "));
-//                 pdevice_commu->write((char *)buffer, len);
-//                 pdevice_commu->write((char *)("\n"));
-        }
-  #endif      
-        if (cpu_timetrig_1s()){
-            
-            
-            //LOG_INFO << "now time is:" << cpu_sys_time_get();
-#undef DEBUG_SWITCH
-#define DEBUG_SWITCH  0
-#if(DEBUG_SWITCH > 0)       
-            {
-                uint8 buffer[100];
-                uint16 len;
-                
-                len  = sprintf((char *)buffer, "now time is: %ld\n", cpu_sys_time_get());
-                pdevice_commu->write(reinterpret_cast<char *>(buffer), len);
-                //SYS_LOG_LEV_TINY(SYS_LOG_LEV_NOTICE, buffer);
-            }
-#endif
-        }
+        
+        
+
     };
     
     return 0;
 }
 
+//intertup context 
 void CApplication::pendsv_handle(void *pdata)
 {
 	CApplication *papplication      = static_cast<CApplication *> (pdata);

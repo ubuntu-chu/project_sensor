@@ -110,6 +110,7 @@ struct regs{
 enum reg_type{
 	enum_REG_TYPE_INPUT	= 0,
 	enum_REG_TYPE_HOLD,
+    enum_REG_TYPE_MAGIC,
 
 	enum_REG_TYPE_MAX,
 };
@@ -125,10 +126,12 @@ public:
 	CModelInfo(uint8 *pname):m_name(pname)
     {
         hold_reg_set(enum_REG_MODBUS_ADDR, 1);
+        m_magic_setup           = "magic setup string";
     }
 	CModelInfo()
     {
         hold_reg_set(enum_REG_MODBUS_ADDR, 1);
+        m_magic_setup           = "magic setup string";
     }
     ~CModelInfo(){}
     
@@ -156,9 +159,13 @@ public:
     		return -1;
     	}
     	if (type == enum_REG_TYPE_HOLD){
-    		pinfo->m_storage_addr 						= 16;
+    		pinfo->m_storage_addr 						= ROUND_UP((strlen(reinterpret_cast<const char *>(m_magic_setup))), 16);
     		pinfo->m_pdata 								= reinterpret_cast<uint8 *>(&m_regs.m_tab_registers[0]);
     		pinfo->m_len 								= sizeof(m_regs.m_tab_registers);
+        }else if (type == enum_REG_TYPE_MAGIC){
+            pinfo->m_storage_addr 						= 0;
+            pinfo->m_pdata 								= const_cast<uint8 *>(m_magic_setup);
+    		pinfo->m_len 								= strlen(reinterpret_cast<const char *>(m_magic_setup)) + 1;   //contain end code
     	}else {
     		return -1;
     	}
@@ -181,6 +188,7 @@ private:
 
 public:
     const uint8             *m_name;
+    const uint8             *m_magic_setup;
     struct regs             m_regs;
 
 

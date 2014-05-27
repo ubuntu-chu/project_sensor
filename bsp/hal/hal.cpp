@@ -535,7 +535,7 @@ portSSIZE_TYPE API_DeviceRead(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* b
     read                                                        = pdevInfo->read;
     if (NULL != read)
     {
-        return (portSIZE_TYPE)read(pdev, pos, buffer, size);
+        return (portSSIZE_TYPE)read(pdev, pos, buffer, size);
     }
     //未有此函数接口 设置错误代码
     API_DeviceErrorInfoSet(DEVICE_ENOSYS);
@@ -581,12 +581,12 @@ portSSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const 
     write                                                       = pdevInfo->write;
     if (NULL != write)
     {
-        return write(pdev, pos, buffer, size);
+        return (portSSIZE_TYPE)write(pdev, pos, buffer, size);
     }
     //未有此函数接口 设置错误代码
     API_DeviceErrorInfoSet(DEVICE_ENOSYS);
     
-    return 0;
+    return static_cast<portSSIZE_TYPE>(-1);
 }
 
 /******************************************************************************

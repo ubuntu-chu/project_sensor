@@ -23,6 +23,21 @@ iic_transfer_t t_iic_transfer;
     the state machine starts to transmit the device address or 
     after the first TXREQ interrupt is received. When the transmit FIFO empties, a 
     repeated start is generated.
+    
+     If the Tx FIFO is not full during an active transfer sequence, the transmit request bit 
+(TXREQ) inI2CMSTA or I2CSSTA asserts.
+
+    The master generates a stop condition if there is no data in the transmit FIFO and the master is writing data.
+    
+     The receive request interrupt 
+bit (RXREQ) in I2CMSTA or I2CSSTA indicates whether there is valid data in the Rx FIFO. Data is loaded into the Rx FIFO after each 
+byte is received. If valid data in the Rx FIFO is overwritten by the Rx shifter, the receive overflow status bit (RXOF) is asserted (I2CMSTA[9] 
+or I2CSSTA[4]).
+
+    When receiving data, the master responds with a NACK if its FIFO is full and an attempt is made to write another byte to the FIFO. This 
+last byte received is not written to the FIFO and is lost.
+
+    
 */
 
 static portBASE_TYPE cpu_iic_interrupt_enable(enum iic_numb numb);
@@ -37,11 +52,13 @@ portBASE_TYPE cpu_iic_init(enum iic_numb numb)
         return -1;
     }
     if (numb == enum_NUMB_IIC0){
-        #if 1
         // Configure P2.0/P2.1 as I2C pins   p2.0-SCL   p2.1-SDA
-		pADI_GP2->GPCON = ((pADI_GP2->GPCON)&(~(BIT0|BIT1|BIT2|BIT3)))|0x5;
-        pADI_GP2->GPPUL = ((pADI_GP2->GPPUL)&(~(BIT0|BIT1))); //disable external pull ups
-        #endif
+		DioCfgPin(pADI_GP2, PIN0, 1);
+        DioCfgPin(pADI_GP2, PIN1, 1);
+        DioPulPin(pADI_GP2, PIN0, 0);
+        DioPulPin(pADI_GP2, PIN1, 0);
+        //pADI_GP2->GPCON = ((pADI_GP2->GPCON)&(~(BIT0|BIT1|BIT2|BIT3)))|0x5;
+        //pADI_GP2->GPPUL = ((pADI_GP2->GPPUL)&(~(BIT0|BIT1))); //disable external pull ups
     }
 	// Enable I2C Master mode, baud rate and interrupt sources
     //IENCMP:Enable a transaction completed interrupt. If this bit is asserted, an interrupt is generated when a 
@@ -70,9 +87,9 @@ static portBASE_TYPE cpu_iic_interrupt_enable(enum iic_numb numb)
     return rt;
 }
 
-portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
+portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 {
-	portSIZE_TYPE 	rt ;
+	portSSIZE_TYPE 	rt ;
     monitor_handle_type     handle_iic;
 
 	t_iic_transfer.m_index  = 0;
@@ -92,7 +109,10 @@ portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
     ASSERT(handle_iic != (monitor_handle_type)-1);
     t_monitor_manage.monitor_start(handle_iic);
 
-	if (t_iic_transfer.m_subAddrCnt > 0){
+	I2cMCfg(I2CMCON_TXDMA_DIS | I2CMCON_RXDMA_DIS,
+			def_I2C_INT_SOURCE, I2CMCON_MAS_EN);
+    
+    if (t_iic_transfer.m_subAddrCnt > 0){
 		if (t_iic_transfer.m_subAddrCnt == 2)
 		{
 			I2cTx(MASTER, (t_iic_transfer.m_subAddr >> 8) & 0xff);
@@ -117,6 +137,8 @@ portSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 	do {
         if (t_monitor_manage.monitor_expired(handle_iic)){
             rt                          = -1;
+            t_iic_transfer.m_accessFinished = I2C_TIMEOUT;
+            I2cMCfg(I2CMCON_TXDMA_DIS|I2CMCON_RXDMA_DIS, 0, I2CMCON_MAS_DIS);
             break;
         }
 	}while (t_iic_transfer.m_accessFinished == FALSE);
@@ -139,6 +161,7 @@ extern "C" void I2C0_Master_Int_Handler(void)
 	
     if (((uiStatus & I2CMSTA_RXOF) == I2CMSTA_RXOF)
         || ((uiStatus & I2CMSTA_NACKDATA) == I2CMSTA_NACKDATA)
+        || ((uiStatus & I2CMSTA_ALOST) == I2CMSTA_NACKDATA)
         || ((uiStatus & I2CMSTA_NACKADDR) == I2CMSTA_NACKADDR)){ 
         t_iic_transfer.m_accessFinished 	= I2C_ABNORMAL;
         return;
@@ -158,11 +181,14 @@ extern "C" void I2C0_Master_Int_Handler(void)
 		if (t_iic_transfer.m_accessCtrl == I2C_NONE){                     //已经发送过读写地址之后 进入到数据传输阶段
 			if (t_iic_transfer.m_index < t_iic_transfer.m_accessNumbBytes)
 				I2cTx(MASTER, t_iic_transfer.m_paccessAddr[t_iic_transfer.m_index++]);
-			else
-				I2cMCfg(I2CMCON_TXDMA_DIS | I2CMCON_RXDMA_DIS,
+			else{
+				
+                //I2cSta(MASTER)          = I2CMSTA_MSTOP;
+                I2cMCfg(I2CMCON_TXDMA_DIS | I2CMCON_RXDMA_DIS,
 						//I2CMCON_IENCMP | I2CMCON_IENRX | I2CMCON_IENTX_DIS,
                         I2CMCON_IENCMP | I2CMCON_IENRX | I2CMCON_IENTX_DIS| I2CMCON_IENNACK,
 						I2CMCON_MAS_EN); // TXREQ disabled to avoid multiple unecessary interrupts
+            }
 		}else{
 			if (t_iic_transfer.m_subAddrCnt == 2) {
 				I2cTx(MASTER, (t_iic_transfer.m_subAddr >> 8) & 0xff);
@@ -174,9 +200,11 @@ extern "C" void I2C0_Master_Int_Handler(void)
 					t_iic_transfer.m_accessCtrl  = I2C_NONE;
 				}
 			}else if (t_iic_transfer.m_subAddrCnt == 0) {
+            #if 0
 				if(t_iic_transfer.m_accessCtrl == I2C_READ){
-					t_iic_transfer.m_accessCtrl  = I2C_NONE;
+					//t_iic_transfer.m_accessCtrl  = I2C_NONE;
 				}
+            #endif
 			}
 		}
 	}
