@@ -5,20 +5,11 @@
 #include    "hal.h"
 
 /******************************************************************************
- *                            本文件内部宏定义
-******************************************************************************/
-
-#define LIST_ENTRY(node, type, member) \
-    ((type *)((char *)(node) - (unsigned int)(&((type *)0)->member)))
-
-//((type *)((char *)(node) - (unsigned long)(&((type *)0)->member)))
-
-/******************************************************************************
  *                       本文件所定义的静态全局变量
 ******************************************************************************/ 
 
 //设备链表
-static List                 s_DeviceList;
+static list                 s_DeviceList;
 static DeviceStatus_TYPE    s_DeviceErrorInfo                      = DEVICE_OK;
 
 /******************************************************************************
@@ -56,49 +47,6 @@ portuBASE_TYPE hal_init(void)
     return TRUE;
 }
 
-//INLINE void ListInit(List *l)
-void ListInit(List *l)
-{
-	l->m_next                                                   = l; 
-    l->m_prev                                                   = l;
-}
-
-//INLINE void ListInsertAfter(List *l, List *n)
-void ListInsertAfter(List *l, List *n)
-{
-	l->m_next->m_prev                                           = n;
-	n->m_next                                                   = l->m_next;
-
-	l->m_next                                                   = n;
-	n->m_prev                                                   = l;
-}
-
-//INLINE void ListInsertBefore(List *l, List *n)
-void ListInsertBefore(List *l, List *n)
-{
-	l->m_prev->m_next                                           = n;
-	n->m_prev                                                   = l->m_prev;
-
-	l->m_prev                                                   = n;
-	n->m_next                                                   = l;
-}
-
-//INLINE void ListRemove(List *n)
-void ListRemove(List *n)
-{
-	n->m_next->m_prev                                           = n->m_prev;
-	n->m_prev->m_next                                           = n->m_next;
-
-	n->m_next                                                   = n;
-    n->m_prev                                                   = n;
-}
-
-//INLINE int ListIsEmpty(const List *l)
-int ListIsEmpty(const List *l)
-{
-	return (l->m_next == l);
-}
-
 /******************************************************************************
  *  函数名称 :                                                                
  *                                                                           
@@ -123,7 +71,7 @@ int ListIsEmpty(const List *l)
 
 void API_DeviceManageInit(void)
 {
-	ListInit(&s_DeviceList);
+	list_init(&s_DeviceList);
 }
 
 /******************************************************************************
@@ -160,7 +108,7 @@ portuBASE_TYPE API_DeviceRegister(const pDeviceAbstract pdev)
 	/* lock interrupt */
 	//level                                               = portDISABLE_INTERRUPTS(); 
 	/* insert object into information object list */
-	ListInsertAfter(&s_DeviceList, &(pdev->m_list));
+	list_insert_after(&s_DeviceList, &(pdev->m_list));
 	/* unlock interrupt */
     //portENABLE_INTERRUPTS(level);
 
@@ -201,7 +149,7 @@ portuBASE_TYPE API_DeviceUnregister(pDeviceAbstract pdev)
     /* lock interrupt */
     //level                                               = portDISABLE_INTERRUPTS();
     /* insert object into information object list */
-    ListRemove(&(pdev->m_list));
+    list_del(&(pdev->m_list));
     /* unlock interrupt */
     //portENABLE_INTERRUPTS(level);
     
@@ -233,7 +181,7 @@ portuBASE_TYPE API_DeviceUnregister(pDeviceAbstract pdev)
 DeviceStatus_TYPE API_DeviceInitAll(void)
 {
 	struct DEVICE_ABSTRACT *pdev;
-    List                    *pnode;
+    list                    *pnode;
     DeviceStatus_TYPE        rt;
     
     for (pnode = s_DeviceList.m_next; pnode != &s_DeviceList; pnode = pnode->m_next)
@@ -242,7 +190,7 @@ DeviceStatus_TYPE API_DeviceInitAll(void)
         DeviceAbstractInfo  *pdevInfo;
         
         //获取设备句柄
-        pdev                                                    = (struct DEVICE_ABSTRACT*)LIST_ENTRY(pnode, struct DEVICE_ABSTRACT, m_list);
+        pdev                                                    = (struct DEVICE_ABSTRACT*)list_entry(pnode, struct DEVICE_ABSTRACT, m_list);
         pdevInfo                                                = (DeviceAbstractInfo *)(pdev->m_pdeviceAbstractInfo);
         init                                                    = pdevInfo->init;
         //调用设备初始化函数
@@ -290,7 +238,7 @@ struct DEVICE_ABSTRACT *API_DeviceFind(const char* name)
 {
     struct DEVICE_ABSTRACT *pdev;
     DeviceAbstractInfo      *pdevInfo;
-    List                    *pnode;
+    list                    *pnode;
     
     //在前后台系统中 没有必要对齐进行保护 因为一般而言在调用此函数时 绝大部分是在后台运行
     //portDISABLE_INTERRUPTS();
@@ -298,7 +246,7 @@ struct DEVICE_ABSTRACT *API_DeviceFind(const char* name)
     for (pnode = s_DeviceList.m_next; pnode != &s_DeviceList; pnode = pnode->m_next)
     {
         //获取设备句柄
-        pdev                                                    = (struct DEVICE_ABSTRACT*)LIST_ENTRY(pnode, struct DEVICE_ABSTRACT, m_list);
+        pdev                                                    = (struct DEVICE_ABSTRACT*)list_entry(pnode, struct DEVICE_ABSTRACT, m_list);
         pdevInfo                                                = (DeviceAbstractInfo *)(pdev->m_pdeviceAbstractInfo);
         if (0 == strncmp((char const *)(pdevInfo->m_name), (char const *)name, DEVICE_NAME_MAX))
         {

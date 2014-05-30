@@ -7,7 +7,7 @@ enum protocol_type{
 	enum_RAW_MAC	= 0,
 	enum_MODBUS_RTU,
 
-	enum_TYPE_MAX,
+	enum_PROTOCOL_TYPE_MAX,
 };
 
 class protocol_info{

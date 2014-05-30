@@ -42,7 +42,6 @@
  *                           文件接口信息宏定义
 ******************************************************************************/ 
 
-#define             DEVICE_NAME_MAX	                        (8)
 #ifndef 	portSIZE_TYPE
 	typedef             uint16                                  portSIZE_TYPE;
 #endif
@@ -92,13 +91,6 @@ enum{
 /******************************************************************************
  *                           文件接口结构体定义
 ******************************************************************************/
-
-struct LIST_NODE
-{ struct LIST_NODE 				                           *m_next;	    /* point to next node. 						*/
-	struct LIST_NODE 				                           *m_prev;     /* point to prev node. 						*/
-};
-
-typedef struct LIST_NODE List;
 
 enum  DEVICE_STATUS_TYPE
 {
@@ -179,7 +171,7 @@ struct DEVICE_ABSTRACT
 	const struct DEVIVE_ABSTRACT_INFO                        *m_pdeviceAbstractInfo;
     
     //设备链表
-    List	                                                    m_list;
+    list	                                                    m_list;
     uint16                                                      m_openFlag;
     /* device private data */
 	void                                                      *m_private;

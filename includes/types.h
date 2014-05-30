@@ -35,6 +35,7 @@ typedef unsigned int 								portCPSR_TYPE;
 typedef uint16                     		        portSIZE_TYPE;
 typedef int16                     		            portSSIZE_TYPE;
 typedef portSIZE_TYPE                              portOFFSET_TYPE;
+typedef portBASE_TYPE                              sv_err_t;
 #ifndef		LINUX_OS
 //时间类型定义
 typedef unsigned long int 						time_t;

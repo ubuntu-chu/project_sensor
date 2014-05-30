@@ -3,6 +3,7 @@
 
 #include "../includes/includes.h"
 
+//--------------------------------------------------------------------
 
 #ifdef		def_CIRCULAR_BUFFER
 
@@ -29,9 +30,13 @@ private:
 
 #endif
 
+//--------------------------------------------------------------------
+
 void delay_ms(uint16_t num);
 void delay_us(uint16_t num);
 void buf_dump_hex(const char *buf, uint16 len);
+
+//--------------------------------------------------------------------
 
 #ifdef		def_BUF_QUEUE
 
@@ -61,6 +66,8 @@ int8 buf_queue_get(buf_queue_t* lq, int8 *pbuf, uint16 *len);
 int8 buf_queue_pick(buf_queue_t* lq, int8 *pbuf, uint16 *len);
 int8 buf_queue_pop(buf_queue_t* lq);
 #endif
+
+//--------------------------------------------------------------------
 
 #ifdef		def_SKBUF_QUEUE
 
@@ -197,6 +204,8 @@ public:
 };
 
 extern monitor_manage 	t_monitor_manage;
+
+//--------------------------------------------------------------------
 
 #ifdef  def_MINI_TIME_LIBRARY
 

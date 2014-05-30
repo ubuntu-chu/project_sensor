@@ -28,6 +28,9 @@
  *              OS settings
 **------------------------------------------------------------------*/
 #define		LINUX_OS
+#define             DEVICE_NAME_MAX	                        (8)
+#define             OBJECT_NAME_MAX	                        (8)
+#define             def_USING_SERVICE_MQ
 
 /*------------------------------------------------------------------
  *              APIs settings

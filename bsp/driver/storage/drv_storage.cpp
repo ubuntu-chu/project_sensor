@@ -4,13 +4,16 @@
 #include    "drv_storage.h"
 #include    "../../../api/log/log.h"
 
-#define		ONE_BYTE_SUBA	                        (1)				//一字节地址结构
-#define	    TWO_BYTE_SUBA	                        (2)				//两字节地址结构
-#define    X_PLUS_BYTE_SUBA	                        (3)				//8+x 地址结构
+enum{
+    enum_ONE_BYTE_SUBA  = 0,				//一字节地址结构
+    enum_TWO_BYTE_SUBA,                     //两字节地址结构
+    enum_X_PLUS_BYTE_SUBA,			        //8+x 地址结构
+    enum_MAX_BYTE_SUBA,
+};
 
 struct storage_geometry t_storage_geometry = {
     0xa0,
-    X_PLUS_BYTE_SUBA,
+    enum_X_PLUS_BYTE_SUBA,
     16,
     128,
 };
@@ -77,17 +80,20 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 
 static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
 {
+    uint32   capacity;
     uint16   accessBytes;
     uint16   offset;
     portSSIZE_TYPE  rt 	= numbBytes;
+    
 
     //判断参数是否合法
-    if (0 == numbBytes)
-    {
+    if (0 == numbBytes){
         return 0;
     }
+    capacity            = (uint32)t_storage_geometry.m_pages_per_dev*t_storage_geometry.m_bytes_per_page;
     //判断范围
-    if ((subAddr+ numbBytes) > (uint32)t_storage_geometry.m_pages_per_dev*t_storage_geometry.m_bytes_per_page){
+    if ((subAddr >= capacity) || ((subAddr+ numbBytes) >capacity)){
+        API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
         return -1;
     }
     //subaddr should be align with page size
@@ -107,26 +113,27 @@ static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 s
         {
         	switch (subAddrType){
             //子地址类型判断
-        	case ONE_BYTE_SUBA:
+        	case enum_ONE_BYTE_SUBA:
                 //子地址为单字节
         		t_iic_transfer.m_slaAddr     	= (uint8)(slaAddr);					        //器件的从地址
         		t_iic_transfer.m_subAddr    	    = subAddr;								    //器件子地址
         		t_iic_transfer.m_subAddrCnt	    = 1;								        //器件子地址为1字节
         		break;
-        	case TWO_BYTE_SUBA:
+        	case enum_TWO_BYTE_SUBA:
         		//子地址为双字节
                 t_iic_transfer.m_slaAddr     	= (uint8)(slaAddr);						    //器件的从地址
         		t_iic_transfer.m_subAddr   	 	= subAddr;								    //器件子地址
         		t_iic_transfer.m_subAddrCnt	    = 2;								        //器件子地址为2字节
         		break;
-        	case X_PLUS_BYTE_SUBA:
+        	case enum_X_PLUS_BYTE_SUBA:
 				//子地址结构为8+X   the first of slaaadr is r/w bit
 				t_iic_transfer.m_slaAddr		= (uint8)(slaAddr + ((subAddr >> 7) & 0x0e));	//器件的从地址
         		t_iic_transfer.m_subAddr		= subAddr & 0x0ff;						    //器件子地址
         		t_iic_transfer.m_subAddrCnt	    = 1;								        //器件子地址为8+x
         		break;
         	default:
-        		break;
+                API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
+                return -1;
         	}
             t_iic_transfer.m_paccessAddr         = acessAddr;							    //数据接收缓冲区指针
         	t_iic_transfer.m_accessNumbBytes     = accessBytes;								//要读取的个数
@@ -140,6 +147,7 @@ static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 s
                 //delay ms的时间应以实际为准
                 delay_ms(25);                                                               //等待器件编程
             }else if (-1 == rt){
+                API_DeviceErrorInfoSet(DEVICE_ETIMEOUT);
                 break;
             }
         }
