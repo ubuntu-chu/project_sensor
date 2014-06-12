@@ -78,7 +78,7 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 }
 
 
-static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
+static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
 {
     uint32   capacity;
     uint16   accessBytes;
@@ -96,8 +96,6 @@ static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 s
         API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
         return -1;
     }
-    //subaddr should be align with page size
-
     for (; numbBytes != 0; subAddr += accessBytes, acessAddr += accessBytes)
     {
         offset                                  = subAddr%t_storage_geometry.m_bytes_per_page;
@@ -159,13 +157,13 @@ static portSSIZE_TYPE _I2CInnerAccess(uint8 slaAddr, uint8 subAddrType, uint16 s
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
 
-	return _I2CInnerAccess(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+	return _i2c_access(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
                             pos, (uint8 *)buffer, size, I2C_WRITE);
 }
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
     
-	return _I2CInnerAccess(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+	return _i2c_access(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
                             pos, (uint8 *)buffer, size, I2C_READ);
 }
 

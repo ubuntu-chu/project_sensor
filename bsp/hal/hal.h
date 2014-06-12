@@ -36,6 +36,7 @@
 
 #ifndef    _INCLUDES_H_
 	#include    "../../includes/includes-low.h"
+    #include    "../../includes/service.h"
 #endif
 
 /******************************************************************************
