@@ -40,7 +40,7 @@ portBASE_TYPE cpu_sys_tick_run(void)
 {
 	monitor_handle_type handle_tick;
     
-    t_monitor_manage.precision_set(50);     //unit: ms
+    t_monitor_manage.precision_set(1000/TICK_PER_SECOND);     //unit: ms
     handle_tick   = t_monitor_manage.monitor_register(1000, 
                                                 enum_MODE_PERIODIC, 
                                                 tick_handle, 
@@ -48,7 +48,8 @@ portBASE_TYPE cpu_sys_tick_run(void)
                                                 "tick handle");
     t_monitor_manage.monitor_start(handle_tick);  
 
-    SysTick_Config(16*1000*50); // Time-out period of 50ms   FCLK = 16MHz
+//    SysTick_Config(16*1000*50); // Time-out period of 50ms   FCLK = 16MHz
+    SysTick_Config(16*1000*(1000/TICK_PER_SECOND)); // Time-out period of 10ms   FCLK = 16MHz
 #if 0
 	//Timer 0 setup to re-start every 64mS
 	GptLd(pADI_TM0, 50000);// Time-out period of 50ms

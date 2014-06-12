@@ -47,6 +47,7 @@
 #include    "pin/drv_pin.h"
 #include    "commu/drv_commu.h"
 #include    "storage/drv_storage.h"
+#include    "event/drv_event.h"
 
 /******************************************************************************
  *                            �ļ��ӿں�������

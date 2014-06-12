@@ -52,6 +52,9 @@ typedef uint32_t									sen_adr_t;
 typedef char        								string_char;  	/* Signed    8 bit quantity  */
 
 
+//sig atomic  当把变量声明为该类型会保证该变量在使用或赋值时, 无论是在32位还是64位的机器上都能保证操作是原子的, 它会根据机器的类型自动适应
+typedef uint32_t									sig_atomic;
+
 #define WORD                						uint16_t
 #define DWORD               						uint32_t
 #define BYTE                						uint8_t
