@@ -1,33 +1,18 @@
 #ifndef REACTOR_CHANNEL_H
 #define REACTOR_CHANNEL_H
 
-#if 0
+#include "../includes/service.h"
+#include "event_loop.h"
 
-class Channel: noncopyable {
+class channel{
+//class channel: noncopyable {
 public:
-	typedef boost::function<void()> EventCallback;
-	typedef boost::function<void(Timestamp)> ReadEventCallback;
+	channel(eventloop* loop,  portDEVHANDLE_TYPE handle);
+	~channel();
 
-	Channel(EventLoop* loop, int fd);
-	~Channel();
+	int write(const int8 *pbuf, portSIZE_TYPE len);
+	int read(class buffer buf, class Timestamp ts);
 
-	void handleEvent(Timestamp receiveTime);
-	void setReadCallback(const ReadEventCallback& cb) {
-		readCallback_ = cb;
-	}
-	void setWriteCallback(const EventCallback& cb) {
-		writeCallback_ = cb;
-	}
-	void setCloseCallback(const EventCallback& cb) {
-		closeCallback_ = cb;
-	}
-	void setErrorCallback(const EventCallback& cb) {
-		errorCallback_ = cb;
-	}
-
-	int fd() const {
-		return fd_;
-	}
 	int events() const {
 		return events_;
 	}
@@ -60,47 +45,27 @@ public:
 		return events_ & kWriteEvent;
 	}
 
-	// for Poller
-	int index() {
-		return index_;
-	}
-	void set_index(int idx) {
-		index_ = idx;
-	}
-
-	// for debug
-	string reventsToString() const;
-
-	void doNotLogHup() {
-		logHup_ = false;
-	}
-
-	EventLoop* ownerLoop() {
+	eventloop* ownerLoop() {
 		return loop_;
 	}
 	void remove();
 
+	list_node_t 			m_node;
 private:
 	void update();
-	void handleEventWithGuard(Timestamp receiveTime);
+//	void handleEventWithGuard(Timestamp receiveTime);
 
 	static const int kNoneEvent;
 	static const int kReadEvent;
 	static const int kWriteEvent;
 
-	EventLoop* loop_;
-	const int fd_;
+	eventloop* loop_;
 	int events_;
 	int revents_;
 
 	bool eventHandling_;
-	ReadEventCallback readCallback_;
-	EventCallback writeCallback_;
-	EventCallback closeCallback_;
-	EventCallback errorCallback_;
+	portDEVHANDLE_TYPE 		m_handle;
 };
-
-#endif
 
 #endif
 

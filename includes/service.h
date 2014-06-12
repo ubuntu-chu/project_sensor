@@ -10,6 +10,9 @@
 extern "C" {
 #endif
 
+#define 	POLLOUT 					(0x01)
+#define	 	POLLIN 						(0x02)
+
 #define list_entry(node, type, member) \
                                                                 ((type *)((char *)(node) - (unsigned int)(&((type *)0)->member)))
 
@@ -20,11 +23,11 @@ list_for_each_safe()£ºÊ×ÏÈ½«posµÄºóÖ¸Õë»º´æµ½n£¬´¦ÀíÒ»¸öÁ÷³ÌºóÔÙ¸³»Øpos£¬±ÜÃâÁËÕ
 Òò´ËÖ®±éÀúÁ´±í²»É¾³ý½áµãÊ±£¬¿ÉÒÔÊ¹ÓÃlist_for_each()£¬¶øµ±ÓÉÉ¾³ý½áµã²Ù×÷Ê±£¬ÔòÒªÊ¹ÓÃlist_for_each_safe()¡£   
 */    
 #define list_for_each(pos, head) \
-    for (pos = (head)->next; pos != (head); \
-        pos = pos->next)  
+    for (pos = (head)->m_next; pos != (head); \
+        pos = pos->m_next)
 #define list_for_each_safe(pos, n, head) \
-    for (pos = (head)->next, n = pos->next; pos != (head); \
-        pos = n, n = pos->next) 
+    for (pos = (head)->m_next, n = pos->m_next; pos != (head); \
+        pos = n, n = pos->m_next)
 
 struct list_node{ 
     struct list_node 				                           *m_next;	    /* point to next node. 						*/
@@ -33,12 +36,15 @@ struct list_node{
 
 typedef struct list_node list;
 typedef struct list_node list_t;
+typedef struct list_node list_head_t;
+typedef struct list_node list_node_t;
 
 void list_init(list *l);
 void list_insert_after(list *l, list *n);
 void list_insert_before(list *l, list *n);
 void list_del(list *n);
 int list_isempty(const list *l);
+list *list_find(list_head_t *head, list_node_t *node);
 
 
 #define SV_EOK                          0               /**< There is no error */
@@ -106,11 +112,11 @@ enum   event_subtype{
     enum_SUBTYPE_MAX,
 };
 
-class Buffer{
+class buffer{
 public:
     static const size_t kCheapPrepend = 4;
 
-    Buffer(int8 *pdata, size_t len)
+    buffer(int8 *pdata, size_t len)
     : buffer_(reinterpret_cast<char *>(pdata)),
       len_(len),
       readerIndex_(kCheapPrepend),
@@ -118,7 +124,7 @@ public:
     {
         
     }
-    ~Buffer(){}
+    ~buffer(){}
         
     size_t readableBytes() const
     { return writerIndex_ - readerIndex_; }
@@ -393,6 +399,135 @@ portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool,
 
 
 #endif
+
+
+
+/* device flags */
+#define             DEVICE_FLAG_DEACTIVATE		            0x000		    /* not inited 									*/
+
+#define             DEVICE_FLAG_RDONLY			            0x001		    /* read only 									*/
+#define             DEVICE_FLAG_WRONLY			            0x002		    /* write only 									*/
+#define             DEVICE_FLAG_RDWR				        0x003		    /* read and write 								*/
+
+#define             DEVICE_FLAG_REMOVABLE		            0x004		    /* removable device 							*/
+#define             DEVICE_FLAG_STANDALONE		            0x008		    /* standalone device							*/
+#define             DEVICE_FLAG_ACTIVATED		            0x010		    /* device is activated 							*/
+#define             DEVICE_FLAG_SUSPENDED		            0x020		    /* device is suspended 							*/
+#define             DEVICE_FLAG_NONBLOCK		            0x040		    /* device is non-block 							*/
+
+
+#define             DEVICE_OFLAG_CLOSE			            0x000		    /* device is closed 							*/
+#define             DEVICE_OFLAG_RDONLY			            0x001		    /* read only access								*/
+#define             DEVICE_OFLAG_WRONLY			            0x002		    /* write only access							*/
+#define             DEVICE_OFLAG_RDWR			            0x003		    /* read and write 								*/
+#define             DEVICE_OFLAG_OPEN			            0x008		    /* device is opened 							*/
+
+
+enum{
+
+	DEVICE_IOC_NONBLOCK 	= 0,
+	DEVICE_IOC_BLOCK,
+	DEVICE_IOC_USER,
+
+};
+
+
+//posÎ»ÖÃºê¶¨Òå
+#define             DEVICE_SEEK_SET                                0x00
+#define             DEVICE_SEEK_CUR                                0x01
+#define             DEVICE_SEEK_END                                0x02
+
+/******************************************************************************
+ *                           ÎÄ¼þ½Ó¿Ú½á¹¹Ìå¶¨Òå
+******************************************************************************/
+
+enum  DEVICE_STATUS_TYPE
+{
+    DEVICE_ENULL       = 0,
+    DEVICE_OK,
+    DEVICE_ENOSYS,
+    DEVICE_EBUSY,
+    DEVICE_EOPEN,
+    DEVICE_EPARAM_INVALID,
+    DEVICE_ECMD_INVALID,
+    DEVICE_EOFLG_INVALID,
+	DEVICE_EEXEC,
+    DEVICE_EAGAIN,
+    DEVICE_ETIMEOUT,
+};
+
+typedef            enum  DEVICE_STATUS_TYPE                   DeviceStatus_TYPE;
+
+enum DEVICE_CLASS_TYPE
+{
+	DEVICE_CLASS_CHAR = 0,						                            /* character device								*/
+	DEVICE_CLASS_BLOCK,							                            /* block device 								*/
+	DEVICE_CLASS_NETIF,							                            /* net interface 								*/
+	DEVICE_CLASS_MTD,							                            /* memory device 								*/
+	DEVICE_CLASS_CAN,							                            /* CAN device 									*/
+	DEVICE_CLASS_RTC,							                            /* RTC device 									*/
+	DEVICE_CLASS_SOUND,							                            /* Sound device 								*/
+	DEVICE_CLASS_UNKNOWN							                        /* unknown device 								*/
+};
+
+typedef            enum DEVICE_CLASS_TYPE                     DeviceClassType;
+
+typedef            struct DEVICE_ABSTRACT *                   pDeviceAbstract;
+typedef            struct DEVICE_ABSTRACT *                   portDEVHANDLE_TYPE;
+
+//Éè±¸×¢²áº¯ÊýÖ¸Õë
+typedef     portuBASE_TYPE     (FP_pfregister)   (void);
+
+//½Ó¿Úº¯ÊýÖ¸Õë¶¨Òå  ¶àÌ¬µÄ½Ó¿Ú±ãÓÚ´ÓÍ¬Ò»ÀàÖÐËùÅÉÉú³öÀ´µÄ¶à¸ö¶ÔÏó
+/* common device interface */
+typedef     DeviceStatus_TYPE  (FP_pfinit)	     (pDeviceAbstract pdev);
+typedef     DeviceStatus_TYPE  (FP_pfopen)	     (pDeviceAbstract pdev, uint16 oflag);
+typedef     DeviceStatus_TYPE  (FP_pfclose)      (pDeviceAbstract pdev);
+typedef     portSSIZE_TYPE      (FP_pfread)	     (pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+typedef     portSSIZE_TYPE      (FP_pfwrite)      (pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+typedef     DeviceStatus_TYPE  (FP_pfcontrol)    (pDeviceAbstract pdev, uint8 cmd, void *args);
+
+/* device call back */
+typedef     DeviceStatus_TYPE  (FP_pfrx_indicate)(pDeviceAbstract pdev, portSIZE_TYPE size);
+typedef     DeviceStatus_TYPE  (FP_pftx_complete)(pDeviceAbstract pdev, void* buffer);
+
+struct DEVIVE_ABSTRACT_INFO
+{
+    //Éè±¸Ãû×Ö
+    int8      	                                                m_name[DEVICE_NAME_MAX];
+	DeviceClassType                                             m_type;
+    /* device flag*/
+	uint16                                                      m_flag;
+
+	/* common device interface */
+	FP_pfinit                                                  *init;
+    FP_pfopen                                                  *open;
+    FP_pfclose                                                 *close;
+    FP_pfread                                                  *read;
+    FP_pfwrite                                                 *write;
+    FP_pfcontrol                                               *control;
+
+    /* device call back */
+    FP_pfrx_indicate                                           *rx_indicate;
+    FP_pftx_complete                                           *tx_complete;
+};
+
+typedef            struct DEVIVE_ABSTRACT_INFO                DeviceAbstractInfo;
+
+//ÔÚRAM½ÏÐ¡µÄÓ¦ÓÃ»·¾³ÖÐ Éè±¸ÐÅÏ¢Ò»°ã¶øÑÔ¶¼ÊÇ¹Ì»¯ÔÚFLASHÖÐµÄ Éæ¼°µ½±ä¶¯µÄ»ú»áºÜÐ¡
+struct DEVICE_ABSTRACT
+{
+	const struct DEVIVE_ABSTRACT_INFO                        *m_pdeviceAbstractInfo;
+
+    //Éè±¸Á´±í
+    list	                                                    m_list;
+    uint16                                                      m_openFlag;
+    /* device private data */
+	void                                                      *m_private;
+};
+
+typedef            struct DEVICE_ABSTRACT                      DeviceAbstract;
+typedef            struct DEVICE_ABSTRACT                      device_t;
 
 
 #ifdef __cplusplus

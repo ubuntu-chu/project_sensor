@@ -6,6 +6,7 @@
 #include    "commu.h"
 #include    "storage.h"
 #include    "../api/log/log.h"
+#include	"../reacotr/reactor.h"
 
 
 #if 1
@@ -225,8 +226,12 @@ portBASE_TYPE CApplication::init(void)
 
 portBASE_TYPE CApplication::run()
 {
-	CDevice_commu 		*pdevice_commu		= (CDevice_commu *)m_app_runinfo.m_pdevice_commu;
-	CDevice_pin 	    *pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
+	CDevice_commu	*pdevice_commu		= (CDevice_commu *)m_app_runinfo.m_pdevice_commu;
+	CDevice_pin 	*pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
+	CDevice_ad 		*pdevice_ad		    = static_cast<CDevice_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
+
+	event_loop 		t_loop;
+	channel 		t_channel_ad(&t_loop, pdevice_ad);
     
     while(1){
         

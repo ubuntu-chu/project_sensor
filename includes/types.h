@@ -14,11 +14,9 @@ typedef unsigned int 								uint32_t;
 typedef unsigned int 								uint32;
 typedef signed int 								int32_t;
 typedef int 										int32;
-#if 0
-typedef unsigned long int 						uint64_t;
-#endif
 typedef unsigned long int 						uint64;
 #if 0
+typedef unsigned long int 						uint64_t;
 typedef long signed int   					 	int64_t;
 #endif
 typedef long signed int    						int64;
@@ -36,11 +34,11 @@ typedef uint16                     		        portSIZE_TYPE;
 typedef int16                     		            portSSIZE_TYPE;
 typedef portSIZE_TYPE                              portOFFSET_TYPE;
 typedef portBASE_TYPE                              sv_err_t;
-#ifndef		LINUX_OS
+
 //时间类型定义
 typedef unsigned long int 						time_t;
 //typedef int 										size_t;
-#endif
+
 //intptr_t ,uintptr_t : 表示当前平台下能够安全地对指针进行转型的整型变量
 typedef unsigned int      						uintptr_t;
 typedef int               							intptr_t;
@@ -103,6 +101,44 @@ typedef         void (fp_void_pvoid)(void *);
 #ifndef DEV_OFFLINE
 	#define DEV_OFFLINE 							((portuBASE_TYPE)0)
 #endif
+
+/*
+ * Structure returned by gettimeofday(2) system call,
+ * and used in other calls.
+ */
+struct timeval {
+	long	tv_sec;		/* seconds */
+	long	tv_usec;	/* and microseconds */
+};
+
+/*
+ * Structure defined by POSIX.1b to be like a timeval.
+ */
+struct timespec {
+	time_t	tv_sec;		/* seconds */
+	long	tv_nsec;	/* and nanoseconds */
+};
+
+struct timezone {
+  int tz_minuteswest;	/* minutes west of Greenwich */
+  int tz_dsttime;	/* type of dst correction */
+};
+
+struct tm {
+  int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
+  int tm_min;			/* Minutes.	[0-59] */
+  int tm_hour;			/* Hours.	[0-23] */
+  int tm_mday;			/* Day.		[1-31] */
+  int tm_mon;			/* Month.	[0-11] */
+  int tm_year;			/* Year - 1900. */
+  int tm_wday;			/* Day of week.	[0-6] */
+  int tm_yday;			/* Days in year.[0-365]	*/
+  int tm_isdst;			/* DST.		[-1/0/1]*/
+
+  long int tm_gmtoff;		/* Seconds east of UTC.  */
+  const char *tm_zone;		/* Timezone abbreviation.  */
+};
+
 
 #ifdef __cplusplus 
 

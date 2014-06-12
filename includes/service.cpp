@@ -39,6 +39,19 @@ int list_isempty(const list *l)
 	return (l->m_next == l);
 }
 
+list *list_find(list_head_t *head, list_node_t *node)
+{
+	list_node_t 	*it;
+
+	list_for_each(it, head){
+		if (it == node){
+			return it;
+		}
+	}
+
+	return NULL;
+}
+
 void rt_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
 {
 	
