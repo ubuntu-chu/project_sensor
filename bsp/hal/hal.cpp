@@ -446,6 +446,30 @@ DeviceStatus_TYPE API_DeviceClose(pDeviceAbstract pdev)
     return rt;
 }
 
+
+DeviceStatus_TYPE hal_poll(pDeviceAbstract pdev)
+{
+    DeviceAbstractInfo      *pdevInfo;
+    DeviceStatus_TYPE 		rt;
+    FP_pfpoll              *poll;
+
+    if (NULL == pdev)
+    {
+        return DEVICE_ENULL;
+    }
+    pdevInfo                                                    = (DeviceAbstractInfo *)(pdev->m_pdeviceAbstractInfo);
+    poll                                                       = pdevInfo->poll;
+
+    //调用关闭函数接口
+    if (NULL != poll){
+        rt                                                      = poll(pdev);
+    }else {
+        rt                                                      = DEVICE_ENOSYS;
+    }
+    return rt;
+
+}
+
 /******************************************************************************
  *  函数名称 :                                                                
  *                                                                           

@@ -13,6 +13,7 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
 //static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args);
+static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev);
 
 /******************************************************************************
  *                       本文件所定义的静态数据结构
@@ -38,6 +39,8 @@ static const DeviceAbstractInfo st_DeviceInfo_ad = {
         NULL,
         //control
         _drv_ioctl,
+        //poll
+        _drv_poll,
         //rx_indicate
         NULL,
         //tx_complete
@@ -362,6 +365,11 @@ extern "C" void SINC2_Int_Handler()
  
 }
 
+static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev)
+{
+
+	return DEVICE_POLLNONE;
+}
 
 
 /*********************************************************************************

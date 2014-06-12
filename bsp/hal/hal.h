@@ -80,6 +80,8 @@ extern portSSIZE_TYPE API_DeviceWrite(pDeviceAbstract pdev, portOFFSET_TYPE pos,
 extern DeviceStatus_TYPE API_DeviceControl(pDeviceAbstract pdev, uint8 cmd, void *args);
 #define hal_devicectrl            API_DeviceControl
 
+extern DeviceStatus_TYPE hal_poll(pDeviceAbstract pdev);
+
 extern void API_DeviceErrorInfoSet(DeviceStatus_TYPE errorInfo);
 #define hal_device_errinfoset            API_DeviceErrorInfoSet
 

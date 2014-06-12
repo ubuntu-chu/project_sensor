@@ -21,43 +21,44 @@ public:
 	} // used by pollers
 	// int revents() const { return revents_; }
 	bool isNoneEvent() const {
-		return events_ == kNoneEvent;
+		return events_ == POLLNONE;
 	}
 
 	void enableReading() {
-		events_ |= kReadEvent;
+		events_ |= POLLIN;
 		update();
 	}
-	// void disableReading() { events_ &= ~kReadEvent; update(); }
+	void disableReading()
+	{
+		events_ &= ~POLLIN; update();
+	}
 	void enableWriting() {
-		events_ |= kWriteEvent;
+		events_ |= POLLOUT;
 		update();
 	}
 	void disableWriting() {
-		events_ &= ~kWriteEvent;
+		events_ &= ~POLLOUT;
 		update();
 	}
 	void disableAll() {
-		events_ = kNoneEvent;
+		events_ = POLLNONE;
 		update();
 	}
-	bool isWriting() const {
-		return events_ & kWriteEvent;
-	}
 
-	eventloop* ownerLoop() {
-		return loop_;
-	}
+	void handleEvent(Timestamp receiveTime);
+
+	portDEVHANDLE_TYPE handle_get(void) { return 	m_handle; }
+
+	list_node_t* list_node_get(void) { return &m_node; }
+	int list_node_offset_get(void) { return OFFSET(class channel, m_node); }
+	list_node_t* active_list_node_get(void) { return &m_active_node; }
+	int active_list_node_offset_get(void) { return OFFSET(class channel, m_active_node); }
+
 	void remove();
 
-	list_node_t 			m_node;
 private:
 	void update();
 //	void handleEventWithGuard(Timestamp receiveTime);
-
-	static const int kNoneEvent;
-	static const int kReadEvent;
-	static const int kWriteEvent;
 
 	eventloop* loop_;
 	int events_;
@@ -65,6 +66,8 @@ private:
 
 	bool eventHandling_;
 	portDEVHANDLE_TYPE 		m_handle;
+	list_node_t 			m_node;
+	list_node_t 			m_active_node;
 };
 
 #endif

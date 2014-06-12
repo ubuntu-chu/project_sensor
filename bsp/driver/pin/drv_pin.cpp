@@ -14,6 +14,7 @@ static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
 //static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
+static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev);
 
 /******************************************************************************
  *                       本文件所定义的静态数据结构
@@ -39,6 +40,8 @@ static const DeviceAbstractInfo st_DeviceInfo_pin = {
         NULL,
         //control
         NULL,
+        //poll
+        _drv_poll,
         //rx_indicate
         NULL,
         //tx_complete
@@ -107,6 +110,12 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
     return 1;
 }
 #endif
+
+static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev)
+{
+	return DEVICE_POLLIN;
+//	return DEVICE_POLLNONE;
+}
 
 /*********************************************************************************
 **                            End Of File

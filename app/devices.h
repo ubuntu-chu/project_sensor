@@ -25,6 +25,10 @@ public:
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
     virtual portBASE_TYPE process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
     //portBASE_TYPE   name_set(const char *pname);
+    portDEVHANDLE_TYPE handle_get(void)
+    {
+    	return m_pdevice;
+    }
 
 protected:
     CDevice_base(const char *pname, uint16 oflag);

@@ -16,41 +16,55 @@ static const long int kMicroSecondsPerSecond = 1000*1000;
 static const long int kSecondsPerSecond      = kMicroSecondsPerSecond;
 #endif
 
-class Timestamp : public copyable
-{
- public:
-  Timestamp()
-    : microSecondsSinceEpoch_(0)
-  {
-  }
+class Timestamp
+//class Timestamp : public copyable
+ {
+public:
+	Timestamp() :
+			microSecondsSinceEpoch_(0) {
+	}
 
-  explicit Timestamp(time_t microSecondsSinceEpoch);
+	explicit Timestamp(time_t microSecondsSinceEpoch);
+#if 0
+	Timestamp& operate=(const Timestamp& other);
 
-  void swap(Timestamp& that)
-  {
-      time_t  tmp = that.microSecondsSinceEpoch_;
-      
-      that.microSecondsSinceEpoch_ = microSecondsSinceEpoch_;
-      microSecondsSinceEpoch_      = tmp;
-  }
+	Timestamp& operate=(const Timestamp& other)
+	{
+		microSecondsSinceEpoch_ 	= other.microSecondsSinceEpoch_;
+		return *this;
+	}
+#endif
 
-  string toString() const;
-  string toFormattedString() const;
+	void swap(Timestamp& that)
+	{
+		time_t tmp = that.microSecondsSinceEpoch_;
 
-  bool valid() const { return microSecondsSinceEpoch_ > 0; }
+		that.microSecondsSinceEpoch_ = microSecondsSinceEpoch_;
+		microSecondsSinceEpoch_ = tmp;
+	}
 
-  time_t microSecondsSinceEpoch() const { return microSecondsSinceEpoch_; }
-  time_t secondsSinceEpoch() const
-  { return static_cast<time_t>(microSecondsSinceEpoch_ / kSecondsPerSecond); }
+	string toString() const;
+	string toFormattedString() const;
 
-  ///
-  /// Get time of now.
-  ///
-  static Timestamp now();
-  static Timestamp invalid();
+	bool valid() const {
+		return microSecondsSinceEpoch_ > 0;
+	}
 
- private:
-  time_t microSecondsSinceEpoch_;
+	time_t microSecondsSinceEpoch() const {
+		return microSecondsSinceEpoch_;
+	}
+	time_t secondsSinceEpoch() const {
+		return static_cast<time_t>(microSecondsSinceEpoch_ / kSecondsPerSecond);
+	}
+
+	///
+	/// Get time of now.
+	///
+	static Timestamp now();
+	static Timestamp invalid();
+
+private:
+	time_t microSecondsSinceEpoch_;
 };
 
 inline bool operator<(Timestamp lhs, Timestamp rhs)

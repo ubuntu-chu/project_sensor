@@ -6,7 +6,7 @@
 #include    "commu.h"
 #include    "storage.h"
 #include    "../api/log/log.h"
-#include	"../reacotr/reactor.h"
+#include	"../reactor/reactor.h"
 
 
 #if 1
@@ -189,8 +189,10 @@ portBASE_TYPE CApplication::init(void)
     m_app_runinfo.m_pdevice_storage->open();
     
     //load conf_datum from storage device
+#if 0
     if (load_app_datum()){
     }
+#endif
     t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
     t_protocol_modbus_rtu.modbus_mapping_set(ARRAY_SIZE(m_modeinfo.m_regs.m_tab_bits),
                                         ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_bits),
@@ -226,21 +228,23 @@ portBASE_TYPE CApplication::init(void)
 
 portBASE_TYPE CApplication::run()
 {
-	CDevice_commu	*pdevice_commu		= (CDevice_commu *)m_app_runinfo.m_pdevice_commu;
-	CDevice_pin 	*pdevice_pin	    = (CDevice_pin *)m_app_runinfo.m_pdevice_pin;
-	CDevice_ad 		*pdevice_ad		    = static_cast<CDevice_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
+	CDevice_commu *pdevice_commu =
+			(CDevice_commu *) m_app_runinfo.m_pdevice_commu;
+	CDevice_pin *pdevice_pin = (CDevice_pin *) m_app_runinfo.m_pdevice_pin;
+	CDevice_ad *pdevice_ad =
+			static_cast<CDevice_ad *>(m_app_runinfo.m_pdevice_ad);
+	portDEVHANDLE_TYPE handle_ad = pdevice_ad->handle_get();
 
-	event_loop 		t_loop;
-	channel 		t_channel_ad(&t_loop, pdevice_ad);
-    
-    while(1){
-        
-        
-        
+	eventloop t_loop;
+	channel t_channel_ad(&t_loop, handle_ad);
+	channel t_channel_pin(&t_loop, pdevice_pin->handle_get());
 
-    };
-    
-    return 0;
+	t_channel_ad.enableReading();
+	t_channel_pin.enableReading();
+	t_channel_pin.disableReading();
+	t_loop.loop();
+
+	return 0;
 }
 
 //intertup context 

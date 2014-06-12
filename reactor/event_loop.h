@@ -33,7 +33,7 @@ private:
 	bool callingPendingFunctors_; /* atomic */
 	Timestamp pollReturnTime_;
 
-	list_head_t m_channels;
+	list_head_t m_active_channels;
 	channel* 	m_current_acitve_channel;
 
 	poller		*m_ppoller;

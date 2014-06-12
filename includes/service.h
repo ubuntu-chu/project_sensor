@@ -10,12 +10,15 @@
 extern "C" {
 #endif
 
+#define 	POLLNONE 					(0x00)
 #define 	POLLOUT 					(0x01)
 #define	 	POLLIN 						(0x02)
 
 #define list_entry(node, type, member) \
                                                                 ((type *)((char *)(node) - (unsigned int)(&((type *)0)->member)))
 
+#define list_entry_offset(node, type, offset) \
+                                                                ((type *)((char *)(node) - (unsigned int)(offset)))
 /*
 list_for_each()：list_del(pos)将pos的前后指针指向undefined state，导致kernel panic，
 list_del_init(pos)将pos前后指针指向自身，导致死循环。
@@ -454,6 +457,11 @@ enum  DEVICE_STATUS_TYPE
 	DEVICE_EEXEC,
     DEVICE_EAGAIN,
     DEVICE_ETIMEOUT,
+    DEVICE_POLLIN,
+    DEVICE_POLLOUT,
+    DEVICE_POLLNONE,
+    DEVICE_POLLHUP,
+    DEVICE_POLLERR,
 };
 
 typedef            enum  DEVICE_STATUS_TYPE                   DeviceStatus_TYPE;
@@ -486,6 +494,7 @@ typedef     DeviceStatus_TYPE  (FP_pfclose)      (pDeviceAbstract pdev);
 typedef     portSSIZE_TYPE      (FP_pfread)	     (pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 typedef     portSSIZE_TYPE      (FP_pfwrite)      (pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 typedef     DeviceStatus_TYPE  (FP_pfcontrol)    (pDeviceAbstract pdev, uint8 cmd, void *args);
+typedef     DeviceStatus_TYPE  (FP_pfpoll)      (pDeviceAbstract pdev);
 
 /* device call back */
 typedef     DeviceStatus_TYPE  (FP_pfrx_indicate)(pDeviceAbstract pdev, portSIZE_TYPE size);
@@ -506,6 +515,7 @@ struct DEVIVE_ABSTRACT_INFO
     FP_pfread                                                  *read;
     FP_pfwrite                                                 *write;
     FP_pfcontrol                                               *control;
+    FP_pfpoll                                                  *poll;
 
     /* device call back */
     FP_pfrx_indicate                                           *rx_indicate;

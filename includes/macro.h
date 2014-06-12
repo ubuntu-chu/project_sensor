@@ -59,7 +59,7 @@
 #define         N2C(n)                                          (n + '0')
 
 //------------------------------------------------------------------------------
-#define         OFFSET(Struct, Field) 				            ((unsigned int)(unsigned int*)&(((Struct *)0)->Field))
+#define         OFFSET(Struct, Field) 				            ((unsigned int)(unsigned char*)&(((Struct *)0)->Field))
 #define 		ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
 
 #define         ALIGN_UP(x, a)                                  (((x)+(a))&(~a))
