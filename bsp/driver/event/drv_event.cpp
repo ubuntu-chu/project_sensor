@@ -10,9 +10,10 @@
 
 static DeviceStatus_TYPE _drv_init(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_open(pDeviceAbstract pdev, uint16 oflag);
-//static portSSIZE_TYPE _drv_write(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
+static portSSIZE_TYPE _drv_write(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 static portSSIZE_TYPE _drv_read(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev);
+//static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args);
 
 /******************************************************************************
  *                       本文件所定义的静态数据结构
@@ -32,12 +33,12 @@ static const DeviceAbstractInfo st_DeviceInfo	= {
         _drv_open,
         //close
         NULL,
-        //repin
+        //read
         _drv_read,
         //write
-        NULL,
+        _drv_write,
         //control
-        NULL,
+        NULL,//_drv_ioctl
         //poll
         _drv_poll,
         //rx_indicate
@@ -50,7 +51,7 @@ static const DeviceAbstractInfo st_DeviceInfo	= {
 static DeviceAbstract  st_Device	= {
 
         //设备信息
-        &st_DeviceInfo_pin,
+        &st_DeviceInfo,
     };
 
 /******************************************************************************
@@ -75,45 +76,65 @@ static DeviceAbstract  st_Device	= {
  *
 ******************************************************************************/
 
-portuBASE_TYPE drv_eventregister(void){
+portuBASE_TYPE drv_eventregister(void)
+{
 
     return API_DeviceRegister(&st_Device);
 }
 
-static DeviceStatus_TYPE _drv_init(pDeviceAbstract pdev){
-    
-
-    return DEVICE_OK;
-}
-
-
-static DeviceStatus_TYPE _drv_open(pDeviceAbstract pdev, uint16 oflag){
-    
+static DeviceStatus_TYPE _drv_init(pDeviceAbstract pdev)
+{
     
     return DEVICE_OK;
 }
 
-#if 0
-static portSSIZE_TYPE _drv_write(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
+
+static DeviceStatus_TYPE _drv_open(pDeviceAbstract pdev, uint16 oflag)
+{
+    
+    return DEVICE_OK;
+}
+
+
+static portSSIZE_TYPE _drv_write(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size)
+{
     
     
     return size;
 }
-#endif
 
-static portSSIZE_TYPE _drv_read(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
+static portSSIZE_TYPE _drv_read(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size)
+{
   
-    uint8   *ptr    = (uint8 *)buffer;
+    //uint8   *ptr    = (uint8 *)buffer;
 
     return 1;
 }
-#endif
 
 static DeviceStatus_TYPE _drv_poll(pDeviceAbstract pdev)
 {
 	return DEVICE_POLLIN;
 //	return DEVICE_POLLNONE;
 }
+
+#if 0
+static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
+{
+	DeviceStatus_TYPE   rt = DEVICE_OK;
+    
+    switch (cmd){
+    #if 0    
+        case PWM_IOC_HEAT_DUTY_CYCLE:
+            
+            return rt;
+    #endif
+        default:
+            return DEVICE_ECMD_INVALID;
+	}
+
+	return rt;
+}
+#endif
 
 /*********************************************************************************
 **                            End Of File
