@@ -81,14 +81,13 @@ char *reverse(char *str);
 
 //--------------------------------------------------------------------
 
-typedef char 							monitor_handle_type;
-
-typedef void (pf_void)(void *);
 
 enum {
 	enum_MODE_ONESHOT	= 0,
 	enum_MODE_PERIODIC,
 };
+
+#if 0
 
 class monitor_manage: noncopyable{
 
@@ -204,6 +203,8 @@ public:
 };
 
 extern monitor_manage 	t_monitor_manage;
+
+#endif
 
 //--------------------------------------------------------------------
 

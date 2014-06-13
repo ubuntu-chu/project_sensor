@@ -7,7 +7,7 @@
 class channel{
 //class channel: noncopyable {
 public:
-	channel(eventloop* loop,  portDEVHANDLE_TYPE handle);
+	channel(eventloop* loop,  class device *handle);
 	~channel();
 
 	int write(const int8 *pbuf, portSIZE_TYPE len);
@@ -47,7 +47,7 @@ public:
 
 	void handleEvent(Timestamp receiveTime);
 
-	portDEVHANDLE_TYPE handle_get(void) { return 	m_handle; }
+	class device *device_get(void) { return 	m_handle; }
 
 	list_node_t* list_node_get(void) { return &m_node; }
 	int list_node_offset_get(void) { return OFFSET(class channel, m_node); }
@@ -58,14 +58,13 @@ public:
 
 private:
 	void update();
-//	void handleEventWithGuard(Timestamp receiveTime);
 
 	eventloop* loop_;
 	int events_;
 	int revents_;
 
 	bool eventHandling_;
-	portDEVHANDLE_TYPE 		m_handle;
+	class device 			*m_handle;
 	list_node_t 			m_node;
 	list_node_t 			m_active_node;
 };

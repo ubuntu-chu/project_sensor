@@ -2,12 +2,12 @@
 #include "protocol.h"
 #include "modbus.h"
 
-CDevice_commu::CDevice_commu(const char *pname, 
+device_commu::device_commu(const char *pname, 
                              uint16 oflag, 
                              class protocol *pprotocol, 
                              package_event_handler handler,
                              void *pvoid)
-                            :CDevice_base(pname, oflag)
+                            :device(pname, oflag)
 {
     m_handler			= handler;
     m_pvoid 			= pvoid;
@@ -17,16 +17,16 @@ CDevice_commu::CDevice_commu(const char *pname,
     m_pprotocol->init();
 }
 
-CDevice_commu::~CDevice_commu()
+device_commu::~device_commu()
 {
 
 }
 
-portBASE_TYPE CDevice_commu::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device_commu::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
 {
 	switch (phase){
 	case PROC_PREPARE:
-		CDevice_base::process_read(phase, pbuf, size);
+		device::process_read(phase, pbuf, size);
 		break;
 
 	case PROC_DONE:
@@ -45,7 +45,7 @@ portBASE_TYPE CDevice_commu::process_read(enum PROC_PHASE phase, char *pbuf, por
 	return 0;
 }
 
-portBASE_TYPE CDevice_commu::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device_commu::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
 {
 	switch (phase){
 	case PROC_PREPARE:
@@ -67,7 +67,7 @@ portBASE_TYPE CDevice_commu::process_write(enum PROC_PHASE phase, char *pbuf, po
 	return 0;
 }
 
-portBASE_TYPE CDevice_commu::package_event_fetch(void)
+portBASE_TYPE device_commu::package_event_fetch(void)
 {
 	portBASE_TYPE   rt;
     uint8           to_continue;
@@ -79,7 +79,7 @@ portBASE_TYPE CDevice_commu::package_event_fetch(void)
     return rt;
 }
 
-portBASE_TYPE CDevice_commu::package_recv_handle(uint8 event, 
+portBASE_TYPE device_commu::package_recv_handle(uint8 event, 
                                                  uint8 func_code, 
                                                  uint8 *pcontinue)
 {

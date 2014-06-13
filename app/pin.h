@@ -6,13 +6,13 @@
 
 
 
-class CDevice_pin:public CDevice_base{
+class device_pin:public device{
 public:
-    CDevice_pin(const char *pname, uint16 oflag);
-    virtual ~CDevice_pin();
+    device_pin(const char *pname, uint16 oflag);
+    virtual ~device_pin();
 private:
-    CDevice_pin(const CDevice_pin &other);
-    CDevice_pin &operator =(const CDevice_pin &other);
+    device_pin(const device_pin &other);
+    device_pin &operator =(const device_pin &other);
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 };    
     

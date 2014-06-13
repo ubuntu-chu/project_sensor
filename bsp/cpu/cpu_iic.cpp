@@ -5,6 +5,7 @@
 #include    "cpu_iic.h"
 #include "../../includes/macro.h"
 #include    "../../api/utils.h"
+#include    "../../includes/service.h"
 
 
 iic_transfer_t t_iic_transfer;
@@ -90,7 +91,7 @@ static portBASE_TYPE cpu_iic_interrupt_enable(enum iic_numb numb)
 portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 {
 	portSSIZE_TYPE 	rt ;
-    monitor_handle_type     handle_iic;
+    timer_handle_type     handle_iic;
 
 	t_iic_transfer.m_index  = 0;
 	t_iic_transfer.m_lock   = 0;
@@ -101,13 +102,13 @@ portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
         return -2;              
     }
     //unit: ms
-    handle_iic = t_monitor_manage.monitor_register(t_iic_transfer.m_timeout,
+    handle_iic = t_timer_manage.timer_register(t_iic_transfer.m_timeout,
                                                 enum_MODE_ONESHOT, 
                                                 NULL, 
                                                 NULL,
                                                 "iic timeout");
-    ASSERT(handle_iic != (monitor_handle_type)-1);
-    t_monitor_manage.monitor_start(handle_iic);
+    ASSERT(handle_iic != (timer_handle_type)-1);
+    t_timer_manage.timer_start(handle_iic);
 
 	I2cMCfg(I2CMCON_TXDMA_DIS | I2CMCON_RXDMA_DIS,
 			def_I2C_INT_SOURCE, I2CMCON_MAS_EN);
@@ -135,7 +136,7 @@ portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
 
 	//等待I2C操作完成
 	do {
-        if (t_monitor_manage.monitor_expired(handle_iic)){
+        if (t_timer_manage.timer_expired(handle_iic)){
             rt                          = -1;
             t_iic_transfer.m_accessFinished = I2C_TIMEOUT;
             I2cMCfg(I2CMCON_TXDMA_DIS|I2CMCON_RXDMA_DIS, 0, I2CMCON_MAS_DIS);
@@ -146,8 +147,8 @@ portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
     if (I2C_ABNORMAL == t_iic_transfer.m_accessFinished){
         rt                              = -1;
     }
-    t_monitor_manage.monitor_stop(handle_iic);
-    t_monitor_manage.monitor_unregister(handle_iic);
+    t_timer_manage.timer_stop(handle_iic);
+    t_timer_manage.timer_unregister(handle_iic);
 
 	return rt;
 }

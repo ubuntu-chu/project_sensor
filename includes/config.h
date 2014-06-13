@@ -44,6 +44,9 @@
 //define time monitor count
 #define 	def_MONITOR_MANAGE							(1)
 #define 	def_MONITOR_TIME_NR						(6)
+
+//define timer nr   both  hard timer and soft timer
+#define  	def_TIMER_NR							(6)
 //define time lib
 #define 	def_MINI_TIME_LIBRARY
 #define     def_CIRCULAR_BUFFER

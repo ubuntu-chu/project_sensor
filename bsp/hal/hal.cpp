@@ -447,15 +447,15 @@ DeviceStatus_TYPE API_DeviceClose(pDeviceAbstract pdev)
 }
 
 
-DeviceStatus_TYPE hal_poll(pDeviceAbstract pdev)
+DevicePoll_TYPE hal_poll(pDeviceAbstract pdev)
 {
     DeviceAbstractInfo      *pdevInfo;
-    DeviceStatus_TYPE 		rt;
+    DevicePoll_TYPE 		rt;
     FP_pfpoll              *poll;
 
     if (NULL == pdev)
     {
-        return DEVICE_ENULL;
+        return DEVICE_POLL_ENULL;
     }
     pdevInfo                                                    = (DeviceAbstractInfo *)(pdev->m_pdeviceAbstractInfo);
     poll                                                       = pdevInfo->poll;
@@ -464,7 +464,7 @@ DeviceStatus_TYPE hal_poll(pDeviceAbstract pdev)
     if (NULL != poll){
         rt                                                      = poll(pdev);
     }else {
-        rt                                                      = DEVICE_ENOSYS;
+        rt                                                      = DEVICE_POLL_ENOSYS;
     }
     return rt;
 

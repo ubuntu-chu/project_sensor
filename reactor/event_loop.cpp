@@ -10,9 +10,11 @@ eventloop::eventloop() :
 		eventHandling_(false),
 		callingPendingFunctors_(false),
 		m_current_acitve_channel(NULL),
-		m_ppoller(poller::newDefaultPoller(this))
+		m_ppoller(poller::newDefaultPoller(this),
+		//m_event_channel(, this))
+	
 {
-
+	list_init(&m_event_list);
 }
 
 eventloop::~eventloop() {
@@ -47,4 +49,31 @@ void eventloop::updateChannel(channel* channel) {
 void eventloop::removeChannel(channel* channel) {
 	m_ppoller->removeChannel(channel);
 }
+
+timer_handle_type eventloop::run_at(const uint32& ms, uint8 flag, fp_void_pvoid *cb, void *pparam, const char* pname)
+{
+	timer_handle_type	handle;
+
+	handle 	= t_timer_manage.timer_register(ms, flag, cb, pparam, pname);
+    if (handle!= (timer_handle_type)-1){
+    	return handle;
+    }
+    t_timer_manage.timer_start(handle);
+
+
+    return handle;
+}
+
+timer_handle_type eventloop::run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
+{
+	return run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_ONE_SHOT, cb, pparam, pname);
+}
+
+timer_handle_type eventloop::run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
+{
+	return run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_PERIODIC, cb, pparam, pname);
+}
+
+
+
 

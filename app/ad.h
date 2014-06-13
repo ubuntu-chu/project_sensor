@@ -6,13 +6,13 @@
 
 
 
-class CDevice_ad:public CDevice_base{
+class device_ad:public device{
 public:
-    CDevice_ad(const char *pname, uint16 oflag);
-    virtual ~CDevice_ad();
+    device_ad(const char *pname, uint16 oflag);
+    virtual ~device_ad();
 private:
-    CDevice_ad(const CDevice_ad &other);
-    CDevice_ad &operator =(const CDevice_ad &other);
+    device_ad(const device_ad &other);
+    device_ad &operator =(const device_ad &other);
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 
     uint8           m_data[2];

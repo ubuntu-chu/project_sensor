@@ -34,19 +34,36 @@ typedef uint16                     		        portSIZE_TYPE;
 typedef int16                     		            portSSIZE_TYPE;
 typedef portSIZE_TYPE                              portOFFSET_TYPE;
 typedef portBASE_TYPE                              sv_err_t;
+typedef portCPSR_TYPE								sv_base_t;
+
+/* error code definitions */
+#define SV_EOK                          0               /**< There is no error */
+#define SV_ERROR                        1               /**< A generic error happens */
+#define SV_ETIMEOUT                     2               /**< Timed out */
+#define SV_EFULL                        3               /**< The resource is full */
+#define SV_EEMPTY                       4               /**< The resource is empty */
+#define SV_ENOMEM                       5               /**< No memory */
+#define SV_ENOSYS                       6               /**< No system */
+#define SV_EBUSY                        7               /**< Busy */
+#define SV_EIO                          8               /**< IO error */
 
 //时间类型定义
 typedef unsigned long int 						time_t;
+typedef uint32    				                    tick_t;
 //typedef int 										size_t;
+/* maximum value of base type */
+//#define UINT8_MAX                    				0xff            /**< Maxium number of UINT8 */
+//#define UINT16_MAX                   				0xffff          /**< Maxium number of UINT16 */
+//#define UINT32_MAX                   				0xffffffff      /**< Maxium number of UINT32 */
+#define TICK_MAX                     				((tick_t)-1)   	/**< Maxium number of tick */
+
+
 
 //intptr_t ,uintptr_t : 表示当前平台下能够安全地对指针进行转型的整型变量
 typedef unsigned int      						uintptr_t;
 typedef int               							intptr_t;
 
 //application type define
-typedef uint16_t									os_period_t;
-typedef uint32_t   									sys_time_t;
-typedef uint32_t    								sys_tick_t;
 typedef uint32_t									dev_adr_t;
 typedef uint32_t									sen_adr_t;
 typedef char        								string_char;  	/* Signed    8 bit quantity  */
@@ -60,8 +77,8 @@ typedef uint32_t									sig_atomic;
 #define BYTE                						uint8_t
 #define BYTE_PTR            						uint8_t*
 
-
-typedef         void (fp_void_pvoid)(void *);
+typedef char 										timer_handle_type;
+typedef void (fp_void_pvoid)(void *);
 
 
 
@@ -79,10 +96,12 @@ typedef         void (fp_void_pvoid)(void *);
 
 #ifndef	   TRUE
 	#define    TRUE                                ((portuBASE_TYPE)1)
+	#define    true                                ((portuBASE_TYPE)1)
 #endif
 
 #ifndef	   FALSE
 	#define    FALSE                               ((portuBASE_TYPE)0)
+	#define    false                               ((portuBASE_TYPE)0)
 #endif
 
 #ifndef ZERO
@@ -180,6 +199,50 @@ inline To down_cast(From* f) {                   // so we only accept pointers
   }
   return static_cast<To>(f);
 }
+#endif
+
+
+#if 0
+
+//Tobject:调用对象的类型，Tparam回调函数参数的类型
+template<typename Tobject, typename Tparam>
+class CCallbackProxy
+{
+	typedef void (Tobject::*CbFun)(Tparam*);
+public:
+	CCallbackProxy(Tobject *pInstance, CbFun pFun)
+    {
+        m_pInstance = pInstance; 
+        pCbFun = pFun;
+    }
+    void operator()(Tparam* pParam)
+    {
+        (m_pInstance->*pCbFun)(pParam);
+    }
+
+private:	
+	CbFun		pCbFun;		//回调函数指针
+	Tobject*	m_pInstance;	//调用对象
+};
+
+#if 0
+//设置调用对象及其回调函数
+template<typename Tobject, typename Tparam>
+void CCallbackProxy<Tobject, Tparam>::Set(Tobject *pInstance , CbFun pFun)
+{
+	m_pInstance = pInstance; 
+	pCbFun = pFun;
+};
+
+//调用回调函数
+template<typename Tobject, typename Tparam>
+bool CCallbackProxy<Tobject, Tparam>::Exec(Tparam* pParam)
+{
+	(m_pInstance->*pCbFun)(pParam);
+	return true;
+}
+#endif
+
 #endif
 
 /******************************************************************************

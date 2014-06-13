@@ -9,7 +9,6 @@
 #include	"../reactor/reactor.h"
 
 
-#if 1
 void debug_output(const char* msg, int len)
 {
 	//uart_tx(DBG_UART, (uint8 *)msg, len);
@@ -46,8 +45,8 @@ portBASE_TYPE CApplication::package_event_handler(void *pvoid, class protocol_in
     case _FC_WRITE_MULTIPLE_REGISTERS:
     {
         //write hold regs to storage device
-        CDevice_storage *pdevice_storage    = 
-            static_cast<CDevice_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
+        device_storage *pdevice_storage    = 
+            static_cast<device_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
         
         //hold regs type is uint16
         offset 								= pmodbus_rtu_info->reg_get()<<1;
@@ -65,16 +64,14 @@ portBASE_TYPE CApplication::package_event_handler(void *pvoid, class protocol_in
 	return 0;
 }
 
-volatile CDevice_commu *pCDevice_commu;
-
 portBASE_TYPE CApplication::load_app_datum(void)
 {
     uint8               magic_string[100];
     portSSIZE_TYPE      ssize;
     struct storage_info storage_info_magic;
     struct storage_info storage_info_modbus;
-    CDevice_storage *pdevice_storage    = 
-            static_cast<CDevice_storage *>(m_app_runinfo.m_pdevice_storage);
+    device_storage *pdevice_storage    = 
+            static_cast<device_storage *>(m_app_runinfo.m_pdevice_storage);
     
     m_modeinfo.storage_info_query(enum_REG_TYPE_MAGIC, &storage_info_magic);
 while (1){  
@@ -139,11 +136,11 @@ void CApplication::input_reg_set(enum input_reg_index index, uint16 value)
 
 portBASE_TYPE CApplication::init(void)
 {
-    static CDevice_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
-    static CDevice_pin 			t_device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
-    static CDevice_storage 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
-    static CDevice_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
-    static CDevice_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
+    static device_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
+    static device_pin 			t_device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
+    static device_storage 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
+    static device_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
+    static device_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
                                              &t_protocol_modbus_rtu,
                                              CApplication::package_event_handler,
                                              this);
@@ -172,14 +169,13 @@ portBASE_TYPE CApplication::init(void)
     m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
 	m_modeinfo.name_set(def_MODEL_NAME);
-    pCDevice_commu= &t_device_commu;
 
-	m_app_runinfo.m_handle_period 			= t_monitor_manage.monitor_register(1000, 
+	m_app_runinfo.m_handle_period 			= t_timer_manage.timer_register(1000, 
                                                 enum_MODE_PERIODIC, 
                                                 period_handle, 
                                                 this,
                                                 "period handle");
-	t_monitor_manage.monitor_start(m_app_runinfo.m_handle_period);  
+	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);  
 	cpu_pendsv_register(pendsv_handle, this);
     
     m_app_runinfo.m_pdevice_commu->open();
@@ -228,16 +224,16 @@ portBASE_TYPE CApplication::init(void)
 
 portBASE_TYPE CApplication::run()
 {
-	CDevice_commu *pdevice_commu =
-			(CDevice_commu *) m_app_runinfo.m_pdevice_commu;
-	CDevice_pin *pdevice_pin = (CDevice_pin *) m_app_runinfo.m_pdevice_pin;
-	CDevice_ad *pdevice_ad =
-			static_cast<CDevice_ad *>(m_app_runinfo.m_pdevice_ad);
+	device_commu *pdevice_commu =
+			(device_commu *) m_app_runinfo.m_pdevice_commu;
+	device_pin *pdevice_pin = (device_pin *) m_app_runinfo.m_pdevice_pin;
+	device_ad *pdevice_ad =
+			static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
 	portDEVHANDLE_TYPE handle_ad = pdevice_ad->handle_get();
 
 	eventloop t_loop;
-	channel t_channel_ad(&t_loop, handle_ad);
-	channel t_channel_pin(&t_loop, pdevice_pin->handle_get());
+	channel t_channel_ad(&t_loop, pdevice_ad);
+	channel t_channel_pin(&t_loop, pdevice_pin);
 
 	t_channel_ad.enableReading();
 	t_channel_pin.enableReading();
@@ -251,7 +247,7 @@ portBASE_TYPE CApplication::run()
 void CApplication::pendsv_handle(void *pdata)
 {
 	CApplication *papplication      = static_cast<CApplication *> (pdata);
-	CDevice_commu *pdevice_commu    = static_cast<CDevice_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
+	device_commu *pdevice_commu    = static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
 
 	pdevice_commu->package_event_fetch();
 }
@@ -263,12 +259,11 @@ void CApplication::period_handle(void *pdata)
     
     cpu_led_toggle();
 }
-#endif
 
 int main(void)
 {
     CApplication  *pcapplication    = CApplication::GetInstance();
-    
+
     //bsp startup
     bsp_startup();
     pcapplication->init();

@@ -18,9 +18,9 @@
  *                            �ļ��ӿں�������
 ******************************************************************************/ 
 
-time_t cpu_sys_time_get(void);
-void cpu_sys_time_set(time_t val);
-portBASE_TYPE cpu_sys_tick_run(void);
+tick_t cpu_tick_get(void);
+void cpu_tick_set(tick_t tick);
+portBASE_TYPE cpu_tick_run(void);
 portBASE_TYPE cpu_timetrig_1s(void);
 
 

@@ -10,7 +10,7 @@ enum PROC_PHASE{
 	PROC_DONE,
 };
 
-class CDevice_base:noncopyable{
+class device:noncopyable{
 public:
     portBASE_TYPE open(void);
     portBASE_TYPE close(void);
@@ -20,6 +20,7 @@ public:
 	portSSIZE_TYPE write(char *buffer);
     portSSIZE_TYPE write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size);
 	DeviceStatus_TYPE ioctl(uint8 cmd, void *args);
+	DevicePoll_TYPE poll(void);
 	uint8	device_stat_get(void);
 	uint8	device_is_valid(void);
 	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
@@ -31,8 +32,8 @@ public:
     }
 
 protected:
-    CDevice_base(const char *pname, uint16 oflag);
-    virtual ~CDevice_base();
+    device(const char *pname, uint16 oflag);
+    virtual ~device();
 	//recv buffer
 	uint8			*m_pbuf_recv;
 	//recv data seg

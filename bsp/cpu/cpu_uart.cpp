@@ -28,7 +28,7 @@ enum RECV_STAT{
 class transceiver:noncopyable {
 public:
 	transceiver(uint8 duplex):m_duplex(duplex),
-                            m_handle_rx((monitor_handle_type)-1)
+                            m_handle_rx((timer_handle_type)-1)
     {
         buf_queue_init(&m_buf_queue);
     };
@@ -43,7 +43,7 @@ public:
 	void rx_status_set(enum RECV_STAT new_status){ m_rx_status = new_status;}
     void status_set(uint8 new_status){ m_status = new_status;}
 	void recv_init(void);
-    static void monitor_timeout(void *pvoid);
+    static void timer_timeout(void *pvoid);
 
 protected:
 	uint8 					m_status;
@@ -56,7 +56,7 @@ private:
 	enum RECV_STAT 			m_rx_status;
 	int8 					m_rx_buf[def_TRANSCEIVER_RX_BUF_SIZE];
 	//uint8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
-    monitor_handle_type     m_handle_rx;
+    timer_handle_type     m_handle_rx;
     struct buf_queue        m_buf_queue;    
 };
 
@@ -116,17 +116,15 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
 	portSSIZE_TYPE		rt 				= 0;
 
     if (timeout){
-        if (m_handle_rx == (monitor_handle_type)-1){
-            m_handle_rx = t_monitor_manage.monitor_register(timeout, 
+        if (m_handle_rx == (timer_handle_type)-1){
+            m_handle_rx = t_timer_manage.timer_register(timeout, 
                                                 enum_MODE_ONESHOT, 
                                                 NULL, 
                                                 NULL,
                                                 "poll timeout");
-            ASSERT(m_handle_rx != (monitor_handle_type)-1);
+            ASSERT(m_handle_rx != (timer_handle_type)-1);
         }
-        t_monitor_manage.monitor_stop(m_handle_rx);
-        t_monitor_manage.monitor_expired_time_set(m_handle_rx, timeout);
-        t_monitor_manage.monitor_start(m_handle_rx);
+        t_timer_manage.timer_start(m_handle_rx);
     }
 	while (1){
         rt 	= fetch(pbuf, plen);
@@ -136,7 +134,7 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
         if (0 == timeout){
             break;
         }
-        if (t_monitor_manage.monitor_expired(m_handle_rx)){
+        if (t_timer_manage.timer_expired(m_handle_rx)){
             rt                          = -1;
             break;
         }
@@ -161,12 +159,12 @@ public:
 	void init(void)
 	{
         //300ms
-		m_handle_uart = t_monitor_manage.monitor_register(300, 
+		m_handle_uart = t_timer_manage.timer_register(300, 
                                 enum_MODE_ONESHOT, 
-                                transceiver_uart0::byte_monitor_timeout, 
+                                transceiver_uart0::byte_timer_timeout, 
                                 this,
-                                "byte monitor");
-        ASSERT(m_handle_uart != (monitor_handle_type)-1);
+                                "byte timer");
+        ASSERT(m_handle_uart != (timer_handle_type)-1);
         //Select IO pins for UART.
         // Configure P0.1/P0.2 for UART
         pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
@@ -228,31 +226,31 @@ public:
 
 	virtual bool  is_done(void)
 	{
-		//byte_monitor_stop();
+		//byte_timer_stop();
         return false;
 	}
     
-    void byte_monitor_start(void)
+    void byte_timer_start(void)
     {
-        t_monitor_manage.monitor_start(m_handle_uart);
+        t_timer_manage.timer_start(m_handle_uart);
     }
     
-    void byte_monitor_stop(void)
+    void byte_timer_stop(void)
     {
-        t_monitor_manage.monitor_stop(m_handle_uart);
+        t_timer_manage.timer_stop(m_handle_uart);
     }
     
-    portBASE_TYPE byte_monitor_started(void)
+    portBASE_TYPE byte_timer_started(void)
     {
-        return t_monitor_manage.monitor_started(m_handle_uart);
+        return t_timer_manage.timer_started(m_handle_uart);
     }
     
-    void byte_monitor_cnt_clr(void)
+    void byte_timer_cnt_clr(void)
     {
-        t_monitor_manage.monitor_cnt_clr(m_handle_uart);
+        t_timer_manage.timer_cnt_clr(m_handle_uart);
     }
     
-    static void byte_monitor_timeout(void *pvoid)
+    static void byte_timer_timeout(void *pvoid)
     {
         class transceiver_uart0 *ptransceiver_uart0 = 
                 static_cast<class transceiver_uart0 *>(pvoid);
@@ -265,10 +263,10 @@ public:
         portBASE_TYPE   rt = transceiver::push(c);
         
         if (0 == rt){
-            if (0 == byte_monitor_started()){
-                byte_monitor_start();
+            if (0 == byte_timer_started()){
+                byte_timer_start();
             }else{
-                byte_monitor_cnt_clr();
+                byte_timer_cnt_clr();
             }
         }
         return rt;
@@ -276,7 +274,7 @@ public:
 
 private:
     static uint8        m_clock_init;
-    monitor_handle_type m_handle_uart;
+    timer_handle_type m_handle_uart;
 };
 
 uint8 transceiver_uart0::m_clock_init = 0;

@@ -241,11 +241,11 @@ char *ctime(const time_t *timep)
 
 int gettimeofday(struct timeval *tp, void *ignore)
 {
-    extern time_t cpu_sys_time_get(void);
+    extern time_t cpu_tick_get(void);
 	//time_t time;
 
     if (tp != NULL){
-        tp->tv_sec = cpu_sys_time_get();
+        tp->tv_sec = cpu_tick_get();
 		tp->tv_usec = 0;
     }
 

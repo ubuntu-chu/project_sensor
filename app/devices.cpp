@@ -8,7 +8,7 @@
 #include    "../includes/Macro.h"
 #include    "../api/log/log.h"
 
-CDevice_base::CDevice_base(const char *pname, uint16 oflag)
+device::device(const char *pname, uint16 oflag)
 {
     m_pdevice   = NULL;
     if ((NULL == pname) || (strlen(pname) > DEVICE_NAME_MAX)){
@@ -23,14 +23,14 @@ CDevice_base::CDevice_base(const char *pname, uint16 oflag)
 	m_offline_cnt	= 0;
 }
 
-CDevice_base::~CDevice_base()
+device::~device()
 {
     close();
     memset(m_name, 0, sizeof(m_name));
     m_pdevice   = NULL;
 }
 
-portBASE_TYPE CDevice_base::open(void)
+portBASE_TYPE device::open(void)
 {
     //查找设备
     m_pdevice   = hal_devicefind(m_name);
@@ -47,7 +47,7 @@ portBASE_TYPE CDevice_base::open(void)
     return 0;
 }
 
-portBASE_TYPE CDevice_base::close(void)
+portBASE_TYPE device::close(void)
 {
     if (NULL != m_pdevice){
         hal_deviceclose(m_pdevice);
@@ -56,18 +56,18 @@ portBASE_TYPE CDevice_base::close(void)
     return 0;
 }
 
-uint8	CDevice_base::device_stat_get(void)
+uint8	device::device_stat_get(void)
 {
 	//对于应答式设备 设备连续离线5次后  才认为设备离线
 	return (m_offline_cnt > 5)?(0):(1);
 }
 
-uint8	CDevice_base::device_is_valid(void)
+uint8	device::device_is_valid(void)
 {
 	return (m_pdevice == NULL)?(0):(1);
 }
 
-portSSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if ((NULL == m_pdevice)){
         return -1;
@@ -103,22 +103,22 @@ portSSIZE_TYPE CDevice_base::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TY
 }
 
 //Note: read return m_len_data  if the cmd rsp no data, then read return 0!
-portSSIZE_TYPE CDevice_base::read(char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE device::read(char *buffer, portSIZE_TYPE size)
 {
 	return read(0, buffer, size);
 }
 
-portSSIZE_TYPE CDevice_base::write(char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE device::write(char *buffer, portSIZE_TYPE size)
 {
 	return write(0, buffer, size);
 }
 
-portSSIZE_TYPE CDevice_base::write(char *buffer)
+portSSIZE_TYPE device::write(char *buffer)
 {
 	return write(0, buffer, strlen(buffer));
 }
 
-portSSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
+portSSIZE_TYPE device::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
     if (NULL == m_pdevice){
         return -1;
@@ -134,7 +134,7 @@ portSSIZE_TYPE CDevice_base::write(portOFFSET_TYPE pos, char *buffer, portSIZE_T
     return size;
 }
 
-DeviceStatus_TYPE CDevice_base::ioctl(uint8 cmd, void *args)
+DeviceStatus_TYPE device::ioctl(uint8 cmd, void *args)
 {
     if (NULL == m_pdevice){
         return DEVICE_ENULL;
@@ -142,7 +142,16 @@ DeviceStatus_TYPE CDevice_base::ioctl(uint8 cmd, void *args)
     return API_DeviceControl(m_pdevice, cmd, args);
 }
 
-portBASE_TYPE CDevice_base::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+DevicePoll_TYPE device::poll(void)
+{
+    if (NULL == m_pdevice){
+        return DEVICE_POLL_ENULL;
+    }
+    return hal_poll(m_pdevice);
+}
+
+
+portBASE_TYPE device::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
 {
 	switch (phase){
 	case PROC_PREPARE:
@@ -162,7 +171,7 @@ portBASE_TYPE CDevice_base::process_read(enum PROC_PHASE phase, char *pbuf, port
 	return 0;
 }
 
-portBASE_TYPE CDevice_base::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
 {
 	switch (phase){
 	case PROC_PREPARE:

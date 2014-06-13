@@ -1,6 +1,6 @@
 #include "channel.h"
 
-channel::channel(eventloop* loop,  portDEVHANDLE_TYPE handle)
+channel::channel(eventloop* loop, class device *handle)
   : loop_(loop),
     events_(POLLNONE),
     revents_(POLLNONE),

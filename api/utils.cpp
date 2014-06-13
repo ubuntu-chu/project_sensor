@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "../includes/includes.h"
 
+#if 0
 
 monitor_handle_type monitor_manage::monitor_register(uint16 expired_time, 
                                                     uint8 mode, 
@@ -69,6 +70,8 @@ void monitor_manage::run(void)
 }
 
 monitor_manage 	t_monitor_manage;
+
+#endif
 
 char *utils_itoa(int num, char *str, int radix) {
 	/* Ë÷Òý±í */

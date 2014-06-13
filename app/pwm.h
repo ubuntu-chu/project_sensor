@@ -6,13 +6,13 @@
 
 
 
-class CDevice_pwm:public CDevice_base{
+class device_pwm:public device{
 public:
-    CDevice_pwm(const char *pname, uint16 oflag);
-    virtual ~CDevice_pwm();
+    device_pwm(const char *pname, uint16 oflag);
+    virtual ~device_pwm();
 private:
-    CDevice_pwm(const CDevice_pwm &other);
-    CDevice_pwm &operator =(const CDevice_pwm &other);
+    device_pwm(const device_pwm &other);
+    device_pwm &operator =(const device_pwm &other);
 };    
     
 #endif

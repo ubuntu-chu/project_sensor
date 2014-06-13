@@ -2,7 +2,7 @@
  *                          本文件所引用的头文件
 ******************************************************************************/ 
 
-#include    "drv_event.h"
+#include    "drv_timer.h"
 
 /******************************************************************************
  *                           本文件静态函数声明
@@ -22,7 +22,7 @@ static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev);
 static const DeviceAbstractInfo st_DeviceInfo	= {
 
         //设备名字
-        DEVICE_NAME_EVENT,
+        DEVICE_NAME_TIMER,
         //设备类型->字符设备
         DEVICE_CLASS_CHAR,
         //设备标识->只读设备
@@ -53,7 +53,7 @@ static DeviceAbstract  st_Device	= {
         &st_DeviceInfo,
     };
 
-static uint32 	s_event	= 0;
+static uint32 	s_time	= 0;
 
 /******************************************************************************
  *  函数名称 :
@@ -77,7 +77,7 @@ static uint32 	s_event	= 0;
  *
 ******************************************************************************/
 
-portuBASE_TYPE drv_eventregister(void)
+portuBASE_TYPE drv_timerregister(void)
 {
 
     return API_DeviceRegister(&st_Device);
@@ -99,24 +99,24 @@ static DeviceStatus_TYPE _drv_open(pDeviceAbstract pdev, uint16 oflag)
 
 static portSSIZE_TYPE _drv_write(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size)
 {
-	s_event++;
+	s_time++;
     
-    return sizeof(s_event);
+    return sizeof(s_time);
 }
 
 static portSSIZE_TYPE _drv_read(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size)
 {
 	uint32 	*ptr 	= reinterpret_cast<uint32 *>(buffer);
 
-	*ptr	        = s_event;
-    s_event         = 0;
+	*ptr	        = s_time;
+    s_time         = 0;
 
-    return sizeof(s_event);
+    return sizeof(s_time);
 }
 
 static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev)
 {
-	return (s_event != 0)?(DEVICE_POLLIN|DEVICE_POLLOUT):(DEVICE_POLLOUT);
+	return (s_time != 0)?(DEVICE_POLLIN|DEVICE_POLLOUT):(DEVICE_POLLOUT);
 }
 
 #if 0

@@ -52,9 +52,14 @@ list *list_find(list_head_t *head, list_node_t *node)
 	return NULL;
 }
 
-void rt_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
+void sv_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
 {
 	
+}
+
+void sv_object_detach(sv_object_t object)
+{
+
 }
 
 extern void cpu_interruptEnable(portCPSR_TYPE level);
@@ -83,7 +88,7 @@ portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool,
 	portuBASE_TYPE  temp;
 
 	/* init object */
-	rt_object_init(&(mq->parent.parent), SV_Object_Class_MessageQueue, name);
+	sv_object_init(&(mq->parent.parent), SV_Object_Class_MessageQueue, name);
 
 	/* set parent flag */
 	mq->parent.parent.flag = flag;
@@ -264,6 +269,258 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
 
 	return SV_EOK;
 }
+
+static void _sv_timer_init(sv_timer_t timer,
+						   void (*timeout)(void *parameter), void *parameter,
+						   tick_t time, uint8_t flag)
+{
+	/* set flag */
+	timer->parent.flag  = flag;
+
+	/* set deactivated */
+	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT);
+
+	timer->timeout_func = timeout;
+	timer->parameter    = parameter;
+
+	timer->timeout_tick = 0;
+	timer->init_tick    = time;
+
+	/* initialize timer list */
+	list_init(&(timer->list));
+}
+
+static tick_t sv_timer_list_next_timeout(list_t *timer_list)
+{
+	struct sv_timer *timer;
+
+	if (list_isempty(timer_list))
+		return TICK_MAX;
+
+	timer = list_entry(timer_list->m_next, struct sv_timer, list);
+
+	return timer->timeout_tick;
+}
+
+void sv_timer_init(sv_timer_t timer,
+				   const char *name,
+				   void (*timeout)(void *parameter), void *parameter,
+				   tick_t time, uint8_t flag)
+{
+	/* timer object initialization */
+	sv_object_init((sv_object_t)timer, SV_Object_Class_Timer, name);
+	_sv_timer_init(timer, timeout, parameter, time, flag);
+}
+
+sv_err_t sv_timer_detach(sv_timer_t timer)
+{
+	sv_base_t level;
+
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+
+	/* remove it from timer list */
+	list_del(&(timer->list));
+
+	/* enable interrupt */
+	sv_hw_interrupt_enable(level);
+
+	sv_object_detach((sv_object_t)timer);
+
+	return -SV_EOK;
+}
+
+extern tick_t cpu_tick_get(void);
+
+sv_err_t sv_timer_start(sv_timer_t timer)
+{
+	struct sv_timer *t;
+	sv_base_t level;
+	list_t *n, *timer_list;
+
+	/* timer check */
+	if (timer->parent.flag & SV_TIMER_FLAG_ACTIVATED)
+		return -SV_ERROR;
+
+	timer->timeout_tick = cpu_tick_get() + timer->init_tick;
+
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+
+	if (timer->parent.flag & SV_TIMER_FLAG_SOFT_TIMER) {
+		/* insert timer to soft timer list */
+		timer_list = &t_timer_manage.m_soft_timer_list;
+	}
+	else {
+		/* insert timer to system timer list */
+		timer_list = &t_timer_manage.m_timer_list;
+	}
+
+	for (n = timer_list->m_next; n != timer_list; n = n->m_next)
+	{
+		t = list_entry(n, struct sv_timer, list);
+
+		/*
+		 * It supposes that the new tick shall less than the half duration of
+		 * tick max.
+		 */
+		if ((t->timeout_tick - timer->timeout_tick) < TICK_MAX/2)
+		{
+			list_insert_before(n, &(timer->list));
+			break;
+		}
+	}
+	/* no found suitable position in timer list */
+	if (n == timer_list)
+	{
+		list_insert_before(n, &(timer->list));
+	}
+
+	timer->parent.flag |= SV_TIMER_FLAG_ACTIVATED;
+	timer->parent.flag &= ~SV_TIMER_FLAG_TIMEOUT;
+
+	/* enable interrupt */
+	sv_hw_interrupt_enable(level);
+
+	return -SV_EOK;
+}
+
+sv_err_t sv_timer_stop(sv_timer_t timer)
+{
+	sv_base_t level;
+
+	/* timer check */
+	if (!(timer->parent.flag & SV_TIMER_FLAG_ACTIVATED))
+		return -SV_ERROR;
+
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+
+	/* remove it from timer list */
+	list_remove(&(timer->list));
+
+	/* enable interrupt */
+	sv_hw_interrupt_enable(level);
+
+	/* change stat */
+	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT);
+
+	return SV_EOK;
+}
+
+tick_t sv_tick_from_millisecond(uint32_t ms)
+{
+	/* return the calculated tick */
+	return (TICK_PER_SECOND * ms + 999) / 1000;
+}
+
+timer_handle_type timer_manage::timer_register(uint32 expired_ms,
+                                                    uint8 flag,
+                                                    fp_void_pvoid *func,
+                                                    void *data,
+                                                    const char *pname)
+{
+	timer_handle_type handle;
+	portuBASE_TYPE 		i;
+
+	for (i = 0; i < m_size; ++i){
+		if (!(m_bitmap & (1UL << i))){
+			break;
+		}
+	}
+	if (i >= m_size){
+		return (timer_handle_type)-1;
+	}
+	handle 									= i;
+	m_bitmap 								|= (1UL << i);
+	sv_timer_init(&m_timer[handle], pname, func, data, flag, sv_tick_from_millisecond(expired_ms));
+
+    return handle;
+}
+
+bool timer_manage::timer_unregister(timer_handle_type handle)
+{
+	if (handle >= m_size){
+		return false;
+	}
+	m_bitmap 								&= ~(1UL << handle);
+	m_timer[handle].parent.flag 			&= ~SV_TIMER_FLAG_ACTIVATED;
+
+    return true;
+}
+
+void timer_manage::timer_check(void)
+ {
+	struct sv_timer *t;
+	tick_t current_tick;
+	tick_t soft_timer_timeout_tick;
+	sv_base_t level;
+
+	current_tick 							= cpu_tick_get();
+
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+
+	//hard timer handle  run in interrupt content
+	while (!list_isempty(&m_timer_list)) {
+		t = list_entry(m_timer_list.m_next, struct sv_timer, list);
+
+		/*
+		 * It supposes that the new tick shall less than the half duration of
+		 * tick max.
+		 */
+		if ((current_tick - t->timeout_tick) < TICK_MAX / 2) {
+
+			/* remove timer from timer list firstly */
+			list_remove(&(t->list));
+
+			/* call timeout function */
+			t->timeout_func(t->parameter);
+
+			/* re-get tick */
+			current_tick = cpu_tick_get();
+
+			if ((t->parent.flag & SV_TIMER_FLAG_PERIODIC)
+					&& (t->parent.flag & SV_TIMER_FLAG_ACTIVATED)) {
+				/* start it */
+				t->parent.flag &= ~SV_TIMER_FLAG_ACTIVATED;
+				sv_timer_start(t);
+			} else {
+				/* stop timer */
+				t->parent.flag &= ~SV_TIMER_FLAG_ACTIVATED;
+				t->parent.flag |= SV_TIMER_FLAG_TIMEOUT;
+			}
+		} else
+			break;
+	}
+	//soft timer handle     run in event loop
+	while (!list_isempty(&m_soft_timer_list)) {
+		/* re-get tick */
+		current_tick = cpu_tick_get();
+		soft_timer_timeout_tick 	= sv_timer_list_next_timeout(&m_soft_timer_list);
+		if ((current_tick - soft_timer_timeout_tick) < TICK_MAX / 2) {
+			//write timer-device to read ready
+
+		}
+	}
+
+	/* enable interrupt */
+	sv_hw_interrupt_enable(level);
+}
+
+timer_manage 	t_timer_manage;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

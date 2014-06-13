@@ -3,19 +3,19 @@
 ******************************************************************************/ 
 #include "pin.h"
 
-CDevice_pin::CDevice_pin(const char *pname, uint16 oflag):CDevice_base(pname, oflag)
+device_pin::device_pin(const char *pname, uint16 oflag):device(pname, oflag)
 {
 }
 
-CDevice_pin::~CDevice_pin()
+device_pin::~device_pin()
 {
 }
 
-portBASE_TYPE CDevice_pin::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device_pin::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
 {
 	switch (phase){
 	case PROC_PREPARE:
-		CDevice_base::process_read(phase, pbuf, size);
+		device::process_read(phase, pbuf, size);
 		break;
 
 	case PROC_DONE:

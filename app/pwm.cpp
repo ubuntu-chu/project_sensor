@@ -3,11 +3,11 @@
 ******************************************************************************/ 
 #include "pwm.h"
 
-CDevice_pwm::CDevice_pwm(const char *pname, uint16 oflag):CDevice_base(pname, oflag)
+device_pwm::device_pwm(const char *pname, uint16 oflag):device(pname, oflag)
 {
 }
 
-CDevice_pwm::~CDevice_pwm()
+device_pwm::~device_pwm()
 {
 }
 

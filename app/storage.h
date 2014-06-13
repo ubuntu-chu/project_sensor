@@ -6,13 +6,13 @@
 
 
 
-class CDevice_storage:public CDevice_base{
+class device_storage:public device{
 public:
-    CDevice_storage(const char *pname, uint16 oflag);
-    virtual ~CDevice_storage();
+    device_storage(const char *pname, uint16 oflag);
+    virtual ~device_storage();
 private:
-    CDevice_storage(const CDevice_storage &other);
-    CDevice_storage &operator =(const CDevice_storage &other);
+    device_storage(const device_storage &other);
+    device_storage &operator =(const device_storage &other);
 };    
     
     

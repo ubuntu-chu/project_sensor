@@ -6,47 +6,58 @@
 void cpu_delay_ms(uint16 ms)
 {
     
-    
 }
 
 void cpu_delay_us(uint16 us)
 {
     
-    
 }
 
-static time_t 		sys_tick		= 0;
+static tick_t 		s_tick		= 0;
 static portBASE_TYPE 	time_trig_1s = 0;
 
-time_t cpu_sys_time_get(void)
+tick_t cpu_tick_get(void)
 {
-	return sys_tick;
+	return s_tick;
 }
-void cpu_sys_time_set(time_t val)
+void cpu_tick_set(tick_t tick)
 {
 	portCPSR_TYPE	level 		= cpu_interruptDisable();
-	sys_tick    = val;
+	s_tick    					= tick;
 	cpu_interruptEnable(level);
 }
 
 void tick_handle(void *pvoid)
 {
-    sys_tick++;
     time_trig_1s 		= 1;
 }
 
-//time: 500 ms  interrupt
-portBASE_TYPE cpu_sys_tick_run(void)
+portBASE_TYPE cpu_timetrig_1s(void)
 {
-	monitor_handle_type handle_tick;
+	portBASE_TYPE rt		= time_trig_1s;
+
+	time_trig_1s 			= 0;
+
+	return (rt)?(1):(0);
+}
+
+void cpu_tick_increase(void)
+{
+	s_tick++;
+//	timer_
+}
+
+//time: 500 ms  interrupt
+portBASE_TYPE cpu_tick_run(void)
+{
+	timer_handle_type handle_tick;
     
-    t_monitor_manage.precision_set(1000/TICK_PER_SECOND);     //unit: ms
-    handle_tick   = t_monitor_manage.monitor_register(1000, 
+    handle_tick   = t_timer_manage.timer_register(1000, 
                                                 enum_MODE_PERIODIC, 
                                                 tick_handle, 
                                                 NULL,
                                                 "tick handle");
-    t_monitor_manage.monitor_start(handle_tick);  
+    t_timer_manage.timer_start(handle_tick);  
 
 //    SysTick_Config(16*1000*50); // Time-out period of 50ms   FCLK = 16MHz
     SysTick_Config(16*1000*(1000/TICK_PER_SECOND)); // Time-out period of 10ms   FCLK = 16MHz
@@ -68,20 +79,13 @@ portBASE_TYPE cpu_sys_tick_run(void)
 	return 0;
 }
 
-portBASE_TYPE cpu_timetrig_1s(void)
-{
-	portBASE_TYPE rt		= time_trig_1s;
-
-	time_trig_1s 			= 0;
-
-	return (rt)?(1):(0);
-}
 
 extern "C" void SysTick_Handler(void)
 {
     //portCPSR_TYPE	level = cpu_interruptDisable();
     
-    t_monitor_manage.run();
+	cpu_tick_increase();
+    t_timer_manage.timer_check();
     if (cpu_sleep_status_pend()){
         cpu_sleep_exit();
     }
@@ -94,7 +98,7 @@ extern "C" void GP_Tmr0_Int_Handler(void)
     portCPSR_TYPE	level = cpu_interruptDisable();
     
     GptClrInt(pADI_TM0,TSTA_TMOUT);  // Clear T0 interrupt
-    t_monitor_manage.run();
+    t_timer_manage.timer_check();
     if (cpu_sleep_status_pend()){
         cpu_sleep_exit();
     }

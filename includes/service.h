@@ -46,6 +46,7 @@ void list_init(list *l);
 void list_insert_after(list *l, list *n);
 void list_insert_before(list *l, list *n);
 void list_del(list *n);
+#define 	list_remove(n)			list_del(n)
 int list_isempty(const list *l);
 list *list_find(list_head_t *head, list_node_t *node);
 
@@ -70,13 +71,14 @@ enum sv_object_class_type
 #ifdef def__USING_SERVICE_DEVICE
     SV_Object_Class_Device,                             /**< The object is a device */
 #endif
+    SV_Object_Class_Timer,
     SV_Object_Class_Unknown,                            /**< The object is unknown. */
 };
 
 
 struct sv_object
 {
-    char       name[OBJECT_NAME_MAX];                /**< name of kernel object */
+    const char   *name;                			 /**< name of kernel object */
     uint8_t type;                                    /**< type of kernel object */
     uint8_t flag;                                    /**< flag of kernel object */
     list_t  list;                                    /**< list node of kernel object */
@@ -89,6 +91,109 @@ struct sv_ipc_object
     struct sv_object parent;                            /**< inherit from rt_object */
 };
 
+#define SV_TIMER_FLAG_DEACTIVATED       0x0             /**< timer is deactive */
+#define SV_TIMER_FLAG_ACTIVATED         0x1             /**< timer is active */
+#define SV_TIMER_FLAG_ONE_SHOT          0x0             /**< one shot timer */
+#define SV_TIMER_FLAG_PERIODIC          0x2             /**< periodic timer */
+
+#define SV_TIMER_FLAG_HARD_TIMER        0x0             /**< hard timer,the timer's callback function will be called in tick isr. */
+#define SV_TIMER_FLAG_SOFT_TIMER        0x4             /**< soft timer,the timer's callback function will be called in event loop. */
+
+#define SV_TIMER_FLAG_TIMEOUT           0x10             /**< timeout in one shot timer */
+
+/**
+ * timer structure
+ */
+struct sv_timer
+{
+    struct sv_object parent;                            /**< inherit from sv_object */
+
+    list_node_t     list;                               /**< the node of timer list */
+    uint8			index;								/**< index  in  bitmap */
+
+    fp_void_pvoid   *timeout_func;              /**< timeout function */
+    void            *parameter;                         /**< timeout function's parameter */
+
+    tick_t        	init_tick;                          /**< timer timeout tick */
+    tick_t        	timeout_tick;                       /**< timeout tick */
+};
+typedef struct sv_timer *sv_timer_t;
+
+class timer_manage: noncopyable{
+public:
+    friend  sv_err_t sv_timer_start(sv_timer_t timer);
+
+	timer_manage()
+		:m_size(def_MONITOR_TIME_NR),
+         m_bitmap(0)
+	{
+		list_init(&m_timer_list);
+		list_init(&m_soft_timer_list);
+	}
+	~timer_manage(){}
+
+	//return handle for monitor
+	timer_handle_type timer_register(uint32 expired_ms,
+                                        uint8 flag,
+                                        fp_void_pvoid *func,
+                                        void *data,
+                                        const char *pname);
+	bool timer_unregister(timer_handle_type handle);
+
+	bool timer_start(timer_handle_type handle)
+	{
+		if (handle >= m_size){
+			return false;
+		}
+        return true;
+	}
+	bool timer_stop(timer_handle_type handle)
+	{
+		if (handle >= m_size){
+			return false;
+		}
+        return true;
+	}
+
+    bool timer_cnt_clr(timer_handle_type handle)
+    {
+        if (handle >= m_size){
+			return false;
+		}
+        m_timer[handle].init_tick 			= 0;
+        return true;
+    }
+
+	portBASE_TYPE timer_expired(timer_handle_type handle)
+	{
+		if (handle >= m_size){
+			return (portBASE_TYPE)-1;
+		}
+		return 	m_timer[handle].timeout_tick;
+	}
+
+    portBASE_TYPE timer_started(timer_handle_type handle)
+	{
+		if (handle >= m_size){
+			return (portBASE_TYPE)-1;
+		}
+		return (m_timer[handle].parent.flag & SV_TIMER_FLAG_ACTIVATED)?(true):(false);
+	}
+
+	void timer_check(void);
+
+private:
+
+	uint8						m_size;
+	uint16 						m_bitmap;
+	list_head_t					m_timer_list;
+	list_head_t					m_soft_timer_list;
+	struct sv_timer 		    m_timer[def_MONITOR_TIME_NR];
+};
+
+extern timer_manage   t_timer_manage;
+
+//----------------------------------------------------------------------------------------------------------------
 
 //compatible c/c++
 #ifdef def_USING_SERVICE_MQ
@@ -341,35 +446,12 @@ class event{
 /*
 int32_t peekInt32() const
   {
-    assert(readableBytes() >= sizeof(int32_t));
+    assesv(readableBytes() >= sizeof(int32_t));
     int32_t be32 = 0;
     ::memcpy(&be32, peek(), sizeof be32);
     return sockets::networkToHost32(be32);
   }
 */
-
-class event_loop{
-public:
-    event_loop()
-    {
-        
-    }
-    ~event_loop(){}
-    
-    portBASE_TYPE run(struct event &event);
-    
-        
-        
-private:
-    
-    list                m_event_list;
-
-};
-
-
-
-
-
 
 struct sv_mq_message
 {
@@ -382,7 +464,7 @@ struct sv_eventqueue
 
     event_handler       *m_def_handler;                 //def handler
     void                *m_pvoid;
-    void                *msg_pool;                      /**< start address of message queue */
+    void                *msg_pool;                      /**< stasv address of message queue */
 
     uint16_t            msg_size;                         /**< message size of each message */
     uint16_t            max_msgs;                         /**< max number of messages */
@@ -394,7 +476,7 @@ struct sv_eventqueue
 };
 typedef struct sv_eventqueue *sv_eq_t;
 
-portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool, 
+portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool,
                             portSIZE_TYPE msg_size, portSIZE_TYPE pool_size, uint8_t flag,
                             event_handler *def_handler, void *pprivate);
 
@@ -444,8 +526,7 @@ enum{
  *                           文件接口结构体定义
 ******************************************************************************/
 
-enum  DEVICE_STATUS_TYPE
-{
+enum  DEVICE_STATUS_TYPE{
     DEVICE_ENULL       = 0,
     DEVICE_OK,
     DEVICE_ENOSYS,
@@ -457,23 +538,29 @@ enum  DEVICE_STATUS_TYPE
 	DEVICE_EEXEC,
     DEVICE_EAGAIN,
     DEVICE_ETIMEOUT,
-    DEVICE_POLLIN,
-    DEVICE_POLLOUT,
-    DEVICE_POLLNONE,
-    DEVICE_POLLHUP,
-    DEVICE_POLLERR,
 };
 
 typedef            enum  DEVICE_STATUS_TYPE                   DeviceStatus_TYPE;
 
-enum DEVICE_CLASS_TYPE
-{
+enum{
+    DEVICE_POLL_ENULL   = -1,
+    DEVICE_POLL_ENOSYS  = -2,
+    DEVICE_POLLNONE = 0,
+    DEVICE_POLLIN   = 0x02,
+    DEVICE_POLLOUT  = 0x04,
+    DEVICE_POLLHUP  = 0x08,
+    DEVICE_POLLERR  = 0x10,
+    
+};
+typedef            int                   DevicePoll_TYPE;
+
+enum DEVICE_CLASS_TYPE{
 	DEVICE_CLASS_CHAR = 0,						                            /* character device								*/
 	DEVICE_CLASS_BLOCK,							                            /* block device 								*/
 	DEVICE_CLASS_NETIF,							                            /* net interface 								*/
 	DEVICE_CLASS_MTD,							                            /* memory device 								*/
 	DEVICE_CLASS_CAN,							                            /* CAN device 									*/
-	DEVICE_CLASS_RTC,							                            /* RTC device 									*/
+	DEVICE_CLASS_svC,							                            /* svC device 									*/
 	DEVICE_CLASS_SOUND,							                            /* Sound device 								*/
 	DEVICE_CLASS_UNKNOWN							                        /* unknown device 								*/
 };
@@ -494,7 +581,7 @@ typedef     DeviceStatus_TYPE  (FP_pfclose)      (pDeviceAbstract pdev);
 typedef     portSSIZE_TYPE      (FP_pfread)	     (pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size);
 typedef     portSSIZE_TYPE      (FP_pfwrite)      (pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
 typedef     DeviceStatus_TYPE  (FP_pfcontrol)    (pDeviceAbstract pdev, uint8 cmd, void *args);
-typedef     DeviceStatus_TYPE  (FP_pfpoll)      (pDeviceAbstract pdev);
+typedef     DevicePoll_TYPE  (FP_pfpoll)      (pDeviceAbstract pdev);
 
 /* device call back */
 typedef     DeviceStatus_TYPE  (FP_pfrx_indicate)(pDeviceAbstract pdev, portSIZE_TYPE size);
@@ -503,7 +590,7 @@ typedef     DeviceStatus_TYPE  (FP_pftx_complete)(pDeviceAbstract pdev, void* bu
 struct DEVIVE_ABSTRACT_INFO
 {
     //设备名字
-    int8      	                                                m_name[DEVICE_NAME_MAX];
+    const char      	                                       *m_name;
 	DeviceClassType                                             m_type;
     /* device flag*/
 	uint16                                                      m_flag;
@@ -538,6 +625,10 @@ struct DEVICE_ABSTRACT
 
 typedef            struct DEVICE_ABSTRACT                      DeviceAbstract;
 typedef            struct DEVICE_ABSTRACT                      device_t;
+
+
+#define			sv_hw_interrupt_disable() 			cpu_interruptDisable();
+#define			sv_hw_interrupt_enable(level)  			cpu_interruptEnable(level);
 
 
 #ifdef __cplusplus

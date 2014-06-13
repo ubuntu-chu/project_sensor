@@ -26,16 +26,16 @@ enum{
 };
 
 struct _app_runinfo_{
-    CDevice_base        *m_pdevice_commu;
-    CDevice_base        *m_pdevice_ad;
-    CDevice_base        *m_pdevice_log;
-    CDevice_base        *m_pdevice_pin;
-    CDevice_base        *m_pdevice_storage;
-    CDevice_base        *m_pdevice_pwm;
+    device        *m_pdevice_commu;
+    device        *m_pdevice_ad;
+    device        *m_pdevice_log;
+    device        *m_pdevice_pin;
+    device        *m_pdevice_storage;
+    device        *m_pdevice_pwm;
 	uint8				m_status;
 	uint8 				m_mode;
 
-	monitor_handle_type m_handle_period;
+	timer_handle_type m_handle_period;
 
 };
 typedef struct _app_runinfo_ app_runinfo_t;
