@@ -57,7 +57,7 @@ void monitor_manage::run(void)
 			m_monitor[i].m_cnts++;
 			if (m_monitor[i].m_cnts >= m_monitor[i].m_expired_time){
 				m_monitor[i].m_cnts 			= 0;
-				if (m_monitor[i].m_mode == enum_MODE_ONESHOT){
+				if (m_monitor[i].m_mode == SV_TIMER_FLAG_ONE_SHOT){
 					m_monitor[i].m_expired 			= 1;
 					m_monitor[i].m_start 			= 0;
 				}

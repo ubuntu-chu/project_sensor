@@ -81,12 +81,6 @@ char *reverse(char *str);
 
 //--------------------------------------------------------------------
 
-
-enum {
-	enum_MODE_ONESHOT	= 0,
-	enum_MODE_PERIODIC,
-};
-
 #if 0
 
 class monitor_manage: noncopyable{
@@ -179,7 +173,7 @@ public:
 	monitor_unit():m_cnts(0), 
                     m_expired_time(0), 
                     m_start(0), 
-                    m_mode(enum_MODE_ONESHOT), 
+                    m_mode(SV_TIMER_FLAG_ONE_SHOT), 
                     m_expired(0),
                     m_pfunc(NULL),
                     m_pdata(NULL),

@@ -102,8 +102,8 @@ portSSIZE_TYPE cpu_iic_transfer(struct iic_transfer *ptransfer)
         return -2;              
     }
     //unit: ms
-    handle_iic = t_timer_manage.timer_register(t_iic_transfer.m_timeout,
-                                                enum_MODE_ONESHOT, 
+    handle_iic = t_timer_manage.hard_timer_register(t_iic_transfer.m_timeout,
+                                                SV_TIMER_FLAG_ONE_SHOT, 
                                                 NULL, 
                                                 NULL,
                                                 "iic timeout");

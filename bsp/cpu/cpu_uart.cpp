@@ -117,8 +117,8 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
 
     if (timeout){
         if (m_handle_rx == (timer_handle_type)-1){
-            m_handle_rx = t_timer_manage.timer_register(timeout, 
-                                                enum_MODE_ONESHOT, 
+            m_handle_rx = t_timer_manage.hard_timer_register(timeout, 
+                                                SV_TIMER_FLAG_ONE_SHOT, 
                                                 NULL, 
                                                 NULL,
                                                 "poll timeout");
@@ -159,8 +159,8 @@ public:
 	void init(void)
 	{
         //300ms
-		m_handle_uart = t_timer_manage.timer_register(300, 
-                                enum_MODE_ONESHOT, 
+		m_handle_uart = t_timer_manage.hard_timer_register(300, 
+                                SV_TIMER_FLAG_ONE_SHOT, 
                                 transceiver_uart0::byte_timer_timeout, 
                                 this,
                                 "byte timer");

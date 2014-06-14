@@ -133,7 +133,12 @@ public:
 	~timer_manage(){}
 
 	//return handle for monitor
-	timer_handle_type timer_register(uint32 expired_ms,
+	timer_handle_type hard_timer_register(uint32 expired_ms,
+                                        uint8 flag,
+                                        fp_void_pvoid *func,
+                                        void *data,
+                                        const char *pname);
+	timer_handle_type soft_timer_register(uint32 expired_ms,
                                         uint8 flag,
                                         fp_void_pvoid *func,
                                         void *data,
@@ -184,6 +189,11 @@ public:
 
 private:
 
+	timer_handle_type timer_register(uint32 expired_ms,
+                                        uint8 flag,
+                                        fp_void_pvoid *func,
+                                        void *data,
+                                        const char *pname);
 	uint8						m_size;
 	uint16 						m_bitmap;
 	list_head_t					m_timer_list;

@@ -11,10 +11,7 @@ public:
 	poller();
 	~poller();
 
-	void eventloop_set(eventloop* loop)
-	{
-		loop_ 		= loop;
-	}
+	void eventloop_set(eventloop* loop) { loop_ 	= loop; }
 
 	/// Polls the I/O events.
 	/// Must be called in the loop thread.

@@ -56,9 +56,6 @@ cscope.*
 /onenand_ipl/board/*/onenand*
 /onenand_ipl/board/*/*.S
 
-.settings
-.cproject
-.project
 
 /obj
 *.txt
@@ -68,7 +65,6 @@ cscope.*
 
 
 
-project_sensor*
 
 # Compiled Object files
 *.slo

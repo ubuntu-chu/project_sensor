@@ -157,8 +157,8 @@ portBASE_TYPE application::init(void)
 	m_app_runinfo.m_status 					= STAT_OK;
 	m_modeinfo.name_set(def_MODEL_NAME);
 
-	m_app_runinfo.m_handle_period 			= t_timer_manage.timer_register(1000, 
-                                                enum_MODE_PERIODIC, 
+	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
+                                                SV_TIMER_FLAG_PERIODIC, 
                                                 period_handle, 
                                                 this,
                                                 "period handle");

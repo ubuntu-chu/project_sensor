@@ -52,8 +52,8 @@ portBASE_TYPE cpu_tick_run(void)
 {
 	timer_handle_type handle_tick;
     
-    handle_tick   = t_timer_manage.timer_register(1000, 
-                                                enum_MODE_PERIODIC, 
+    handle_tick   = t_timer_manage.hard_timer_register(1000, 
+                                                SV_TIMER_FLAG_PERIODIC, 
                                                 tick_handle, 
                                                 NULL,
                                                 "tick handle");

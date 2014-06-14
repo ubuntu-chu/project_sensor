@@ -414,6 +414,26 @@ tick_t sv_tick_from_millisecond(uint32_t ms)
 	return (TICK_PER_SECOND * ms + 999) / 1000;
 }
 
+timer_handle_type timer_manage::hard_timer_register(uint32 expired_ms,
+                                                    uint8 flag,
+                                                    fp_void_pvoid *func,
+                                                    void *data,
+                                                    const char *pname)
+{
+	flag					&= ~SV_TIMER_FLAG_HARD_TIMER;
+	return timer_register(expired_ms, flag|SV_TIMER_FLAG_HARD_TIMER, func, data, pname);
+}
+
+timer_handle_type timer_manage::soft_timer_register(uint32 expired_ms,
+                                                    uint8 flag,
+                                                    fp_void_pvoid *func,
+                                                    void *data,
+                                                    const char *pname)
+{
+	flag					&= ~SV_TIMER_FLAG_HARD_TIMER;
+	return timer_register(expired_ms, flag, func, data, pname);
+}
+
 timer_handle_type timer_manage::timer_register(uint32 expired_ms,
                                                     uint8 flag,
                                                     fp_void_pvoid *func,

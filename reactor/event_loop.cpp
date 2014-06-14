@@ -1,6 +1,7 @@
 #include "event_loop.h"
 #include "poller.h"
 #include "channel.h"
+#include "timer_queue.h"
 #include "../app/event.h"
 #include "../app/devices.h"
 
@@ -21,7 +22,8 @@ eventloop::eventloop() :
 		callingPendingFunctors_(false),
 		m_current_acitve_channel(NULL),
 		m_ppoller(poller::newDefaultPoller(this)),
-		m_pchannel_event(event_create(this))
+		m_pchannel_event(event_create(this)),
+		m_ptimer_queue(timer_queue::new_timerqueue(this))
 {
 	list_init(&m_list_event);
 	m_pchannel_event->enableReading();
@@ -62,16 +64,7 @@ void eventloop::removeChannel(channel* channel) {
 
 timer_handle_type eventloop::run_at(const uint32& ms, uint8 flag, fp_void_pvoid *cb, void *pparam, const char* pname)
 {
-	timer_handle_type	handle;
-
-	handle 	= t_timer_manage.timer_register(ms, flag, cb, pparam, pname);
-    if (handle!= (timer_handle_type)-1){
-    	return handle;
-    }
-    t_timer_manage.timer_start(handle);
-
-
-    return handle;
+	return m_ptimer_queue->timer_add(ms, flag, cb ,pparam, pname);
 }
 
 timer_handle_type eventloop::run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
