@@ -4,14 +4,14 @@
 #include "../includes/service.h"
 #include "event_loop.h"
 
+
+typedef int (handle_channel_cb)(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
+
 class channel{
 //class channel: noncopyable {
 public:
 	channel(eventloop* loop,  class device *handle);
 	~channel();
-
-	int write(const int8 *pbuf, portSIZE_TYPE len);
-	int read(class buffer buf, class Timestamp ts);
 
 	int events() const {
 		return events_;
@@ -45,6 +45,11 @@ public:
 		update();
 	}
 
+	void event_handle_register(handle_channel_cb *cb, void *pparam)
+	{
+		m_handle_cb						= cb;
+		m_pparam						= pparam;
+	}
 	void handleEvent(Timestamp receiveTime);
 
 	class device *device_get(void) { return 	m_handle; }
@@ -63,6 +68,8 @@ private:
 	int events_;
 	int revents_;
 
+	handle_channel_cb 		*m_handle_cb;
+	void 					*m_pparam;
 	bool eventHandling_;
 	class device 			*m_handle;
 	list_node_t 			m_node;

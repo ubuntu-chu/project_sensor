@@ -55,7 +55,7 @@ uint8 cpu_sleep_status_pend(void);
 void cpu_pendsv_init(void);
 void cpu_pendsv_trig(void);
 
-void cpu_pendsv_register(fp_void_pvoid *fp, void *data);
+void cpu_pendsv_register(fp_void_pvoid *fp, void *pvoid);
 void cpu_pendsv_unregister(void);
 
 

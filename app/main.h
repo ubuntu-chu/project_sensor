@@ -57,6 +57,10 @@ private:
 	static portBASE_TYPE package_event_handler(void *pvoid, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
 	static void period_handle(void *pdata);
+
+
+	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
+
         
     portBASE_TYPE load_app_datum(void);
     uint16  hold_reg_get(enum hold_reg_index index);

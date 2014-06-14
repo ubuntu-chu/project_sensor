@@ -12,6 +12,8 @@ class channel *event_create(eventloop *loop)
     static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
     static channel  event(loop, &t_device_event);
     
+    t_device_event.open();
+
     return &event;
 }
 

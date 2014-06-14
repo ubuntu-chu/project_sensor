@@ -56,8 +56,6 @@ portBASE_TYPE bsp_startup(void)
 	cpu_gpioinit();
 	//start sys tick
 	cpu_tick_run();
-    //start sys monitor
-//    cpu_sys_monitor_run();
 	//uart
 	//init hal
     hal_init();

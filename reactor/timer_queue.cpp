@@ -1,6 +1,18 @@
 #include "timer_queue.h"
+#include "channel.h"
+#include "../app/timer.h"
+#include "../app/devices.h"
 
-timer_queue 	t_timer_queue;
+
+class channel *timer_create(eventloop *loop)
+{
+    static device_timer 		t_device_timer(DEVICE_NAME_TIMER, DEVICE_FLAG_RDWR);
+    static channel  timer(loop, &t_device_timer);
+
+    t_device_timer.open();
+
+    return &timer;
+}
 
 timer_queue::timer_queue()
 {
@@ -11,9 +23,13 @@ timer_queue::~timer_queue()
 {
 }
 
+timer_queue 	t_timer_queue;
+
 timer_queue* timer_queue::new_timerqueue(eventloop* loop)
 {
 	t_timer_queue.eventloop_set(loop);
+	t_timer_queue.m_pchannel_timer = timer_create(loop);
+	t_timer_queue.m_pchannel_timer->enableReading();
 
 	return &t_timer_queue;
 }
@@ -28,7 +44,6 @@ timer_handle_type timer_queue::timer_add(const uint32& ms, uint8 flag, fp_void_p
     	return handle;
     }
     t_timer_manage.timer_start(handle);
-
 
     return handle;
 }

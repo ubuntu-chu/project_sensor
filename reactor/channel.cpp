@@ -9,6 +9,7 @@ channel::channel(eventloop* loop, class device *handle)
 {
 	list_init(&m_node);
 	list_init(&m_active_node);
+	m_handle_cb 		= NULL;
 }
 
 channel::~channel()
@@ -25,25 +26,23 @@ void channel::remove()
   loop_->removeChannel(this);
 }
 
-int channel::write(const int8 *pbuf, portSIZE_TYPE len)
+void channel::handleEvent(Timestamp receiveTime) 
 {
-	return 0;
-}
+    if (NULL != m_handle_cb){
+        int8    data[100];
+        class buffer 	buf(data, sizeof(data)/sizeof(data[0]));
+        
+        eventHandling_ = true;
 
-int channel::read(class buffer buf, class Timestamp ts)
-{
-	return 0;
-}
+        if (revents_ & (POLLIN)) {
+            //
 
-void channel::handleEvent(Timestamp receiveTime) {
-	eventHandling_ = true;
-
-	if (revents_ & (POLLIN)) {
-
-	}
-	if (revents_ & POLLOUT) {
-
-	}
-	eventHandling_ = false;
+            m_handle_cb(m_pparam, POLLIN, buf, receiveTime);
+        }
+        if (revents_ & POLLOUT) {
+            m_handle_cb(m_pparam, POLLOUT, buf, receiveTime);
+        }
+        eventHandling_ = false;
+    }
 }
 

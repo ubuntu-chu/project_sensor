@@ -157,7 +157,8 @@ portBASE_TYPE application::init(void)
 	m_app_runinfo.m_status 					= STAT_OK;
 	m_modeinfo.name_set(def_MODEL_NAME);
 
-	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
+	//m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
+    m_app_runinfo.m_handle_period 			= t_timer_manage.hard_timer_register(1000,
                                                 SV_TIMER_FLAG_PERIODIC, 
                                                 period_handle, 
                                                 this,
@@ -209,6 +210,14 @@ portBASE_TYPE application::init(void)
     return 0;
 }
 
+int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
+{
+	application *papplication      = static_cast<application *> (pvoid);
+
+
+	return 0;
+}
+
 portBASE_TYPE application::run()
 {
 	device_commu *pdevice_commu =
@@ -216,24 +225,21 @@ portBASE_TYPE application::run()
 	device_pin *pdevice_pin = (device_pin *) m_app_runinfo.m_pdevice_pin;
 	device_ad *pdevice_ad =
 			static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
-	portDEVHANDLE_TYPE handle_ad = pdevice_ad->handle_get();
 
 	eventloop t_loop;
 	channel t_channel_ad(&t_loop, pdevice_ad);
-	channel t_channel_pin(&t_loop, pdevice_pin);
 
+	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
 	t_channel_ad.enableReading();
-	t_channel_pin.enableReading();
-	t_channel_pin.disableReading();
 	t_loop.loop();
 
 	return 0;
 }
 
 //intertup context 
-void application::pendsv_handle(void *pdata)
+void application::pendsv_handle(void *pvoid)
 {
-	application *papplication      = static_cast<application *> (pdata);
+	application *papplication      = static_cast<application *> (pvoid);
 	device_commu *pdevice_commu    = static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
 
 	pdevice_commu->package_event_fetch();
@@ -253,6 +259,7 @@ int main(void)
 
     //bsp startup
     bsp_startup();
+    sv_service_init();
     pcapplication->init();
     pcapplication->run();
 

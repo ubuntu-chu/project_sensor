@@ -1,5 +1,7 @@
 #include    "service.h"
 #include    <string.h>
+#include "../bsp/hal/hal.h"
+#include 	 "../bsp/driver/drv_interface.h"
 
 void list_init(list *l)
 {
@@ -414,6 +416,26 @@ tick_t sv_tick_from_millisecond(uint32_t ms)
 	return (TICK_PER_SECOND * ms + 999) / 1000;
 }
 
+
+timer_manage::timer_manage()
+	:m_size(def_MONITOR_TIME_NR),
+	m_bitmap(0)
+{
+}
+
+void timer_manage::init(void)
+{
+
+	list_init(&m_timer_list);
+	list_init(&m_soft_timer_list);
+	m_soft_timer_handling = false;
+    //查找设备
+    m_handle_timer   = hal_devicefind(DEVICE_NAME_TIMER);
+    //打开设备
+    hal_deviceopen(m_handle_timer, DEVICE_FLAG_RDWR);
+
+}
+
 timer_handle_type timer_manage::hard_timer_register(uint32 expired_ms,
                                                     uint8 flag,
                                                     fp_void_pvoid *func,
@@ -453,7 +475,7 @@ timer_handle_type timer_manage::timer_register(uint32 expired_ms,
 	}
 	handle 									= i;
 	m_bitmap 								|= (1UL << i);
-	sv_timer_init(&m_timer[handle], pname, func, data, flag, sv_tick_from_millisecond(expired_ms));
+	sv_timer_init(&m_timer[handle], pname, func, data, sv_tick_from_millisecond(expired_ms), flag);
 
     return handle;
 }
@@ -467,6 +489,22 @@ bool timer_manage::timer_unregister(timer_handle_type handle)
 	m_timer[handle].parent.flag 			&= ~SV_TIMER_FLAG_ACTIVATED;
 
     return true;
+}
+
+int timer_manage::timer_start(timer_handle_type handle)
+{
+	if (handle >= m_size) {
+		return false;
+	}
+	return sv_timer_start(&m_timer[handle]);
+}
+
+int timer_manage::timer_stop(timer_handle_type handle)
+{
+	if (handle >= m_size) {
+		return false;
+	}
+	return sv_timer_stop(&m_timer[handle]);
 }
 
 void timer_manage::timer_check(void)
@@ -514,12 +552,16 @@ void timer_manage::timer_check(void)
 			break;
 	}
 	//soft timer handle     run in event loop
-	while (!list_isempty(&m_soft_timer_list)) {
+	while ((m_soft_timer_handling == false) && !list_isempty(&m_soft_timer_list)) {
 		/* re-get tick */
 		current_tick = cpu_tick_get();
 		soft_timer_timeout_tick 	= sv_timer_list_next_timeout(&m_soft_timer_list);
 		if ((current_tick - soft_timer_timeout_tick) < TICK_MAX / 2) {
+			uint32 	event = 0;
 			//write timer-device to read ready
+			hal_devicewrite(m_handle_timer, 0, (void *)&event, sizeof(event));
+			m_soft_timer_handling					= true;
+			break;
 
 		}
 	}
@@ -530,6 +572,11 @@ void timer_manage::timer_check(void)
 
 timer_manage 	t_timer_manage;
 
+
+void sv_service_init(void)
+{
+	t_timer_manage.init();
+}
 
 
 

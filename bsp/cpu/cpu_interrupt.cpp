@@ -91,10 +91,10 @@ void cpu_pendsv_trig(void)
 static fp_void_pvoid *fp_pendsv = NULL;
 static void *pendsv_data = NULL;
 
-void cpu_pendsv_register(fp_void_pvoid *fp, void *data)
+void cpu_pendsv_register(fp_void_pvoid *fp, void *pvoid)
 {
     fp_pendsv                   = fp;
-    pendsv_data                 = data;
+    pendsv_data                 = pvoid;
 }
 
 void cpu_pendsv_unregister(void)

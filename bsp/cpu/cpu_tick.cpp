@@ -14,7 +14,6 @@ void cpu_delay_us(uint16 us)
 }
 
 static tick_t 		s_tick		= 0;
-static portBASE_TYPE 	time_trig_1s = 0;
 
 tick_t cpu_tick_get(void)
 {
@@ -27,40 +26,16 @@ void cpu_tick_set(tick_t tick)
 	cpu_interruptEnable(level);
 }
 
-void tick_handle(void *pvoid)
-{
-    time_trig_1s 		= 1;
-}
-
-portBASE_TYPE cpu_timetrig_1s(void)
-{
-	portBASE_TYPE rt		= time_trig_1s;
-
-	time_trig_1s 			= 0;
-
-	return (rt)?(1):(0);
-}
-
 void cpu_tick_increase(void)
 {
 	s_tick++;
-//	timer_
+	t_timer_manage.timer_check();
 }
 
 //time: 500 ms  interrupt
 portBASE_TYPE cpu_tick_run(void)
 {
-	timer_handle_type handle_tick;
-    
-    handle_tick   = t_timer_manage.hard_timer_register(1000, 
-                                                SV_TIMER_FLAG_PERIODIC, 
-                                                tick_handle, 
-                                                NULL,
-                                                "tick handle");
-    t_timer_manage.timer_start(handle_tick);  
-
-//    SysTick_Config(16*1000*50); // Time-out period of 50ms   FCLK = 16MHz
-    SysTick_Config(16*1000*(1000/TICK_PER_SECOND)); // Time-out period of 10ms   FCLK = 16MHz
+    SysTick_Config(16*1000*(1000/TICK_PER_SECOND)); // Time-out period of 10ms   FCLK = 16MHz  16*1000´ú±í1ms
 #if 0
 	//Timer 0 setup to re-start every 64mS
 	GptLd(pADI_TM0, 50000);// Time-out period of 50ms
@@ -85,7 +60,6 @@ extern "C" void SysTick_Handler(void)
     //portCPSR_TYPE	level = cpu_interruptDisable();
     
 	cpu_tick_increase();
-    t_timer_manage.timer_check();
     if (cpu_sleep_status_pend()){
         cpu_sleep_exit();
     }
@@ -113,17 +87,6 @@ extern "C" void GP_Tmr1_Int_Handler(void)
 extern "C" void WDog_Tmr_Int_Handler(void)
 {
 }
-
-#if 0  
-// Timer A0 interrupt service routine
-#pragma vector=TIMER1_A0_VECTOR
-__interrupt void TIMER1_A0_ISR(void)
-{
-	
-}
-#endif
-
-
 
 /*********************************************************************************
 **                            End Of File

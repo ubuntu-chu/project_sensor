@@ -21,13 +21,6 @@
 tick_t cpu_tick_get(void);
 void cpu_tick_set(tick_t tick);
 portBASE_TYPE cpu_tick_run(void);
-portBASE_TYPE cpu_timetrig_1s(void);
-
-
-void uart_comm_monitor_set(void);
-void uart_comm_monitor_clr(void);
-
-portuBASE_TYPE cpu_sys_monitor_run(void);
 
 /******************************************************************************
  *                             END  OF  FILE                                                                          

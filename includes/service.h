@@ -14,6 +14,8 @@ extern "C" {
 #define 	POLLOUT 					(0x01)
 #define	 	POLLIN 						(0x02)
 
+typedef            struct DEVICE_ABSTRACT *                   portDEVHANDLE_TYPE;
+
 #define list_entry(node, type, member) \
                                                                 ((type *)((char *)(node) - (unsigned int)(&((type *)0)->member)))
 
@@ -123,14 +125,10 @@ class timer_manage: noncopyable{
 public:
     friend  sv_err_t sv_timer_start(sv_timer_t timer);
 
-	timer_manage()
-		:m_size(def_MONITOR_TIME_NR),
-         m_bitmap(0)
-	{
-		list_init(&m_timer_list);
-		list_init(&m_soft_timer_list);
-	}
+	timer_manage();
 	~timer_manage(){}
+
+	void init(void );
 
 	//return handle for monitor
 	timer_handle_type hard_timer_register(uint32 expired_ms,
@@ -145,20 +143,8 @@ public:
                                         const char *pname);
 	bool timer_unregister(timer_handle_type handle);
 
-	bool timer_start(timer_handle_type handle)
-	{
-		if (handle >= m_size){
-			return false;
-		}
-        return true;
-	}
-	bool timer_stop(timer_handle_type handle)
-	{
-		if (handle >= m_size){
-			return false;
-		}
-        return true;
-	}
+	int timer_start(timer_handle_type handle);
+	int timer_stop(timer_handle_type handle);
 
     bool timer_cnt_clr(timer_handle_type handle)
     {
@@ -177,13 +163,15 @@ public:
 		return 	m_timer[handle].timeout_tick;
 	}
 
-    portBASE_TYPE timer_started(timer_handle_type handle)
+    bool timer_started(timer_handle_type handle)
 	{
 		if (handle >= m_size){
 			return (portBASE_TYPE)-1;
 		}
 		return (m_timer[handle].parent.flag & SV_TIMER_FLAG_ACTIVATED)?(true):(false);
 	}
+
+    void soft_timer_handle_end(void){m_soft_timer_handling 	= false;}
 
 	void timer_check(void);
 
@@ -195,13 +183,16 @@ private:
                                         void *data,
                                         const char *pname);
 	uint8						m_size;
+	bool						m_soft_timer_handling;
 	uint16 						m_bitmap;
+	portDEVHANDLE_TYPE			m_handle_timer;
 	list_head_t					m_timer_list;
 	list_head_t					m_soft_timer_list;
 	struct sv_timer 		    m_timer[def_MONITOR_TIME_NR];
 };
 
 extern timer_manage   t_timer_manage;
+#define 	timer_manage_singleton()			singleton<timer_manage>::instance()
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -578,7 +569,7 @@ enum DEVICE_CLASS_TYPE{
 typedef            enum DEVICE_CLASS_TYPE                     DeviceClassType;
 
 typedef            struct DEVICE_ABSTRACT *                   pDeviceAbstract;
-typedef            struct DEVICE_ABSTRACT *                   portDEVHANDLE_TYPE;
+//typedef            struct DEVICE_ABSTRACT *                   portDEVHANDLE_TYPE;
 
 //设备注册函数指针
 typedef     portuBASE_TYPE     (FP_pfregister)   (void);
@@ -640,6 +631,9 @@ typedef            struct DEVICE_ABSTRACT                      device_t;
 #define			sv_hw_interrupt_disable() 			cpu_interruptDisable();
 #define			sv_hw_interrupt_enable(level)  			cpu_interruptEnable(level);
 
+
+
+void sv_service_init(void);
 
 #ifdef __cplusplus
 }
