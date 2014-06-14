@@ -1,15 +1,17 @@
 #include "event_loop.h"
 #include "poller.h"
 #include "channel.h"
+#include "../app/event.h"
+#include "../app/devices.h"
 
 const int kPollTimeMs = 1000;
 
-device *event_device_create(void)
+class channel *event_create(eventloop *loop)
 {
-	device *pdevice;
-
-    //static device_event 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
-
+    static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
+    static channel  event(loop, &t_device_event);
+    
+    return &event;
 }
 
 eventloop::eventloop() :
@@ -18,11 +20,11 @@ eventloop::eventloop() :
 		eventHandling_(false),
 		callingPendingFunctors_(false),
 		m_current_acitve_channel(NULL),
-		m_ppoller(poller::newDefaultPoller(this))
-		//m_event_channel(, this))
+		m_ppoller(poller::newDefaultPoller(this)),
+		m_pchannel_event(event_create(this))
 {
-	//m_device_event 	= ;
-	list_init(&m_event_list);
+	list_init(&m_list_event);
+	m_pchannel_event->enableReading();
 }
 
 eventloop::~eventloop() {

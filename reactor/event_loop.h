@@ -7,7 +7,7 @@
 
 class channel;
 class poller;
-//class TimerQueue;
+class timer_queue;
 
 class eventloop: noncopyable {
 public:
@@ -42,8 +42,10 @@ private:
 
 	poller					*m_ppoller;
 
-	channel* 				m_event_channel;						//事件   应用可以向event loop注入事件
-	list_head_t 			m_event_list;							//事件列表头
+	channel 				*m_pchannel_event;						//事件   应用可以向event loop注入事件
+	list_head_t 			m_list_event;							//事件列表头
+
+	timer_queue 			*m_ptimer_queue;						//定时器队列
 
 	device					*m_device_event;
 };

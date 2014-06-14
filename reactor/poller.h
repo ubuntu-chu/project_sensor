@@ -13,7 +13,7 @@ public:
 
 	void eventloop_set(eventloop* loop)
 	{
-		ownerLoop_ 		= loop;
+		loop_ 		= loop;
 	}
 
 	/// Polls the I/O events.
@@ -31,8 +31,8 @@ public:
 	static poller* newDefaultPoller(eventloop* loop);
 
 private:
-	eventloop* ownerLoop_;
-	list_head_t 	m_channels;
+	eventloop			*loop_;
+	list_head_t 		m_channels;
 };
 
 

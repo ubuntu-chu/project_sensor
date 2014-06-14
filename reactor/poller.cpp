@@ -6,7 +6,7 @@ class poller  t_poller;
 
 poller::poller()
 {
-	ownerLoop_ 		= NULL;
+	loop_ 		= NULL;
 	list_init(&m_channels);
 }
 
