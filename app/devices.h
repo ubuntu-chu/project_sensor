@@ -52,7 +52,7 @@ protected:
 private:
     uint16          m_oflag;
     uint8			m_offline_cnt;
-    char            m_name[DEVICE_NAME_MAX];
+    const char 	*m_name;
 };
 
 

@@ -4,16 +4,24 @@
 
 const int kPollTimeMs = 1000;
 
+device *event_device_create(void)
+{
+	device *pdevice;
+
+    //static device_event 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
+
+}
+
 eventloop::eventloop() :
 		looping_(false),
 		quit_(false),
 		eventHandling_(false),
 		callingPendingFunctors_(false),
 		m_current_acitve_channel(NULL),
-		m_ppoller(poller::newDefaultPoller(this),
+		m_ppoller(poller::newDefaultPoller(this))
 		//m_event_channel(, this))
-	
 {
+	//m_device_event 	= ;
 	list_init(&m_event_list);
 }
 

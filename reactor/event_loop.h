@@ -3,6 +3,7 @@
 
 #include "../includes/service.h"
 #include "../api/timestamp.h"
+#include "../app/devices.h"
 
 class channel;
 class poller;
@@ -41,8 +42,10 @@ private:
 
 	poller					*m_ppoller;
 
-	channel 				m_event_channel;						//事件   应用可以向event loop注入事件
+	channel* 				m_event_channel;						//事件   应用可以向event loop注入事件
 	list_head_t 			m_event_list;							//事件列表头
+
+	device					*m_device_event;
 };
 
 

@@ -40,9 +40,9 @@ struct _app_runinfo_{
 };
 typedef struct _app_runinfo_ app_runinfo_t;
 
-class CApplication{
+class application{
+    DEFINE_SINGLETON_CLASS(application)
 public:
-    static CApplication *GetInstance(void);  
     portBASE_TYPE run(void);
     portBASE_TYPE init(void);
     
@@ -50,10 +50,10 @@ public:
     uint8 mode_get(void){return m_app_runinfo.m_mode;}
 
 private:
-    CApplication(){}
-    ~CApplication(){}
-    CApplication(const CApplication &other);
-    CApplication &operator =(const CApplication &other);
+    application(){}
+    ~application(){}
+    application(const application &other);
+    application &operator =(const application &other);
 	static portBASE_TYPE package_event_handler(void *pvoid, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
 	static void period_handle(void *pdata);
@@ -65,7 +65,6 @@ private:
     uint16  input_reg_get(enum input_reg_index index);
     void input_reg_set(enum input_reg_index index, uint16 value);
 
-    static CApplication 	*m_pcapplicaiton;
     struct _app_runinfo_    m_app_runinfo;
 	class CModelInfo 	     m_modeinfo;
 };

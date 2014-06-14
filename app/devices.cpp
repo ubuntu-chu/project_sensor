@@ -10,23 +10,22 @@
 
 device::device(const char *pname, uint16 oflag)
 {
-    m_pdevice   = NULL;
-    if ((NULL == pname) || (strlen(pname) > DEVICE_NAME_MAX)){
-        return;
-    }
-    strcpy(m_name, pname);
-    m_oflag     = oflag;
-	m_len_recv  = 0;
-	m_len_send  = 0;
-	m_pbuf_recv		= NULL;
-	m_pbuf_send		= NULL;
-	m_offline_cnt	= 0;
+	m_pdevice 				= NULL;
+	if (NULL == pname) {
+		return;
+	}
+	m_name 					= pname;
+	m_oflag 				= oflag;
+	m_len_recv 				= 0;
+	m_len_send 				= 0;
+	m_pbuf_recv 			= NULL;
+	m_pbuf_send 			= NULL;
+	m_offline_cnt 			= 0;
 }
 
 device::~device()
 {
     close();
-    memset(m_name, 0, sizeof(m_name));
     m_pdevice   = NULL;
 }
 

@@ -14,22 +14,9 @@ void debug_output(const char* msg, int len)
 	//uart_tx(DBG_UART, (uint8 *)msg, len);
 }
 
-CApplication 	*CApplication::m_pcapplicaiton = NULL;
-
-CApplication *CApplication::GetInstance(void)
+portBASE_TYPE application::package_event_handler(void *pvoid, class protocol_info *pinfo)
 {
-	static CApplication 	t_application;
-  
-    if (NULL == m_pcapplicaiton){
-        m_pcapplicaiton         = &t_application;
-    }
-    
-    return (m_pcapplicaiton);
-}
-
-portBASE_TYPE CApplication::package_event_handler(void *pvoid, class protocol_info *pinfo)
-{
-    CApplication  	*pcapplication    		= static_cast<CApplication *>(pvoid);
+    application  	*pcapplication    		= static_cast<application *>(pvoid);
     class modbus_rtu_info *pmodbus_rtu_info;
     struct storage_info storage_info;
     uint16 	offset;
@@ -64,7 +51,7 @@ portBASE_TYPE CApplication::package_event_handler(void *pvoid, class protocol_in
 	return 0;
 }
 
-portBASE_TYPE CApplication::load_app_datum(void)
+portBASE_TYPE application::load_app_datum(void)
 {
     uint8               magic_string[100];
     portSSIZE_TYPE      ssize;
@@ -116,25 +103,25 @@ while (1){
     return 0;
 }
 
-uint16  CApplication::hold_reg_get(enum hold_reg_index index)
+uint16  application::hold_reg_get(enum hold_reg_index index)
 {
     return m_modeinfo.hold_reg_get(index);
 }
-void CApplication::hold_reg_set(enum hold_reg_index index, uint16 value)
+void application::hold_reg_set(enum hold_reg_index index, uint16 value)
 {
     m_modeinfo.hold_reg_set(index, value);
 }
 
-uint16  CApplication::input_reg_get(enum input_reg_index index)
+uint16  application::input_reg_get(enum input_reg_index index)
 {
     return m_modeinfo.input_reg_get(index);
 }
-void CApplication::input_reg_set(enum input_reg_index index, uint16 value)
+void application::input_reg_set(enum input_reg_index index, uint16 value)
 {
     m_modeinfo.input_reg_set(index, value);
 }
 
-portBASE_TYPE CApplication::init(void)
+portBASE_TYPE application::init(void)
 {
     static device_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
     static device_pin 			t_device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
@@ -142,7 +129,7 @@ portBASE_TYPE CApplication::init(void)
     static device_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
     static device_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
                                              &t_protocol_modbus_rtu,
-                                             CApplication::package_event_handler,
+                                             application::package_event_handler,
                                              this);
     //log setting
     Logger::setOutput(debug_output);
@@ -222,7 +209,7 @@ portBASE_TYPE CApplication::init(void)
     return 0;
 }
 
-portBASE_TYPE CApplication::run()
+portBASE_TYPE application::run()
 {
 	device_commu *pdevice_commu =
 			(device_commu *) m_app_runinfo.m_pdevice_commu;
@@ -244,17 +231,17 @@ portBASE_TYPE CApplication::run()
 }
 
 //intertup context 
-void CApplication::pendsv_handle(void *pdata)
+void application::pendsv_handle(void *pdata)
 {
-	CApplication *papplication      = static_cast<CApplication *> (pdata);
+	application *papplication      = static_cast<application *> (pdata);
 	device_commu *pdevice_commu    = static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
 
 	pdevice_commu->package_event_fetch();
 }
 
-void CApplication::period_handle(void *pdata)
+void application::period_handle(void *pdata)
 {
-	CApplication *papplication  = static_cast<CApplication *> (pdata);
+	application *papplication  = static_cast<application *> (pdata);
     (void)papplication;
     
     cpu_led_toggle();
@@ -262,7 +249,7 @@ void CApplication::period_handle(void *pdata)
 
 int main(void)
 {
-    CApplication  *pcapplication    = CApplication::GetInstance();
+    application  *pcapplication    = singleton<application>::instance();
 
     //bsp startup
     bsp_startup();

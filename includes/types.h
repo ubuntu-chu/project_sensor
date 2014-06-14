@@ -199,7 +199,31 @@ inline To down_cast(From* f) {                   // so we only accept pointers
   }
   return static_cast<To>(f);
 }
+
+//单例模板类
+template <class T>
+class singleton
+{
+public:
+     static inline T* instance(void)
+     {
+    	 static T t;
+    	 return &t;
+     }
+protected:
+     singleton(void);
+     ~singleton(void);
+private:
+     singleton(const singleton&);
+     singleton & operator= (const singleton &);
+};
+
+//定义单例模板类为所要访问类的友元类  用于在instance函数中访问类的构造和析构函数
+#define DEFINE_SINGLETON_CLASS(type)        friend singleton<type>;
+
 #endif
+
+
 
 
 #if 0
