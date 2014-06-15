@@ -7,6 +7,7 @@
 #include "protocol.h"
 #include "modbus.h"
 #include "../app/env_datum.h"
+#include	"../reactor/reactor.h"
 
 enum{
 	STAT_OK				= 0,
@@ -60,6 +61,7 @@ private:
 
 
 	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
+	static portBASE_TYPE   event_cb(void *pvoid, class callback_param *);
 
         
     portBASE_TYPE load_app_datum(void);
@@ -71,6 +73,8 @@ private:
 
     struct _app_runinfo_    m_app_runinfo;
 	class CModelInfo 	     m_modeinfo;
+
+	eventloop 				*m_peventloop;
 };
     
 #endif

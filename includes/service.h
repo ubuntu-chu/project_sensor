@@ -49,8 +49,10 @@ void list_insert_after(list *l, list *n);
 void list_insert_before(list *l, list *n);
 void list_del(list *n);
 #define 	list_remove(n)			list_del(n)
-int list_isempty(const list *l);
+int list_empty(const list *l);
 list *list_find(list_head_t *head, list_node_t *node);
+void list_splice(list_head_t *list, list_head_t *head);
+void list_splice_init(list_head_t *list, list_head_t *head);
 
 
 #define SV_EOK                          0               /**< There is no error */
@@ -62,6 +64,7 @@ list *list_find(list_head_t *head, list_node_t *node);
 #define SV_ENOSYS                       6               /**< No system */
 #define SV_EBUSY                        7               /**< Busy */
 #define SV_EIO                          8               /**< IO error */
+#define SV_EPARAM                       9               /**< Param error */
 
 
 
@@ -143,27 +146,12 @@ public:
                                         const char *pname);
 	bool timer_unregister(timer_handle_type handle);
 
-	int timer_start(timer_handle_type handle);
-	int timer_stop(timer_handle_type handle);
+	sv_err_t timer_start(timer_handle_type handle);
+	sv_err_t timer_stop(timer_handle_type handle);
+    sv_err_t timer_restart(timer_handle_type handle);
+	portBASE_TYPE timer_expired(timer_handle_type handle);
 
-    bool timer_cnt_clr(timer_handle_type handle)
-    {
-        if (handle >= m_size){
-			return false;
-		}
-        m_timer[handle].init_tick 			= 0;
-        return true;
-    }
-
-	portBASE_TYPE timer_expired(timer_handle_type handle)
-	{
-		if (handle >= m_size){
-			return (portBASE_TYPE)-1;
-		}
-		return 	m_timer[handle].timeout_tick;
-	}
-
-    bool timer_started(timer_handle_type handle)
+    portBASE_TYPE timer_started(timer_handle_type handle)
 	{
 		if (handle >= m_size){
 			return (portBASE_TYPE)-1;
@@ -171,9 +159,8 @@ public:
 		return (m_timer[handle].parent.flag & SV_TIMER_FLAG_ACTIVATED)?(true):(false);
 	}
 
-    void soft_timer_handle_end(void){m_soft_timer_handling 	= false;}
-
 	void timer_check(void);
+	void soft_timer_handle(void);
 
 private:
 
@@ -182,6 +169,8 @@ private:
                                         fp_void_pvoid *func,
                                         void *data,
                                         const char *pname);
+
+	void timer_handle(list_head_t *list_head);
 	uint8						m_size;
 	bool						m_soft_timer_handling;
 	uint16 						m_bitmap;
@@ -201,12 +190,12 @@ extern timer_manage   t_timer_manage;
 
 #define     def_MQ_ALIGN_SIZE               (4)
 
-enum   event_type{
-    enum_TYPE_ANA       = 0,
+enum   callback_type{
+    enum_TYPE_RUN       = 0,
     enum_TYPE_MAX,
 }; 
 
-enum   event_subtype{
+enum   callback_subtype{
     enum_SUBTYPE_UINT8       = 0,
     enum_SUBTYPE_INT8,
     enum_SUBTYPE_UINT16,
@@ -417,31 +406,36 @@ private:
     size_t      writerIndex_;
 };    
 
-class event_param;
+class callback_param;
 
-typedef portBASE_TYPE   (event_handler)(void *, class event_param *);
-
-class event_param{
-    event_param(enum event_type type, enum event_subtype subtype, int8 *pval):m_type(type),
-        m_subtype(subtype),m_pval(pval){}
-    ~event_param(){}
-    
-    enum   event_type       m_type;
-    enum   event_subtype    m_subtype;
-    int8                   *m_pval;                     //value ptr 
-}; 
-
+typedef portBASE_TYPE   (pf_callback)(void *pvoid, class callback_param *pparam);
 #define     def_EVENT_DATA_SIZE         (15)
 
-class event{
-    event(event_handler handler, void *pprivate):m_handler(handler), m_pprivate(pprivate){}
-    ~event(){}
+class callback_param {
+public:
+	callback_param(enum callback_type type=enum_TYPE_RUN, enum callback_subtype subtype=enum_SUBTYPE_UINT8)
+			:m_type(type), m_subtype(subtype)
+	{
+	}
+	~callback_param()
+	{
+	}
+
+	enum callback_type m_type;
+	enum callback_subtype m_subtype;
+	uint8 m_val[def_EVENT_DATA_SIZE];
+}; 
+
+class callback{
+public:
+    callback(pf_callback handler, void *pvoid):m_handler(handler), m_pvoid(pvoid){}
+    ~callback(){}
     
-    uint8                   m_priority;                         //优先级
-    int8                    m_data[def_EVENT_DATA_SIZE];
-    event_handler           *m_handler;
-    void                    *m_pprivate;
-    list                    m_event_list;
+    uint8                   			m_priority;                         //优先级
+    class callback_param				m_param;
+    pf_callback           				*m_handler;
+    void                    			*m_pvoid;
+    list_node_t              			m_node;
 };
 
 /*
@@ -463,7 +457,7 @@ struct sv_eventqueue
 {
     struct sv_ipc_object parent;                    /**< inherit from ipc_object */
 
-    event_handler       *m_def_handler;                 //def handler
+    pf_callback       *m_def_handler;                 //def handler
     void                *m_pvoid;
     void                *msg_pool;                      /**< stasv address of message queue */
 
@@ -479,7 +473,7 @@ typedef struct sv_eventqueue *sv_eq_t;
 
 portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool,
                             portSIZE_TYPE msg_size, portSIZE_TYPE pool_size, uint8_t flag,
-                            event_handler *def_handler, void *pprivate);
+                            pf_callback *def_handler, void *pprivate);
 
 
 

@@ -245,9 +245,9 @@ public:
         return t_timer_manage.timer_started(m_handle_uart);
     }
     
-    void byte_timer_cnt_clr(void)
+    void byte_timer_restart(void)
     {
-        t_timer_manage.timer_cnt_clr(m_handle_uart);
+        t_timer_manage.timer_restart(m_handle_uart);
     }
     
     static void byte_timer_timeout(void *pvoid)
@@ -266,7 +266,7 @@ public:
             if (0 == byte_timer_started()){
                 byte_timer_start();
             }else{
-                byte_timer_cnt_clr();
+                byte_timer_restart();
             }
         }
         return rt;

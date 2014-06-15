@@ -39,10 +39,10 @@ Timestamp poller::poll(int timeoutMs, list_head_t* activeChannels)
 		rt 							= pdevice->poll();
 
 		if (rt > DEVICE_POLLNONE){
-			if ((DEVICE_POLLIN == rt) && (it->events() & POLLIN)){
+			if ((DEVICE_POLLIN & rt) && (it->events() & POLLIN)){
 				event_occured		= true;
 				it->set_revents(POLLIN);
-			}else if ((DEVICE_POLLOUT == rt) && (it->events() & POLLOUT)){
+			}else if ((DEVICE_POLLOUT & rt) && (it->events() & POLLOUT)){
 				event_occured		= true;
 				it->set_revents(POLLOUT);
 			}

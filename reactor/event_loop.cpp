@@ -7,9 +7,10 @@
 
 const int kPollTimeMs = 1000;
 
-class channel *event_create(eventloop *loop)
+static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
+
+static class channel *event_create(eventloop *loop)
 {
-    static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
     static channel  event(loop, &t_device_event);
     
     t_device_event.open();
@@ -28,6 +29,7 @@ eventloop::eventloop() :
 		m_ptimer_queue(timer_queue::new_timerqueue(this))
 {
 	list_init(&m_list_event);
+	m_pchannel_event->event_handle_register(&eventloop::event_handle, this);
 	m_pchannel_event->enableReading();
 }
 
@@ -56,11 +58,11 @@ void eventloop::loop() {
 
 }
 
-void eventloop::updateChannel(channel* channel) {
+void eventloop::update_channel(channel* channel) {
 	m_ppoller->updateChannel(channel);
 }
 
-void eventloop::removeChannel(channel* channel) {
+void eventloop::remove_channel(channel* channel) {
 	m_ppoller->removeChannel(channel);
 }
 
@@ -80,5 +82,42 @@ timer_handle_type eventloop::run_every(uint32 ms, fp_void_pvoid *cb, void *ppara
 }
 
 
+int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
+{
+	eventloop *peventloop      = static_cast<eventloop *> (pvoid);
 
+	//event  readable
+	if (event_type == POLLIN){
+		uint32 	event_var;
+		list_head_t 	list_head_event;
+		sv_base_t level;
+		list_node_t 	*pos;
+		struct callback 	*it;
+
+		/* disable interrupt   禁止中断 这样在中断中也可使用run in loop 函数*/
+		level = sv_hw_interrupt_disable();
+		list_splice_init(&(peventloop->m_list_event), &list_head_event);
+		t_device_event.read(reinterpret_cast<char *>(&event_var), sizeof(event_var));
+		/* enable interrupt */
+		sv_hw_interrupt_enable(level);
+
+		list_for_each(pos, &list_head_event){
+
+			it		= list_entry(pos, class callback, m_node);
+			if (NULL != it->m_handler){
+				it->m_handler(it->m_pvoid, &(it->m_param));
+			}
+		}
+	}
+
+	return 0;
+}
+
+void eventloop::run_inloop(class callback *event)
+{
+	uint32 	event_var 	= 0;
+
+	list_insert_after(&m_list_event, &(event->m_node));
+	t_device_event.write(reinterpret_cast<char*>(&event_var), sizeof(event_var));
+}
 

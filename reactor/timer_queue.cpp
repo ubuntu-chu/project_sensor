@@ -4,7 +4,7 @@
 #include "../app/devices.h"
 
 
-class channel *timer_create(eventloop *loop)
+static class channel *timer_create(eventloop *loop)
 {
     static device_timer 		t_device_timer(DEVICE_NAME_TIMER, DEVICE_FLAG_RDWR);
     static channel  timer(loop, &t_device_timer);
@@ -30,6 +30,7 @@ timer_queue* timer_queue::new_timerqueue(eventloop* loop)
 	t_timer_queue.eventloop_set(loop);
 	t_timer_queue.m_pchannel_timer = timer_create(loop);
 	t_timer_queue.m_pchannel_timer->enableReading();
+	t_timer_queue.m_pchannel_timer->event_handle_register(&timer_queue::event_handle, &t_timer_queue);
 
 	return &t_timer_queue;
 }
@@ -53,7 +54,18 @@ int timer_queue::timer_cancel(timer_handle_type handle)
 	return t_timer_manage.timer_stop(handle);
 }
 
+int timer_queue::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
+{
+	timer_queue *ptimer_queue      = static_cast<timer_queue *> (pvoid);
 
+	//timer  readable
+	if (event_type == POLLIN){
+
+		t_timer_manage.soft_timer_handle();
+	}
+
+	return 0;
+}
 
 
 

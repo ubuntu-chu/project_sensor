@@ -36,7 +36,7 @@ void list_del(list *n)
     n->m_prev                                                   = n;
 }
 
-int list_isempty(const list *l)
+int list_empty(const list *l)
 {
 	return (l->m_next == l);
 }
@@ -53,6 +53,48 @@ list *list_find(list_head_t *head, list_node_t *node)
 
 	return NULL;
 }
+
+void __list_splice(list_head_t *list,
+				 list_head_t *prev,
+				 list_head_t *next)
+{
+	list_head_t *first = list->m_next;
+	list_head_t *last = list->m_prev;
+
+	first->m_prev = prev;
+	prev->m_next = first;
+
+	last->m_next = next;
+	next->m_prev = last;
+}
+
+/**
+ * list_splice - join two lists, this is designed for stacks
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ */
+void list_splice(list_head_t *list, list_head_t *head)
+{
+	if (!list_empty(list))
+		__list_splice(list, head, head->m_next);
+}
+
+/**
+ * list_splice_init - join two lists and reinitialise the emptied list.
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ *
+ * The list at @list is reinitialised
+ */
+void list_splice_init(list_head_t *list, list_head_t *head)
+{
+	if (!list_empty(list)) {
+		__list_splice(list, head, head->m_next);
+		list_init(list);
+	}
+}
+
+
 
 void sv_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
 {
@@ -84,7 +126,7 @@ size_t kCheapPrepend;
  */
 portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool, 
                             portSIZE_TYPE msg_size, portSIZE_TYPE pool_size, uint8_t flag,
-                            event_handler *def_handler, void *pprivate)
+                            pf_callback *def_handler, void *pprivate)
 {
 	struct sv_mq_message *head;
 	portuBASE_TYPE  temp;
@@ -296,7 +338,7 @@ static tick_t sv_timer_list_next_timeout(list_t *timer_list)
 {
 	struct sv_timer *timer;
 
-	if (list_isempty(timer_list))
+	if (list_empty(timer_list))
 		return TICK_MAX;
 
 	timer = list_entry(timer_list->m_next, struct sv_timer, list);
@@ -407,7 +449,7 @@ sv_err_t sv_timer_stop(sv_timer_t timer)
 	/* change stat */
 	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT);
 
-	return SV_EOK;
+	return -SV_EOK;
 }
 
 tick_t sv_tick_from_millisecond(uint32_t ms)
@@ -442,7 +484,7 @@ timer_handle_type timer_manage::hard_timer_register(uint32 expired_ms,
                                                     void *data,
                                                     const char *pname)
 {
-	flag					&= ~SV_TIMER_FLAG_HARD_TIMER;
+	flag					&= ~SV_TIMER_FLAG_HARD_TIMER|SV_TIMER_FLAG_SOFT_TIMER;
 	return timer_register(expired_ms, flag|SV_TIMER_FLAG_HARD_TIMER, func, data, pname);
 }
 
@@ -452,8 +494,8 @@ timer_handle_type timer_manage::soft_timer_register(uint32 expired_ms,
                                                     void *data,
                                                     const char *pname)
 {
-	flag					&= ~SV_TIMER_FLAG_HARD_TIMER;
-	return timer_register(expired_ms, flag, func, data, pname);
+	flag					&= ~SV_TIMER_FLAG_HARD_TIMER|SV_TIMER_FLAG_SOFT_TIMER;
+	return timer_register(expired_ms, flag|SV_TIMER_FLAG_SOFT_TIMER, func, data, pname);
 }
 
 timer_handle_type timer_manage::timer_register(uint32 expired_ms,
@@ -491,37 +533,59 @@ bool timer_manage::timer_unregister(timer_handle_type handle)
     return true;
 }
 
-int timer_manage::timer_start(timer_handle_type handle)
+sv_err_t timer_manage::timer_start(timer_handle_type handle)
 {
 	if (handle >= m_size) {
-		return false;
+		return -SV_EPARAM;
 	}
 	return sv_timer_start(&m_timer[handle]);
 }
 
-int timer_manage::timer_stop(timer_handle_type handle)
+sv_err_t timer_manage::timer_stop(timer_handle_type handle)
 {
 	if (handle >= m_size) {
-		return false;
+		return -SV_EPARAM;
 	}
 	return sv_timer_stop(&m_timer[handle]);
 }
 
-void timer_manage::timer_check(void)
- {
+sv_err_t timer_manage::timer_restart(timer_handle_type handle) {
+	sv_base_t level;
+	sv_err_t 	rt;
+
+	if (handle >= m_size) {
+		return -SV_EPARAM;
+	}
+	level = sv_hw_interrupt_disable() ;
+	if (-SV_EOK == (rt = sv_timer_stop (&m_timer[handle]))){
+		rt 	= sv_timer_start(&m_timer[handle]);
+	}
+	sv_hw_interrupt_enable(level);
+	return rt;
+}
+
+portBASE_TYPE timer_manage::timer_expired(timer_handle_type handle)
+{
+	tick_t current_tick;
+
+	if (handle >= m_size) {
+		return (portBASE_TYPE) -1;
+	}
+	current_tick = cpu_tick_get();
+	return (current_tick > m_timer[handle].timeout_tick) ? (1) : (0);
+}
+
+
+void timer_manage::timer_handle(list_head_t *list_head)
+{
 	struct sv_timer *t;
 	tick_t current_tick;
-	tick_t soft_timer_timeout_tick;
 	sv_base_t level;
 
-	current_tick 							= cpu_tick_get();
-
-	/* disable interrupt */
 	level = sv_hw_interrupt_disable();
-
-	//hard timer handle  run in interrupt content
-	while (!list_isempty(&m_timer_list)) {
-		t = list_entry(m_timer_list.m_next, struct sv_timer, list);
+	current_tick 							= cpu_tick_get();
+	while (!list_empty(list_head)) {
+		t = list_entry(list_head->m_next, struct sv_timer, list);
 
 		/*
 		 * It supposes that the new tick shall less than the half duration of
@@ -532,8 +596,10 @@ void timer_manage::timer_check(void)
 			/* remove timer from timer list firstly */
 			list_remove(&(t->list));
 
+			sv_hw_interrupt_enable(level);
 			/* call timeout function */
 			t->timeout_func(t->parameter);
+			level = sv_hw_interrupt_disable();
 
 			/* re-get tick */
 			current_tick = cpu_tick_get();
@@ -551,8 +617,43 @@ void timer_manage::timer_check(void)
 		} else
 			break;
 	}
+	sv_hw_interrupt_enable(level);
+}
+
+void timer_manage::soft_timer_handle(void)
+{
+	//软定时器遍历期间  禁止再向链表中添加节点
+	sv_base_t level;
+    uint32 	event;
+
 	//soft timer handle     run in event loop
-	while ((m_soft_timer_handling == false) && !list_isempty(&m_soft_timer_list)) {
+	timer_handle(&m_soft_timer_list);
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+	m_soft_timer_handling					= false;
+	//write timer-device to read ready
+	hal_deviceread(m_handle_timer, 0, (void *)&event, sizeof(event));
+	/* enable interrupt */
+	sv_hw_interrupt_enable(level);
+
+}
+
+void timer_manage::timer_check(void)
+ {
+	sv_base_t level;
+
+	/* disable interrupt */
+	level = sv_hw_interrupt_disable();
+
+	//hard timer handle  run in interrupt content
+	if (!list_empty(&m_timer_list)) {
+		timer_handle(&m_timer_list);
+	}
+	//soft timer handle     run in event loop
+	if ((m_soft_timer_handling == false) && !list_empty(&m_soft_timer_list)) {
+		tick_t soft_timer_timeout_tick;
+		tick_t current_tick;
+
 		/* re-get tick */
 		current_tick = cpu_tick_get();
 		soft_timer_timeout_tick 	= sv_timer_list_next_timeout(&m_soft_timer_list);
@@ -561,8 +662,6 @@ void timer_manage::timer_check(void)
 			//write timer-device to read ready
 			hal_devicewrite(m_handle_timer, 0, (void *)&event, sizeof(event));
 			m_soft_timer_handling					= true;
-			break;
-
 		}
 	}
 

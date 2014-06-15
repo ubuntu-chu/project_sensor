@@ -18,12 +18,12 @@ channel::~channel()
 
 void channel::update()
 {
-  loop_->updateChannel(this);
+  loop_->update_channel(this);
 }
 
 void channel::remove()
 {
-  loop_->removeChannel(this);
+  loop_->remove_channel(this);
 }
 
 void channel::handleEvent(Timestamp receiveTime) 

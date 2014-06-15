@@ -12,25 +12,22 @@ class timer_queue;
 class eventloop: noncopyable {
 public:
 	eventloop();
-	~eventloop();  // force out-line dtor, for scoped_ptr members.
+	~eventloop();
 
-	///
-	/// Loops forever.
-	///
-	/// Must be called in the same thread as creation of the object.
-	///
 	void loop();
 	void quit();
+	void run_inloop(class callback *event);
 
 	timer_handle_type run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
 	timer_handle_type run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
 
-	void updateChannel(channel* channel);
-	void removeChannel(channel* channel);
+	void update_channel(channel* channel);
+	void remove_channel(channel* channel);
 
 private:
 
 	timer_handle_type run_at(const uint32& ms, uint8 flag, fp_void_pvoid *cb, void *pparam, const char* pname);
+	static int event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
 	bool 					looping_; /* atomic */
 	bool 					quit_; /* atomic */
 	bool 					eventHandling_; /* atomic */

@@ -6,7 +6,6 @@
 #include    "commu.h"
 #include    "storage.h"
 #include    "../api/log/log.h"
-#include	"../reactor/reactor.h"
 
 
 void debug_output(const char* msg, int len)
@@ -157,8 +156,8 @@ portBASE_TYPE application::init(void)
 	m_app_runinfo.m_status 					= STAT_OK;
 	m_modeinfo.name_set(def_MODEL_NAME);
 
-	//m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
-    m_app_runinfo.m_handle_period 			= t_timer_manage.hard_timer_register(1000,
+	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
+    //m_app_runinfo.m_handle_period 			= t_timer_manage.hard_timer_register(1000,
                                                 SV_TIMER_FLAG_PERIODIC, 
                                                 period_handle, 
                                                 this,
@@ -214,9 +213,19 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 {
 	application *papplication      = static_cast<application *> (pvoid);
 
+//	papplication->m_peventloop.run_in_loop();
 
 	return 0;
 }
+
+portBASE_TYPE   application::event_cb(void *pvoid, class callback_param *pparam)
+{
+	application *papplication      = static_cast<application *> (pvoid);
+
+
+	return 0;
+}
+
 
 portBASE_TYPE application::run()
 {
@@ -229,6 +238,7 @@ portBASE_TYPE application::run()
 	eventloop t_loop;
 	channel t_channel_ad(&t_loop, pdevice_ad);
 
+	m_peventloop 				= &t_loop;
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
 	t_channel_ad.enableReading();
 	t_loop.loop();

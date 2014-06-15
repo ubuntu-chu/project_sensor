@@ -20,6 +20,7 @@ public:
 	int timer_cancel(timer_handle_type handle);
 
 	static timer_queue* new_timerqueue(eventloop* loop);
+	static int event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
 private:
 
 	channel *m_pchannel_timer;						//channel timer
