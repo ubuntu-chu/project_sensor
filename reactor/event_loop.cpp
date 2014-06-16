@@ -50,7 +50,7 @@ void eventloop::loop() {
 
 		list_for_each(pos, &m_active_channels){
 
-			it		= list_entry_offset(pos, class channel, it->active_list_node_offset_get());
+			it		= list_entry_offset(pos, class channel, channel::active_list_node_offset_get());
 			m_current_acitve_channel	= it;
 			it->handleEvent(pollReturnTime_);
 		}
@@ -92,9 +92,10 @@ int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, clas
 		list_head_t 	list_head_event;
 		sv_base_t level;
 		list_node_t 	*pos;
-		struct callback 	*it;
+		struct event 	*it;
 
-		/* disable interrupt   禁止中断 这样在中断中也可使用run in loop 函数*/
+		list_init(&list_head_event);
+        /* disable interrupt   禁止中断 这样在中断中也可使用run in loop 函数*/
 		level = sv_hw_interrupt_disable();
 		list_splice_init(&(peventloop->m_list_event), &list_head_event);
 		t_device_event.read(reinterpret_cast<char *>(&event_var), sizeof(event_var));
@@ -103,21 +104,28 @@ int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, clas
 
 		list_for_each(pos, &list_head_event){
 
-			it		= list_entry(pos, class callback, m_node);
-			if (NULL != it->m_handler){
-				it->m_handler(it->m_pvoid, &(it->m_param));
-			}
+			it		= list_entry_offset(pos, class event, event::list_node_offset_get());
+			it->call();
+			event_manage_singleton()->event_free(it);
 		}
 	}
 
 	return 0;
 }
 
-void eventloop::run_inloop(class callback *event)
+portBASE_TYPE eventloop::run_inloop(class event *event)
 {
 	uint32 	event_var 	= 0;
+	class event 	*pevent_malloc;
 
-	list_insert_after(&m_list_event, &(event->m_node));
+	pevent_malloc 	= event_manage_singleton()->event_malloc();
+	if (NULL == pevent_malloc){
+		return -1;
+	}
+	*pevent_malloc 	= *event;
+	list_insert_after(&m_list_event, pevent_malloc->list_node_get());
 	t_device_event.write(reinterpret_cast<char*>(&event_var), sizeof(event_var));
+
+	return 0;
 }
 

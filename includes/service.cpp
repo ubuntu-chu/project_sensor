@@ -111,6 +111,8 @@ extern portCPSR_TYPE cpu_interruptDisable(void);
 
 size_t kCheapPrepend;
 
+#ifdef 	SV_EVENT_QUEUE
+
 /**
  * This function will initialize a message queue and put it under control of resource
  * management.
@@ -313,6 +315,8 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
 
 	return SV_EOK;
 }
+
+#endif
 
 static void _sv_timer_init(sv_timer_t timer,
 						   void (*timeout)(void *parameter), void *parameter,
@@ -672,7 +676,48 @@ void timer_manage::timer_check(void)
 timer_manage 	t_timer_manage;
 
 
-void sv_service_init(void)
+event_manage::event_manage():
+		m_size(def_EVENT_NR),m_bitmap(0)
+{
+}
+
+
+event_manage::~event_manage()
+{
+}
+
+event *event_manage::event_malloc(void)
+{
+	event_handle_type handle;
+	portuBASE_TYPE 		i;
+
+	for (i = 0; i < m_size; ++i){
+		if (!(m_bitmap & (1UL << i))){
+			break;
+		}
+	}
+	if (i >= m_size){
+		return NULL;
+	}
+	handle 									= i;
+	m_event[handle].index_set(i);
+	m_event[handle].buffer_init();
+	m_bitmap 								|= (1UL << i);
+
+	return &m_event[handle];
+}
+
+sv_err_t event_manage::event_free(event *pevent)
+{
+	if (pevent == NULL){
+		return -SV_EPARAM;
+	}
+	m_bitmap 								&= ~(1UL << (pevent->index_get()));
+
+	return -SV_EOK;
+}
+
+void sv_startup(void)
 {
 	t_timer_manage.init();
 }

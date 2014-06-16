@@ -278,7 +278,11 @@ static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, c
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
   
-    return size; 
+	char 	*ptr		= reinterpret_cast<char *>(buffer);
+
+	strcpy(ptr, "abcdef");
+//    return size;
+    return 6;
 }
 
 #if 0

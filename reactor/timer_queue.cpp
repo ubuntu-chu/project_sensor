@@ -57,6 +57,7 @@ int timer_queue::timer_cancel(timer_handle_type handle)
 int timer_queue::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {
 	timer_queue *ptimer_queue      = static_cast<timer_queue *> (pvoid);
+    ptimer_queue    = ptimer_queue;
 
 	//timer  readable
 	if (event_type == POLLIN){

@@ -21,29 +21,12 @@ portBASE_TYPE device_ad::process_read(enum PROC_PHASE phase, char *pbuf, portSIZ
 {
 	switch (phase){
 	case PROC_PREPARE:
+        device::process_read(phase, pbuf, size);
 		break;
 
 	case PROC_DONE:
 		{
-			uint32 			volt;
 
-			m_pbuf_data        = m_pbuf_recv;
-			volt               = ((uint16)m_pbuf_data[0])<<8;
-			volt               += m_pbuf_data[1];
-		#if(DEBUG_SWITCH > 0)
-			{
-			uint8			buffer[50];
-			sprintf((char *)buffer, "ad value:%d\n", volt);
-			SYS_LOG_LEV_TINY(SYS_LOG_LEV_NOTICE, buffer);
-			}
-		#endif
-		#if(DEBUG_SWITCH > 0)
-			{
-			uint8			buffer[50];
-			sprintf((char *)buffer, "volt value:%d\n", volt);
-			SYS_LOG_LEV_TINY(SYS_LOG_LEV_NOTICE, buffer);
-			}
-		#endif
 		}
 		break;
 

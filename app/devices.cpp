@@ -89,6 +89,7 @@ portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE siz
     m_offline_cnt 			= 0;
 
 	m_len_recv				= size;
+    m_len_data              = size;
     //call virtual process_read to done
     if (this->process_read(PROC_DONE, buffer, size)){
 		return -1;

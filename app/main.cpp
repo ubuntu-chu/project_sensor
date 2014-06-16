@@ -157,7 +157,6 @@ portBASE_TYPE application::init(void)
 	m_modeinfo.name_set(def_MODEL_NAME);
 
 	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
-    //m_app_runinfo.m_handle_period 			= t_timer_manage.hard_timer_register(1000,
                                                 SV_TIMER_FLAG_PERIODIC, 
                                                 period_handle, 
                                                 this,
@@ -213,16 +212,32 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 {
 	application *papplication      = static_cast<application *> (pvoid);
 
-//	papplication->m_peventloop.run_in_loop();
+	char aa[100];
+
+	buf.retrieveAllAsCharArray(reinterpret_cast<int8 *>(aa));
+
+/*
+	class event 	t_event(&application::event_cb, papplication);
+	class buffer   &t_buffer 	= t_event.buffer_get();
+
+	papplication	= papplication;
+	t_buffer.appendInt32(1234);
+	t_buffer.appendInt16(222);
+	papplication->m_peventloop->run_inloop(&t_event);
+*/
 
 	return 0;
 }
 
-portBASE_TYPE   application::event_cb(void *pvoid, class callback_param *pparam)
+portBASE_TYPE   application::event_cb(void *pvoid, class event *pevent)
 {
-	application *papplication      = static_cast<application *> (pvoid);
+	application 	*papplication	= static_cast<application *> (pvoid);
+	class buffer 	&t_buffer 		= pevent->buffer_get();
+	volatile int32 			a				= t_buffer.readInt32();
+	volatile int16 			b				= t_buffer.readInt16();
 
-
+    papplication    = papplication;
+    
 	return 0;
 }
 
@@ -231,12 +246,12 @@ portBASE_TYPE application::run()
 {
 	device_commu *pdevice_commu =
 			(device_commu *) m_app_runinfo.m_pdevice_commu;
-	device_pin *pdevice_pin = (device_pin *) m_app_runinfo.m_pdevice_pin;
 	device_ad *pdevice_ad =
 			static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
-
 	eventloop t_loop;
 	channel t_channel_ad(&t_loop, pdevice_ad);
+    
+    pdevice_commu               = pdevice_commu;
 
 	m_peventloop 				= &t_loop;
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
@@ -258,7 +273,7 @@ void application::pendsv_handle(void *pvoid)
 void application::period_handle(void *pdata)
 {
 	application *papplication  = static_cast<application *> (pdata);
-    (void)papplication;
+    papplication    = papplication;
     
     cpu_led_toggle();
 }
@@ -269,7 +284,7 @@ int main(void)
 
     //bsp startup
     bsp_startup();
-    sv_service_init();
+    sv_startup();
     pcapplication->init();
     pcapplication->run();
 

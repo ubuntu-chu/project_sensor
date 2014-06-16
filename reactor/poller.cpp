@@ -34,7 +34,7 @@ Timestamp poller::poll(int timeoutMs, list_head_t* activeChannels)
 	list_for_each(pos, &m_channels){
 
 		event_occured 				= false;
-		it							= list_entry_offset(pos, class channel, it->list_node_offset_get());
+		it							= list_entry_offset(pos, class channel, channel::list_node_offset_get());
 		pdevice 					= it->device_get();
 		rt 							= pdevice->poll();
 

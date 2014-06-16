@@ -16,7 +16,7 @@ public:
 
 	void loop();
 	void quit();
-	void run_inloop(class callback *event);
+	portBASE_TYPE run_inloop(class event *event);
 
 	timer_handle_type run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
 	timer_handle_type run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);

@@ -78,6 +78,7 @@ typedef uint32_t									sig_atomic;
 #define BYTE_PTR            						uint8_t*
 
 typedef char 										timer_handle_type;
+typedef char 										event_handle_type;
 typedef void (fp_void_pvoid)(void *);
 
 

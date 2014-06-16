@@ -185,17 +185,261 @@ extern timer_manage   t_timer_manage;
 
 //----------------------------------------------------------------------------------------------------------------
 
-//compatible c/c++
-#ifdef def_USING_SERVICE_MQ
+class buffer {
+public:
+	static const size_t kCheapPrepend = 4;
 
-#define     def_MQ_ALIGN_SIZE               (4)
+	buffer(int8 *pdata, size_t len) :
+			buffer_(reinterpret_cast<char *>(pdata)),
+			len_(len),
+			readerIndex_( kCheapPrepend),
+			writerIndex_(kCheapPrepend)
+	{
 
-enum   callback_type{
+	}
+
+	buffer(int8 *pdata, size_t len, size_t existed_len) :
+			buffer_(reinterpret_cast<char *>(pdata)),
+			len_(len),
+			readerIndex_( kCheapPrepend),
+			writerIndex_(kCheapPrepend + existed_len)
+	{
+
+	}
+
+	~buffer()
+	{
+	}
+
+	buffer &operator= (const buffer &other)
+	{
+		if (this == &other){
+			return *this;
+		}
+		if (buffer_ != NULL){
+			len_				= 	other.len_;
+		}
+		readerIndex_ 			= other.readerIndex_;
+		writerIndex_ 			= other.writerIndex_;
+
+		return *this;
+	}
+
+	size_t readableBytes() const
+	{
+		return writerIndex_ - readerIndex_;
+	}
+
+	size_t writableBytes() const
+	{
+		return len_ - writerIndex_;
+	}
+
+	size_t prependableBytes() const
+	{
+		return readerIndex_;
+	}
+
+	const char* peek() const
+	{
+		return begin() + readerIndex_;
+	}
+
+	void retrieve(size_t len)
+	{
+		if (len < readableBytes()) {
+			readerIndex_ += len;
+		} else {
+			retrieveAll();
+		}
+	}
+
+	void retrieveUntil(const char* end)
+	{
+		retrieve(end - peek());
+	}
+
+	void retrieveInt32()
+	{
+		retrieve(sizeof(int32_t));
+	}
+
+	void retrieveInt16()
+	{
+		retrieve(sizeof(int16_t));
+	}
+
+	void retrieveInt8()
+	{
+		retrieve(sizeof(int8_t));
+	}
+
+	void retrieveAll()
+	{
+		readerIndex_ = kCheapPrepend;
+		writerIndex_ = kCheapPrepend;
+	}
+
+	int retrieveAllAsCharArray(int8 *dst)
+	{
+		return retrieveAsCharArray(dst, readableBytes());;
+	}
+
+	int retrieveAsCharArray(int8 *dst, size_t len)
+	{
+		if (len > readableBytes()) {
+			return -1;
+		}
+		memcpy(dst, peek(), len);
+		retrieve(len);
+
+		return len;
+	}
+
+	int append(const char* /*restrict*/data, size_t len)
+	{
+		if (writableBytes() < len) {
+			return -1;
+		}
+		memcpy(beginWrite(), data, len);
+		hasWritten(len);
+		return 0;
+	}
+
+	int append(const void* /*restrict*/data, size_t len)
+	{
+		return append(static_cast<const char*>(data), len);
+	}
+	char* beginWrite()
+	{
+		return begin() + writerIndex_;
+	}
+
+	const char* beginWrite() const
+	{
+		return begin() + writerIndex_;
+	}
+
+	void hasWritten(size_t len)
+	{
+		writerIndex_ += len;
+	}
+
+	///
+	/// Append int32_t using network endian
+	///
+	void appendInt32(int32_t x)
+	{
+		int32_t be32 = (x);
+		append(&be32, sizeof be32);
+	}
+
+	void appendInt16(int16_t x)
+	{
+		int16_t be16 = (x);
+		append(&be16, sizeof be16);
+	}
+
+	void appendInt8(int8_t x)
+	{
+		append(&x, sizeof x);
+	}
+
+	///
+	/// Read int32_t from network endian
+	///
+	/// Require: buf->readableBytes() >= sizeof(int32_t)
+	int32_t readInt32()
+	{
+		int32_t result = peekInt32();
+		retrieveInt32();
+		return result;
+	}
+
+	int16_t readInt16()
+	{
+		int16_t result = peekInt16();
+		retrieveInt16();
+		return result;
+	}
+
+	int8_t readInt8()
+	{
+		int8_t result = peekInt8();
+		retrieveInt8();
+		return result;
+	}
+
+	int32_t peekInt32() const
+	{
+		int32_t be32 = 0;
+		memcpy(&be32, peek(), sizeof be32);
+		return (be32);
+	}
+
+	int16_t peekInt16() const
+	{
+		int16_t be16 = 0;
+		memcpy(&be16, peek(), sizeof be16);
+		return (be16);
+	}
+
+	int8_t peekInt8() const
+	{
+		int8_t x = *peek();
+		return x;
+	}
+
+	///
+	/// Prepend int32_t using network endian
+	///
+	void prependInt32(int32_t x)
+	{
+		int32_t be32 = (x);
+		prepend(&be32, sizeof be32);
+	}
+
+	void prependInt16(int16_t x)
+	{
+		int16_t be16 = (x);
+		prepend(&be16, sizeof be16);
+	}
+
+	void prependInt8(int8_t x)
+	{
+		prepend(&x, sizeof x);
+	}
+
+	void prepend(const void* /*restrict*/data, size_t len)
+	{
+		readerIndex_ -= len;
+		const char* d = static_cast<const char*>(data);
+		memcpy(begin() + readerIndex_, d, len);
+	}
+
+private:
+	char* begin()
+	{
+		return buffer_;
+	}
+
+	const char* begin() const
+	{
+		return buffer_;
+	}
+
+	char *buffer_;
+	size_t len_;
+	size_t readerIndex_;
+	size_t writerIndex_;
+};    
+
+enum   event_type{
     enum_TYPE_RUN       = 0,
     enum_TYPE_MAX,
-}; 
+};
 
-enum   callback_subtype{
+enum   event_subtype{
     enum_SUBTYPE_UINT8       = 0,
     enum_SUBTYPE_INT8,
     enum_SUBTYPE_UINT16,
@@ -210,243 +454,100 @@ enum   callback_subtype{
     enum_SUBTYPE_MAX,
 };
 
-class buffer{
-public:
-    static const size_t kCheapPrepend = 4;
+class event;
 
-    buffer(int8 *pdata, size_t len)
-    : buffer_(reinterpret_cast<char *>(pdata)),
-      len_(len),
-      readerIndex_(kCheapPrepend),
-      writerIndex_(kCheapPrepend)
-    {
-        
-    }
-    ~buffer(){}
-        
-    size_t readableBytes() const
-    { return writerIndex_ - readerIndex_; }
-
-    size_t writableBytes() const
-    { return len_ - writerIndex_; }
-
-    size_t prependableBytes() const
-    { return readerIndex_; }
-
-    const char* peek() const
-    { return begin() + readerIndex_; }
-    
-    void retrieve(size_t len)
-    {
-        if (len < readableBytes())
-        {
-            readerIndex_ += len;
-        }
-        else
-        {
-            retrieveAll();
-        }
-    }
-
-    void retrieveUntil(const char* end)
-    {
-        retrieve(end - peek());
-    }
-
-    void retrieveInt32()
-    {
-        retrieve(sizeof(int32_t));
-    }
-
-    void retrieveInt16()
-    {
-        retrieve(sizeof(int16_t));
-    }
-
-    void retrieveInt8()
-    {
-        retrieve(sizeof(int8_t));
-    }
-
-    void retrieveAll()
-    {
-        readerIndex_ = kCheapPrepend;
-        writerIndex_ = kCheapPrepend;
-    }
-    
-    int append(const char* /*restrict*/ data, size_t len)
-    {
-        if (writableBytes() < len)
-        {
-            return -1;
-        }
-        memcpy(beginWrite(), data, len);
-        hasWritten(len);
-        return 0;
-    }
-
-    int append(const void* /*restrict*/ data, size_t len)
-    {
-        return append(static_cast<const char*>(data), len);
-    }
-    char* beginWrite()
-  { return begin() + writerIndex_; }
-
-  const char* beginWrite() const
-  { return begin() + writerIndex_; }
-
-  void hasWritten(size_t len)
-  { writerIndex_ += len; }
-
-  ///
-  /// Append int32_t using network endian
-  ///
-  void appendInt32(int32_t x)
-  {
-    int32_t be32 = (x);
-    append(&be32, sizeof be32);
-  }
-
-  void appendInt16(int16_t x)
-  {
-    int16_t be16 = (x);
-    append(&be16, sizeof be16);
-  }
-
-  void appendInt8(int8_t x)
-  {
-    append(&x, sizeof x);
-  }
-
-  ///
-  /// Read int32_t from network endian
-  ///
-  /// Require: buf->readableBytes() >= sizeof(int32_t)
-  int32_t readInt32()
-  {
-    int32_t result = peekInt32();
-    retrieveInt32();
-    return result;
-  }
-
-  int16_t readInt16()
-  {
-    int16_t result = peekInt16();
-    retrieveInt16();
-    return result;
-  }
-
-  int8_t readInt8()
-  {
-    int8_t result = peekInt8();
-    retrieveInt8();
-    return result;
-  }
-
-  int32_t peekInt32() const
-  {
-    int32_t be32 = 0;
-    memcpy(&be32, peek(), sizeof be32);
-    return (be32);
-  }
-
-  int16_t peekInt16() const
-  {
-    int16_t be16 = 0;
-    memcpy(&be16, peek(), sizeof be16);
-    return (be16);
-  }
-
-  int8_t peekInt8() const
-  {
-    int8_t x = *peek();
-    return x;
-  }
-
-  ///
-  /// Prepend int32_t using network endian
-  ///
-  void prependInt32(int32_t x)
-  {
-    int32_t be32 = (x);
-    prepend(&be32, sizeof be32);
-  }
-
-  void prependInt16(int16_t x)
-  {
-    int16_t be16 = (x);
-    prepend(&be16, sizeof be16);
-  }
-
-  void prependInt8(int8_t x)
-  {
-    prepend(&x, sizeof x);
-  }
-
-  void prepend(const void* /*restrict*/ data, size_t len)
-  {
-    readerIndex_ -= len;
-    const char* d = static_cast<const char*>(data);
-    memcpy(begin()+readerIndex_, d, len);
-  }
-    
-
-    
-private:
-    char* begin()
-    { return buffer_; }
-
-    const char* begin() const
-    { return buffer_; }
-
-
-    char        *buffer_;
-    size_t      len_;
-    size_t      readerIndex_;
-    size_t      writerIndex_;
-};    
-
-class callback_param;
-
-typedef portBASE_TYPE   (pf_callback)(void *pvoid, class callback_param *pparam);
+typedef portBASE_TYPE   (event_handle)(void *pvoid, class event*pevent);
 #define     def_EVENT_DATA_SIZE         (15)
 
-class callback_param {
+class event{
 public:
-	callback_param(enum callback_type type=enum_TYPE_RUN, enum callback_subtype subtype=enum_SUBTYPE_UINT8)
-			:m_type(type), m_subtype(subtype)
+    event(event_handle handler = NULL, void *pvoid = NULL):
+    	m_priority(0),
+    	m_index(0),
+    	m_buffer(m_param, sizeof(m_param)),
+    	m_handler(handler),
+    	m_pvoid(pvoid)
 	{
+    	list_init(&m_node);
 	}
-	~callback_param()
-	{
-	}
-
-	enum callback_type m_type;
-	enum callback_subtype m_subtype;
-	uint8 m_val[def_EVENT_DATA_SIZE];
-}; 
-
-class callback{
-public:
-    callback(pf_callback handler, void *pvoid):m_handler(handler), m_pvoid(pvoid){}
-    ~callback(){}
+    ~event(){}
     
-    uint8                   			m_priority;                         //优先级
-    class callback_param				m_param;
-    pf_callback           				*m_handler;
-    void                    			*m_pvoid;
+    event &operator=(const event &other)
+    {
+    	if (this == &other){
+    		return *this;
+    	}
+    	m_priority 					= other.m_priority;
+    	m_index						= other.m_index;
+    	memcpy(m_param, other.m_param, sizeof(m_param));
+    	m_handler					= other.m_handler;
+    	m_pvoid						= other.m_pvoid;
+    	m_buffer 					= other.m_buffer;
+
+    	return *this;
+    }
+
+    class buffer &buffer_get(void)
+    {
+    	return m_buffer;
+    }
+
+    void buffer_init(void)
+    {
+    	m_buffer.retrieveAll();
+    }
+
+    portBASE_TYPE call(void)
+    {
+    	portBASE_TYPE 	rt			= 0;
+
+    	if (NULL != m_handler){
+			rt 	= m_handler(m_pvoid, this);
+		}
+
+    	return rt;
+    }
+
+    static int list_node_offset_get(void)
+    {
+		return OFFSET(class event, m_node);
+    }
+	list_node_t* list_node_get(void) { return &m_node; }
+
+    void index_set(uint8 index){ m_index 	= index;}
+    uint8 index_get(void){ return m_index;}
+
+private:
+    uint8                   			m_priority;                     //优先级
+    uint8                   			m_index;                        //index of m_event
+    class buffer						m_buffer;
+    int8 								m_param[def_EVENT_DATA_SIZE];						//事件参数
+    event_handle           				*m_handler;
+    void                    			*m_pvoid;						//仅仅存放this指针  不执行任何其他数据
     list_node_t              			m_node;
 };
 
-/*
-int32_t peekInt32() const
-  {
-    assesv(readableBytes() >= sizeof(int32_t));
-    int32_t be32 = 0;
-    ::memcpy(&be32, peek(), sizeof be32);
-    return sockets::networkToHost32(be32);
-  }
-*/
+class event_manage{
+public:
+	event_manage();
+	~event_manage();
+
+	event * event_malloc(void);
+	sv_err_t event_free(event *pevent);
+
+private:
+	uint8								m_size;
+	uint16 								m_bitmap;
+	event								m_event[def_EVENT_NR];
+};
+
+#define 	event_manage_singleton() 		singleton<class event_manage>::instance()
+
+
+#ifdef def_USING_SERVICE_MQ
+
+#define     def_MQ_ALIGN_SIZE               (4)
+#ifdef 	SV_EVENT_QUEUE
 
 struct sv_mq_message
 {
@@ -457,7 +558,7 @@ struct sv_eventqueue
 {
     struct sv_ipc_object parent;                    /**< inherit from ipc_object */
 
-    pf_callback       *m_def_handler;                 //def handler
+    event_handle       *m_def_handler;                 //def handler
     void                *m_pvoid;
     void                *msg_pool;                      /**< stasv address of message queue */
 
@@ -473,8 +574,9 @@ typedef struct sv_eventqueue *sv_eq_t;
 
 portBASE_TYPE sv_eq_init(sv_eq_t mq, const char *name, void *msgpool,
                             portSIZE_TYPE msg_size, portSIZE_TYPE pool_size, uint8_t flag,
-                            pf_callback *def_handler, void *pprivate);
+                            event_handle *def_handler, void *pprivate);
 
+#endif
 
 
 
@@ -627,7 +729,7 @@ typedef            struct DEVICE_ABSTRACT                      device_t;
 
 
 
-void sv_service_init(void);
+void sv_startup(void);
 
 #ifdef __cplusplus
 }

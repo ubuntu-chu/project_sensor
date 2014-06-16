@@ -61,7 +61,7 @@ private:
 
 
 	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
-	static portBASE_TYPE   event_cb(void *pvoid, class callback_param *);
+	static portBASE_TYPE   event_cb(void *pvoid, class event *pevent);
 
         
     portBASE_TYPE load_app_datum(void);

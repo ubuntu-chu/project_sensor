@@ -47,6 +47,8 @@
 
 //define timer nr   both  hard timer and soft timer
 #define  	def_TIMER_NR							(6)
+//define event nr
+#define  	def_EVENT_NR							(6)
 //define time lib
 #define 	def_MINI_TIME_LIBRARY
 #define     def_CIRCULAR_BUFFER

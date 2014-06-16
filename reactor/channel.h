@@ -45,19 +45,19 @@ public:
 		update();
 	}
 
-	void event_handle_register(handle_channel_cb *cb, void *pparam)
+	void event_handle_register(handle_channel_cb *cb, void *pvoid)
 	{
 		m_handle_cb						= cb;
-		m_pparam						= pparam;
+		m_pvoid							= pvoid;
 	}
 	void handleEvent(Timestamp receiveTime);
 
 	class device *device_get(void) { return 	m_handle; }
 
 	list_node_t* list_node_get(void) { return &m_node; }
-	int list_node_offset_get(void) { return OFFSET(class channel, m_node); }
+	static int list_node_offset_get(void) { return OFFSET(class channel, m_node); }
 	list_node_t* active_list_node_get(void) { return &m_active_node; }
-	int active_list_node_offset_get(void) { return OFFSET(class channel, m_active_node); }
+	static int active_list_node_offset_get(void) { return OFFSET(class channel, m_active_node); }
 
 	void remove();
 
@@ -69,7 +69,7 @@ private:
 	int revents_;
 
 	handle_channel_cb 		*m_handle_cb;
-	void 					*m_pparam;
+	void 					*m_pvoid;
 	bool eventHandling_;
 	class device 			*m_handle;
 	list_node_t 			m_node;

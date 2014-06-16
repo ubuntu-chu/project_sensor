@@ -29,18 +29,23 @@ void channel::remove()
 void channel::handleEvent(Timestamp receiveTime) 
 {
     if (NULL != m_handle_cb){
-        int8    data[100];
-        class buffer 	buf(data, sizeof(data)/sizeof(data[0]));
+        int8    				data[100];
+        portSSIZE_TYPE 			rt_len;
         
         eventHandling_ = true;
 
         if (revents_ & (POLLIN)) {
-            //
+        	rt_len 				= m_handle->read(0, reinterpret_cast<char *>(&data[buffer::kCheapPrepend]), sizeof(data));
+        	if (rt_len >= 0){
+				class buffer 			buffer(data, sizeof(data), rt_len);
 
-            m_handle_cb(m_pparam, POLLIN, buf, receiveTime);
+				m_handle_cb(m_pvoid, POLLIN, buffer, receiveTime);
+        	}
         }
         if (revents_ & POLLOUT) {
-            m_handle_cb(m_pparam, POLLOUT, buf, receiveTime);
+            class buffer 			buffer(data, sizeof(data));
+            
+            m_handle_cb(m_pvoid, POLLOUT, buffer, receiveTime);
         }
         eventHandling_ = false;
     }
