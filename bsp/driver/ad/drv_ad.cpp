@@ -372,8 +372,8 @@ extern "C" void SINC2_Int_Handler()
 static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev)
 {
 
-	return DEVICE_POLLIN;
-//	return DEVICE_POLLNONE;
+//	return DEVICE_POLLIN;
+	return DEVICE_POLLNONE;
 }
 
 

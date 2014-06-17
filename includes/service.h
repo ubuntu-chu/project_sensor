@@ -147,6 +147,7 @@ public:
 	bool timer_unregister(timer_handle_type handle);
 
 	sv_err_t timer_start(timer_handle_type handle);
+	sv_err_t timer_start(timer_handle_type handle, uint32 expired_ms);
 	sv_err_t timer_stop(timer_handle_type handle);
     sv_err_t timer_restart(timer_handle_type handle);
 	portBASE_TYPE timer_expired(timer_handle_type handle);

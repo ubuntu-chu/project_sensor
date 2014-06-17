@@ -161,7 +161,7 @@ portBASE_TYPE application::init(void)
                                                 period_handle, 
                                                 this,
                                                 "period handle");
-	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);  
+//	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);
 	cpu_pendsv_register(pendsv_handle, this);
     
     m_app_runinfo.m_pdevice_commu->open();
@@ -261,7 +261,7 @@ portBASE_TYPE application::run()
 	return 0;
 }
 
-//intertup context 
+//intertup context ; interrupt disable
 void application::pendsv_handle(void *pvoid)
 {
 	application *papplication      = static_cast<application *> (pvoid);

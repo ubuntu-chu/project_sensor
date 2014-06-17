@@ -124,7 +124,7 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
                                                 "poll timeout");
             ASSERT(m_handle_rx != (timer_handle_type)-1);
         }
-        t_timer_manage.timer_start(m_handle_rx);
+        t_timer_manage.timer_start(m_handle_rx, timeout);
     }
 	while (1){
         rt 	= fetch(pbuf, plen);

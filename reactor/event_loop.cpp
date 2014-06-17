@@ -5,7 +5,7 @@
 #include "../app/event.h"
 #include "../app/devices.h"
 
-const int kPollTimeMs = 1000;
+const int kPollTimeMs = 2000;
 
 static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
 

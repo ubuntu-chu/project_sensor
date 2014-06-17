@@ -30,6 +30,7 @@ public:
 private:
 	eventloop			*loop_;
 	list_head_t 		m_channels;
+	timer_handle_type 	m_handle_timer;
 };
 
 

@@ -98,7 +98,8 @@ void list_splice_init(list_head_t *list, list_head_t *head)
 
 void sv_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
 {
-	
+	object->name 									= name;
+	object->type 									= type;
 }
 
 void sv_object_detach(sv_object_t object)
@@ -537,6 +538,15 @@ bool timer_manage::timer_unregister(timer_handle_type handle)
     return true;
 }
 
+sv_err_t timer_manage::timer_start(timer_handle_type handle, uint32 expired_ms)
+{
+	if (handle >= m_size) {
+		return -SV_EPARAM;
+	}
+	m_timer[handle].init_tick 				= sv_tick_from_millisecond(expired_ms);
+	return sv_timer_start(&m_timer[handle]);
+}
+
 sv_err_t timer_manage::timer_start(timer_handle_type handle)
 {
 	if (handle >= m_size) {
@@ -570,13 +580,10 @@ sv_err_t timer_manage::timer_restart(timer_handle_type handle) {
 
 portBASE_TYPE timer_manage::timer_expired(timer_handle_type handle)
 {
-	tick_t current_tick;
-
 	if (handle >= m_size) {
 		return (portBASE_TYPE) -1;
 	}
-	current_tick = cpu_tick_get();
-	return (current_tick > m_timer[handle].timeout_tick) ? (1) : (0);
+	return (m_timer[handle].parent.flag & SV_TIMER_FLAG_TIMEOUT);
 }
 
 
@@ -600,10 +607,12 @@ void timer_manage::timer_handle(list_head_t *list_head)
 			/* remove timer from timer list firstly */
 			list_remove(&(t->list));
 
-			sv_hw_interrupt_enable(level);
-			/* call timeout function */
-			t->timeout_func(t->parameter);
-			level = sv_hw_interrupt_disable();
+            /* call timeout function */
+            if (NULL != t->timeout_func){
+                sv_hw_interrupt_enable(level);
+                t->timeout_func(t->parameter);
+                level = sv_hw_interrupt_disable();
+            }
 
 			/* re-get tick */
 			current_tick = cpu_tick_get();
