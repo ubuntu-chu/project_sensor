@@ -37,14 +37,14 @@ static const DeviceAbstractInfo st_DeviceInfo = {
         
     };
 
-static DeviceAbstract  st_Device                            = {
+static DeviceAbstract  st_Device                          = {
     
         &st_DeviceInfo,
     };
 
 portuBASE_TYPE drv_commuregister(void){
   
-    return API_DeviceRegister(&st_Device);
+    return API_DeviceRegister((DeviceAbstract *)&st_Device);
 }
 
 
@@ -68,8 +68,8 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
     void *pbuf  = const_cast<void *>(buffer);
-    portSSIZE_TYPE  len = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
-    return len;
+    portSSIZE_TYPE  rt = uart_tx(UART_0, reinterpret_cast<uint8 *>(pbuf), size);
+    return rt;
 }
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
@@ -94,7 +94,7 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
         rt                              = len;
     }
 
-    return size;
+    return rt;
 }
 
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)

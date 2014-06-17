@@ -6,6 +6,8 @@
 #include <string>
 #include "StringPiece.h"
 
+#ifdef LOGGER
+
 const int kSmallBuffer = 200;
 const int kLargeBuffer = 400;
 
@@ -162,6 +164,8 @@ inline LogStream& operator<<(LogStream& s, const Fmt& fmt)
   s.append(fmt.data(), fmt.length());
   return s;
 }
+
+#endif
 
 #endif  // MUDUO_BASE_LOGSTREAM_H
 

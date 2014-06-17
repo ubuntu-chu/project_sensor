@@ -114,7 +114,7 @@
 #define   		 BIT31 						   					(1UL << 31)
 #endif
 
-#if 1
+#ifdef LOGGER
 #define ASSERT(EX)                                                         \
 if (!(EX))                                                                    \
 {                                                                             \
@@ -133,7 +133,11 @@ if (!(EX))                                                                    \
 #endif
 
 
-
+#include <stdarg.h>
+#define SECTION(x)                      __attribute__((section(x)))
+#define UNUSED                          __attribute__((unused))
+#define USED                            __attribute__((used))
+#define ALIGN(n)                        __attribute__((aligned(n)))
 
 
 

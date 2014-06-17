@@ -2,12 +2,10 @@
 #include "protocol.h"
 #include "modbus.h"
 
-device_commu::device_commu(const char *pname, 
-                             uint16 oflag, 
-                             class protocol *pprotocol, 
+device_commu::device_commu(class protocol *pprotocol,
                              package_event_handler handler,
                              void *pvoid)
-                            :device(pname, oflag)
+                            :device(DEVICE_NAME_COMMU)
 {
     m_handler			= handler;
     m_pvoid 			= pvoid;
@@ -22,46 +20,42 @@ device_commu::~device_commu()
 
 }
 
-portBASE_TYPE device_commu::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device_commu::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
-	switch (phase){
-	case PROC_PREPARE:
-		device::process_read(phase, pbuf, size);
-		break;
+	if (DIR_READ == dir){
+		switch (phase){
+		case PHASE_PREPARE:
 
-	case PROC_DONE:
+			break;
+		case PHASE_DONE:
 
-		if (0 != m_pprotocol->unpack(reinterpret_cast<uint8 *>(pbuf), size)) {
+			if (0 != m_pprotocol->unpack(reinterpret_cast<uint8 *>(device_buffer.m_pbuf_recv), 
+                device_buffer.m_recv_actual_size)) {
+				API_DeviceControl(m_pdevice, COMMU_IOC_RX_ENTER, NULL);
+				return -1;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}else {
+		switch (phase){
+		case PHASE_PREPARE:
+
+            //format  send buff
+			device_buffer.m_send_actual_size = m_pprotocol->pack(reinterpret_cast<uint8 *>(device_buffer.m_pbuf_send),
+								reinterpret_cast<uint8 *>(device_buffer.m_pbuf_send), 
+                                device_buffer.m_buf_send_size);
+			break;
+		case PHASE_DONE:
+
 			API_DeviceControl(m_pdevice, COMMU_IOC_RX_ENTER, NULL);
-            return -1;
+			break;
+
+		default:
+			break;
 		}
-        m_len_data      = size;
-		break;
-
-	default:
-		break;
-	}
-
-	return 0;
-}
-
-portBASE_TYPE device_commu::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
-{
-	switch (phase){
-	case PROC_PREPARE:
-		{
-			//format  send buff
-			m_len_send = m_pprotocol->pack(reinterpret_cast<uint8 *>(m_pbuf_send), 
-                                reinterpret_cast<uint8 *>(pbuf),size );
-		}
-		break;
-
-	case PROC_DONE:
-        API_DeviceControl(m_pdevice, COMMU_IOC_RX_ENTER, NULL);
-		break;
-
-	default:
-		break;
 	}
 
 	return 0;
@@ -102,9 +96,8 @@ portBASE_TYPE device_commu::package_recv_handle(uint8 event,
 		if (event == EVENT_ACK){
 		}else {
         	//redirect  send buf
-            m_pbuf_send                 = buf;
             //format send data to buf
-            write((char *)pbuf, buf_recv_len);
+            write((char *)pbuf, sizeof(buf));
             if (m_handler != NULL){
             	class modbus_rtu_info info;
             	if (0 == m_pprotocol->info(static_cast<const uint8 *>(pbuf), buf_recv_len, 

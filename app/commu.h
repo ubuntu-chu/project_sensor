@@ -15,14 +15,13 @@ typedef portBASE_TYPE (*package_event_handler)(void *pvoid, class protocol_info 
 
 class device_commu:public device{
 public:
-    device_commu(const char *pname, uint16 oflag, class protocol *pprotocol, package_event_handler handler, void *pvoid);
+    device_commu(class protocol *pprotocol, package_event_handler handler, void *pvoid);
     virtual ~device_commu();
 	portBASE_TYPE package_event_fetch(void);
+    virtual portBASE_TYPE process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
 private:
     device_commu(const device_commu &other);
     device_commu &operator =(const device_commu &other);
-	virtual portBASE_TYPE process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
-	virtual portBASE_TYPE process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size);
 	portBASE_TYPE package_recv_handle(uint8 event, uint8 func_code, uint8 *pcontinue);
     package_event_handler	m_handler;
     void 					*m_pvoid;

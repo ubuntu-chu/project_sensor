@@ -6,7 +6,6 @@ class poller  t_poller;
 
 poller::poller()
 {
-	loop_ 		= NULL;
 	list_init(&m_channels);
 }
 
@@ -16,7 +15,6 @@ poller::~poller()
 
 poller* poller::newDefaultPoller(eventloop* loop)
 {
-	t_poller.eventloop_set(loop);
 	t_poller.m_handle_timer 			= t_timer_manage.hard_timer_register(1000,
                                                 SV_TIMER_FLAG_ONE_SHOT,
                                                 NULL,

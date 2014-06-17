@@ -3,7 +3,8 @@
 #include "../includes/includes.h"
 
 enum hold_reg_index{
-    enum_REG_MODBUS_ADDR  = 0,                      //设备地址，取值范围（1-247）；广播地址0
+    enum_REG_BREAK_SECTION_START_1 = 0,
+    enum_REG_MODBUS_ADDR  = enum_REG_BREAK_SECTION_START_1,                      //设备地址，取值范围（1-247）；广播地址0
     enum_REG_COMMU_BPS,                             //通信速率（0：:2400，1：4800，2：9600，3：19200，4：38400）
     enum_REG_GAS_MIX_RATIO,                         //气体混合比率（0~100%，SF6）                    
     enum_REG_P_CORRECTION_FACTOR,                   //压力修正温度（默认20℃，单位0.1℃）
@@ -13,8 +14,11 @@ enum hold_reg_index{
     enum_REG_H_SENSOR_CLR_POWER_SET,                //湿度传感器清洗功率设置（0~0xFFFF, PWM占空比）
     enum_REG_H_SENSOR_ZERO_CAL_SET,                 //湿度传感器零点校准设置（0~0xFFFF, PWM占空比）    -Heat
     enum_REG_H_SENSOR_ZERO_REF_SET,                 //湿度传感器零点参考设置（0~0xFFFF, PWM占空比）    -RHref
+    enum_REG_BREAK_SECTION_END_1,
     
-    enum_REG_P_CAL_0    = 257,                      //压力校准点0 压力，单位hPa，绝压，参考1000hPa
+    
+    enum_REG_BREAK_SECTION_START_2 = 257,
+    enum_REG_P_CAL_0    = enum_REG_BREAK_SECTION_START_2,  //压力校准点0 压力，单位hPa，绝压，参考1000hPa
     enum_REG_P_CAL_1,
     enum_REG_P_CAL_2,
     enum_REG_P_CAL_3,
@@ -49,6 +53,7 @@ enum hold_reg_index{
     enum_REG_H_CAL_ADC_10,
     enum_REG_H_CAL_ADC_11,
     enum_REG_H_CAL_ADC_12,
+    enum_REG_BREAK_SECTION_END_2,
     
     enum_REG_HOLD_REG_MAX   = 0x0122,
     
@@ -104,7 +109,8 @@ struct regs{
     //input regs
     uint16 			        m_tab_input_registers[enum_REG_INPUT_REG_MAX];
     //hold regs
-    uint16			        m_tab_registers[enum_REG_HOLD_REG_MAX];
+    uint16			        m_tab_registers[enum_REG_BREAK_SECTION_END_1-enum_REG_BREAK_SECTION_START_1
+                                            +enum_REG_BREAK_SECTION_END_2-enum_REG_BREAK_SECTION_START_2];
 };
 
 enum reg_type{

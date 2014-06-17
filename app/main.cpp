@@ -77,7 +77,9 @@ while (1){
     delay_ms(1000);
 }    
     if ((ssize <= 0) || (ssize != storage_info_magic.m_len)){
+    #ifdef LOGGER
         LOG_FATAL << "magic load failed!";
+    #endif
         return -1;
     }
     m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info_modbus);
@@ -95,7 +97,9 @@ while (1){
                                 storage_info_modbus.m_len);
     }
     if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
+    #ifdef LOGGER
         LOG_FATAL << "modbus regs load/write failed!";
+    #endif
         return -1;
     }
     
@@ -122,16 +126,17 @@ void application::input_reg_set(enum input_reg_index index, uint16 value)
 
 portBASE_TYPE application::init(void)
 {
-    static device_ad 		    t_device_ad(DEVICE_NAME_AD, DEVICE_FLAG_RDONLY);
-    static device_pin 			t_device_pin(DEVICE_NAME_PIN, DEVICE_FLAG_RDONLY);   
-    static device_storage 		t_device_storage(DEVICE_NAME_STORAGE, DEVICE_FLAG_RDWR);
-    static device_pwm		    t_device_pwm(DEVICE_NAME_PWM, DEVICE_FLAG_RDONLY);
-    static device_commu   		t_device_commu(DEVICE_NAME_COMMU, DEVICE_FLAG_RDWR, 
-                                             &t_protocol_modbus_rtu,
+    static device_ad 		    		t_device_ad;
+    static device_pin 				    t_device_pin;
+    static device_storage 				t_device_storage;
+    static device_pwm		    		t_device_pwm;
+    static device_commu   				t_device_commu( &t_protocol_modbus_rtu,
                                              application::package_event_handler,
                                              this);
+#ifdef LOGGER
     //log setting
     Logger::setOutput(debug_output);
+#endif
 #if 0
     {
         struct tm   tm_time;
@@ -165,11 +170,11 @@ portBASE_TYPE application::init(void)
 	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);
 	cpu_pendsv_register(pendsv_handle, this);
     
-    m_app_runinfo.m_pdevice_commu->open();
-    m_app_runinfo.m_pdevice_pin->open();
-    m_app_runinfo.m_pdevice_ad->open();
-    m_app_runinfo.m_pdevice_pwm->open();
-    m_app_runinfo.m_pdevice_storage->open();
+    m_app_runinfo.m_pdevice_commu->open(DEVICE_FLAG_RDWR);
+    m_app_runinfo.m_pdevice_pin->open(DEVICE_FLAG_RDWR);
+    m_app_runinfo.m_pdevice_ad->open(DEVICE_FLAG_RDONLY);
+    m_app_runinfo.m_pdevice_pwm->open(DEVICE_FLAG_RDWR);
+    m_app_runinfo.m_pdevice_storage->open(DEVICE_FLAG_RDWR);
     
     //load conf_datum from storage device
 #if 0

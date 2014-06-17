@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef LOGGER
 
 const char digits[] = "9876543210123456789";
 const char* zero = digits + 9;
@@ -176,3 +177,5 @@ template Fmt::Fmt(const char* fmt, unsigned long long);
 
 template Fmt::Fmt(const char* fmt, float);
 template Fmt::Fmt(const char* fmt, double);
+
+#endif

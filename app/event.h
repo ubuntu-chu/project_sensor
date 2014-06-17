@@ -8,11 +8,12 @@
 
 class device_event:public device{
 public:
-    device_event(const char *pname, uint16 oflag);
+	device_event():device(DEVICE_NAME_EVENT)
+	{
+
+	}
+
     virtual ~device_event();
-private:
-    device_event(const device_event &other);
-    device_event &operator =(const device_event &other);
 };    
     
     

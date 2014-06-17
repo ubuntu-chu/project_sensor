@@ -8,11 +8,11 @@
 
 class device_pwm:public device{
 public:
-    device_pwm(const char *pname, uint16 oflag);
+	device_pwm():device(DEVICE_NAME_PWM)
+	{
+
+	}
     virtual ~device_pwm();
-private:
-    device_pwm(const device_pwm &other);
-    device_pwm &operator =(const device_pwm &other);
 };    
     
 #endif

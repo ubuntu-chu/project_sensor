@@ -86,7 +86,7 @@ struct sv_object
     const char   *name;                			 /**< name of kernel object */
     uint8_t type;                                    /**< type of kernel object */
     uint8_t flag;                                    /**< flag of kernel object */
-    list_t  list;                                    /**< list node of kernel object */
+    //list_t  list;                                    /**< list node of kernel object */
 };
 typedef struct sv_object *sv_object_t;                  /**< Type for kernel objects. */
 
@@ -112,9 +112,7 @@ struct sv_ipc_object
 struct sv_timer
 {
     struct sv_object parent;                            /**< inherit from sv_object */
-
     list_node_t     list;                               /**< the node of timer list */
-    uint8			index;								/**< index  in  bitmap */
 
     fp_void_pvoid   *timeout_func;              /**< timeout function */
     void            *parameter;                         /**< timeout function's parameter */
@@ -174,8 +172,8 @@ private:
 	void timer_handle(list_head_t *list_head);
 	uint8						m_size;
 	bool						m_soft_timer_handling;
+    portDEVHANDLE_TYPE			m_handle_timer;
 	uint16 						m_bitmap;
-	portDEVHANDLE_TYPE			m_handle_timer;
 	list_head_t					m_timer_list;
 	list_head_t					m_soft_timer_list;
 	struct sv_timer 		    m_timer[def_MONITOR_TIME_NR];
@@ -195,15 +193,6 @@ public:
 			len_(len),
 			readerIndex_( kCheapPrepend),
 			writerIndex_(kCheapPrepend)
-	{
-
-	}
-
-	buffer(int8 *pdata, size_t len, size_t existed_len) :
-			buffer_(reinterpret_cast<char *>(pdata)),
-			len_(len),
-			readerIndex_( kCheapPrepend),
-			writerIndex_(kCheapPrepend + existed_len)
 	{
 
 	}
@@ -438,26 +427,6 @@ private:
 	size_t len_;
 	size_t readerIndex_;
 	size_t writerIndex_;
-};    
-
-enum   event_type{
-    enum_TYPE_RUN       = 0,
-    enum_TYPE_MAX,
-};
-
-enum   event_subtype{
-    enum_SUBTYPE_UINT8       = 0,
-    enum_SUBTYPE_INT8,
-    enum_SUBTYPE_UINT16,
-    enum_SUBTYPE_INT16,
-    enum_SUBTYPE_UINT32,
-    enum_SUBTYPE_INT32,
-    enum_SUBTYPE_UINT64,
-    enum_SUBTYPE_INT64,
-    enum_SUBTYPE_FLOAT,
-    enum_SUBTYPE_DOUBLE,
-    enum_SUBTYPE_STRING,
-    enum_SUBTYPE_MAX,
 };
 
 class event;
@@ -641,6 +610,7 @@ enum  DEVICE_STATUS_TYPE{
 	DEVICE_EEXEC,
     DEVICE_EAGAIN,
     DEVICE_ETIMEOUT,
+    DEVICE_ENOEXSITED,
 };
 
 typedef            enum  DEVICE_STATUS_TYPE                   DeviceStatus_TYPE;

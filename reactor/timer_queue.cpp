@@ -6,17 +6,16 @@
 
 static class channel *timer_create(eventloop *loop)
 {
-    static device_timer 		t_device_timer(DEVICE_NAME_TIMER, DEVICE_FLAG_RDWR);
+    static device_timer 		t_device_timer;
     static channel  timer(loop, &t_device_timer);
 
-    t_device_timer.open();
+    t_device_timer.open(DEVICE_FLAG_RDWR);
 
     return &timer;
 }
 
 timer_queue::timer_queue()
 {
-	loop_ 					= NULL;
 }
 
 timer_queue::~timer_queue()
@@ -27,7 +26,6 @@ timer_queue 	t_timer_queue;
 
 timer_queue* timer_queue::new_timerqueue(eventloop* loop)
 {
-	t_timer_queue.eventloop_set(loop);
 	t_timer_queue.m_pchannel_timer = timer_create(loop);
 	t_timer_queue.m_pchannel_timer->enableReading();
 	t_timer_queue.m_pchannel_timer->event_handle_register(&timer_queue::event_handle, &t_timer_queue);

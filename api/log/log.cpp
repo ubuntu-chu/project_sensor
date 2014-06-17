@@ -1,5 +1,7 @@
 #include "log.h"
 
+#ifdef LOGGER
+
 portBASE_TYPE 	errno	= 0;
 
 const char *strerror_array[] = {
@@ -13,8 +15,6 @@ const char* strerror_tl(int savedErrno)
 {
   return strerror_array[savedErrno];
 }
-
-#ifdef LOGGER
 
 Logger::LogLevel initLogLevel()
 {

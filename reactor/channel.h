@@ -65,13 +65,13 @@ private:
 	void update();
 
 	eventloop* loop_;
-	int events_;
-	int revents_;
+	uint8   events_;
+    uint8   revents_;
+    bool    eventHandling_;
 
 	handle_channel_cb 		*m_handle_cb;
 	void 					*m_pvoid;
-	bool eventHandling_;
-	class device 			*m_handle;
+	class device 			*const m_handle;
 	list_node_t 			m_node;
 	list_node_t 			m_active_node;
 };

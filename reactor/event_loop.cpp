@@ -7,13 +7,13 @@
 
 const int kPollTimeMs = 2000;
 
-static device_event 		t_device_event(DEVICE_NAME_EVENT, DEVICE_FLAG_RDWR);
+static device_event 		t_device_event;
 
 static class channel *event_create(eventloop *loop)
 {
     static channel  event(loop, &t_device_event);
     
-    t_device_event.open();
+    t_device_event.open(DEVICE_FLAG_RDWR);
 
     return &event;
 }
@@ -43,7 +43,6 @@ void eventloop::loop() {
 	while (true == looping_){
 		list_init(&m_active_channels);
 
-//		m_ppoller->poll(kPollTimeMs, &m_active_channels);
 		pollReturnTime_ = m_ppoller->poll(kPollTimeMs, &m_active_channels);
 
 		list_for_each(pos, &m_active_channels){
@@ -81,7 +80,7 @@ timer_handle_type eventloop::run_every(uint32 ms, fp_void_pvoid *cb, void *ppara
 
 int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {
-	eventloop *peventloop      = static_cast<eventloop *> (pvoid);
+	eventloop *peventloop      = reinterpret_cast<eventloop *> (pvoid);
 
 	//event  readable
 	if (event_type == POLLIN){

@@ -39,8 +39,8 @@
 //define little endian format
 #define 	BIG_ENDIAN              				(0)
 //define logger
-#define 	LOGGER
-#define 	LOG_IN_EMBEDED
+//#define 	LOGGER
+//#define 	LOG_IN_EMBEDED
 //define time monitor count
 #define 	def_MONITOR_MANAGE							(1)
 #define 	def_MONITOR_TIME_NR						(6)

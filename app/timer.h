@@ -8,11 +8,12 @@
 
 class device_timer:public device{
 public:
-    device_timer(const char *pname, uint16 oflag);
+	device_timer():device(DEVICE_NAME_TIMER)
+	{
+
+	}
+
     virtual ~device_timer();
-private:
-    device_timer(const device_timer &other);
-    device_timer &operator =(const device_timer &other);
 };    
     
     

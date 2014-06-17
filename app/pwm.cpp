@@ -3,10 +3,6 @@
 ******************************************************************************/ 
 #include "pwm.h"
 
-device_pwm::device_pwm(const char *pname, uint16 oflag):device(pname, oflag)
-{
-}
-
 device_pwm::~device_pwm()
 {
 }

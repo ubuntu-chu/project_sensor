@@ -8,40 +8,31 @@
 #include    "../includes/Macro.h"
 #include    "../api/log/log.h"
 
-device::device(const char *pname, uint16 oflag)
-{
-	m_pdevice 				= NULL;
-	if (NULL == pname) {
-		return;
-	}
-	m_name 					= pname;
-	m_oflag 				= oflag;
-	m_len_recv 				= 0;
-	m_len_send 				= 0;
-	m_pbuf_recv 			= NULL;
-	m_pbuf_send 			= NULL;
-	m_offline_cnt 			= 0;
-}
-
 device::~device()
 {
     close();
     m_pdevice   = NULL;
 }
 
-portBASE_TYPE device::open(void)
+portBASE_TYPE device::open(uint16 oflag)
 {
     //查找设备
     m_pdevice   = hal_devicefind(m_name);
     if (NULL == m_pdevice){
+    #ifdef LOGGER
 	    LOG_WARN << "device:" << m_name << "find fail!";
-        return (portBASE_TYPE)-1;
+    #endif
+    	API_DeviceErrorInfoSet(DEVICE_ENOEXSITED);
+        return -1;
     }
     //打开设备
-    if (DEVICE_OK != hal_deviceopen(m_pdevice, m_oflag)){
+    if (DEVICE_OK != hal_deviceopen(m_pdevice, oflag)){
+    #ifdef LOGGER
     	LOG_WARN << "device:" << m_name << "open fail!";
+    #endif
         m_pdevice 		= NULL;
-        return (portBASE_TYPE)-2;
+    	API_DeviceErrorInfoSet(DEVICE_EOPEN);
+        return -1;
     }
     return 0;
 }
@@ -68,17 +59,28 @@ uint8	device::device_is_valid(void)
 
 portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
 {
-    if ((NULL == m_pdevice)){
+    struct device_buffer    t_device_buffer;
+    portSSIZE_TYPE 			actual_size;
+    
+    if ((NULL == m_pdevice) || (NULL == buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
         return -1;
     }
-    if (this->process_read(PROC_PREPARE, buffer, size)){
+    if (0 == size){
+    	return 0;
+    }
+    t_device_buffer.m_pbuf_recv 		= buffer;
+    t_device_buffer.m_buf_recv_size 	= size;
+    if (this->process_readwrite(DIR_READ, PHASE_PREPARE, t_device_buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
     	return -1;
     }
-    if (m_pbuf_recv == NULL){
+    if (t_device_buffer.m_pbuf_recv == NULL){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
         return -1;
     }
-    size  = (portSIZE_TYPE)API_DeviceRead(m_pdevice, pos, m_pbuf_recv, m_buf_recv_len);
-    if (size == ((portSIZE_TYPE)-1)){
+    actual_size  = API_DeviceRead(m_pdevice, pos, t_device_buffer.m_pbuf_recv, t_device_buffer.m_buf_recv_size);
+    if (actual_size == ((portSSIZE_TYPE)-1)){
 		if (API_DeviceErrorInfoGet() == DEVICE_ETIMEOUT){
 			m_offline_cnt++;
 		}else {
@@ -88,18 +90,51 @@ portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE siz
     }
     m_offline_cnt 			= 0;
 
-	m_len_recv				= size;
-    m_len_data              = size;
+    t_device_buffer.m_pbuf_recv_actual		= t_device_buffer.m_pbuf_recv;
+    t_device_buffer.m_recv_actual_size		= actual_size;
     //call virtual process_read to done
-    if (this->process_read(PROC_DONE, buffer, size)){
+    if (this->process_readwrite(DIR_READ, PHASE_DONE, t_device_buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
 		return -1;
 	}
-	if ((buffer != NULL) && (NULL != m_pbuf_data) 
-        && (buffer != reinterpret_cast<char *>(m_pbuf_data))){
-		memcpy(buffer, m_pbuf_data, m_len_data);
+	if (buffer != reinterpret_cast<char *>(t_device_buffer.m_pbuf_recv_actual)){
+		memcpy(buffer, t_device_buffer.m_pbuf_recv_actual, t_device_buffer.m_recv_actual_size);
 	}
     
-    return m_len_data;
+    return t_device_buffer.m_recv_actual_size;
+}
+
+portSSIZE_TYPE device::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
+{
+    struct device_buffer    t_device_buffer;
+    portSSIZE_TYPE 			actual_size;
+
+    if ((NULL == m_pdevice) || (NULL == buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
+        return -1;
+    }
+    if (0 == size){
+    	return 0;
+    }
+    t_device_buffer.m_pbuf_send 		    = buffer;
+    t_device_buffer.m_pbuf_send_actual      = buffer;
+    t_device_buffer.m_buf_send_size 	    = size;
+    t_device_buffer.m_send_actual_size      = size;
+    if (this->process_readwrite(DIR_WRITE, PHASE_PREPARE, t_device_buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
+    	return -1;
+    }
+    if (t_device_buffer.m_pbuf_send_actual == NULL){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
+        return -1;
+    }
+    actual_size = API_DeviceWrite(m_pdevice, pos, t_device_buffer.m_pbuf_send_actual, t_device_buffer.m_send_actual_size);
+    if (this->process_readwrite(DIR_WRITE, PHASE_DONE, t_device_buffer)){
+    	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
+    	return -1;
+    }
+    
+    return actual_size;
 }
 
 //Note: read return m_len_data  if the cmd rsp no data, then read return 0!
@@ -118,22 +153,6 @@ portSSIZE_TYPE device::write(char *buffer)
 	return write(0, buffer, strlen(buffer));
 }
 
-portSSIZE_TYPE device::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE size)
-{
-    if (NULL == m_pdevice){
-        return -1;
-    }
-    if (this->process_write(PROC_PREPARE, buffer, size)){
-    	return -1;
-    }
-    size = API_DeviceWrite(m_pdevice, pos, m_pbuf_send, m_len_send);
-    if (this->process_write(PROC_DONE, buffer, size)){
-    	return -1;
-    }
-    
-    return size;
-}
-
 DeviceStatus_TYPE device::ioctl(uint8 cmd, void *args)
 {
     if (NULL == m_pdevice){
@@ -150,60 +169,35 @@ DevicePoll_TYPE device::poll(void)
     return hal_poll(m_pdevice);
 }
 
-
-portBASE_TYPE device::process_read(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
+portBASE_TYPE device::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
-	switch (phase){
-	case PROC_PREPARE:
-    	m_pbuf_recv 			= (uint8 *)pbuf;
-    	m_pbuf_data 			= m_pbuf_recv;
-    	m_buf_recv_len 			= size;
-    	m_len_data 				= m_buf_recv_len;
-		break;
+	if (DIR_READ == dir){
+		switch (phase){
+		case PHASE_PREPARE:
 
-	case PROC_DONE:
-		break;
+			break;
+		case PHASE_DONE:
 
-	default:
-		break;
+			break;
+
+		default:
+			break;
+		}
+	}else {
+		switch (phase){
+		case PHASE_PREPARE:
+
+			break;
+		case PHASE_DONE:
+
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	return 0;
 }
 
-portBASE_TYPE device::process_write(enum PROC_PHASE phase, char *pbuf, portSIZE_TYPE size)
-{
-	switch (phase){
-	case PROC_PREPARE:
-		m_pbuf_send								= reinterpret_cast<uint8 *>(pbuf);
-		m_len_send								= size;
-		break;
-
-	case PROC_DONE:
-		break;
-
-	default:
-		break;
-	}
-
-	return 0;
-}
-
-#if 0
-portBASE_TYPE CDeive_::process_read(enum PROC_PHASE phase, char *pbuf, uint16 size);
-{
-	switch (phase){
-	case PROC_PREPARE:
-		break;
-
-	case PROC_DONE:
-		break;
-
-	default:
-		break;
-	}
-
-	return 0;
-}
-#endif
 

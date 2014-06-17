@@ -106,13 +106,13 @@ inline Logger::LogLevel Logger::logLevel()
 
 #else
 
-#define LOG_TRACE
-#define LOG_DEBUG 
-#define LOG_INFO 		
-#define LOG_WARN 		
-#define LOG_ERROR 		
-#define LOG_FATAL 		
-#define LOG_SYSERR 		
+#define LOG_TRACE			//
+#define LOG_DEBUG 			//
+#define LOG_INFO 			//
+#define LOG_WARN 			//
+#define LOG_ERROR 			//
+#define LOG_FATAL 			//
+#define LOG_SYSERR 			//
 #define LOG_SYSFATAL
 
 #endif
