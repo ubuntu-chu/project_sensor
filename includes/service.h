@@ -246,6 +246,11 @@ public:
 		return begin() + readerIndex_;
 	}
 
+	char* peek() 
+	{
+		return begin() + readerIndex_;
+	}
+
 	void retrieve(size_t len)
 	{
 		if (len < readableBytes()) {

@@ -1,4 +1,5 @@
 #include    "cpu_uart.h"
+#include    "../../api/log/log.h"
 #include    "../../api/utils.h"
 #include    "../../includes/includes.h"
 

@@ -161,7 +161,8 @@ portBASE_TYPE application::init(void)
                                                 period_handle, 
                                                 this,
                                                 "period handle");
-//	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);
+    ASSERT(m_app_runinfo.m_handle_period != (timer_handle_type)-1);
+	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);
 	cpu_pendsv_register(pendsv_handle, this);
     
     m_app_runinfo.m_pdevice_commu->open();
@@ -216,7 +217,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 
 	buf.retrieveAllAsCharArray(reinterpret_cast<int8 *>(aa));
 
-/*
+{
 	class event 	t_event(&application::event_cb, papplication);
 	class buffer   &t_buffer 	= t_event.buffer_get();
 
@@ -224,7 +225,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 	t_buffer.appendInt32(1234);
 	t_buffer.appendInt16(222);
 	papplication->m_peventloop->run_inloop(&t_event);
-*/
+}
 
 	return 0;
 }

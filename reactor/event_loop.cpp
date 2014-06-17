@@ -20,7 +20,6 @@ static class channel *event_create(eventloop *loop)
 
 eventloop::eventloop() :
 		looping_(false),
-		quit_(false),
 		eventHandling_(false),
 		callingPendingFunctors_(false),
 		m_current_acitve_channel(NULL),
@@ -38,15 +37,14 @@ eventloop::~eventloop() {
 
 void eventloop::loop() {
 	looping_ = true;
-	quit_ = false;
 	channel 	*it;
 	list_node_t 	*pos;
 
-	while (1){
+	while (true == looping_){
 		list_init(&m_active_channels);
 
-		m_ppoller->poll(kPollTimeMs, &m_active_channels);
-//		pollReturnTime_ = m_ppoller->poll(kPollTimeMs, &m_active_channels);
+//		m_ppoller->poll(kPollTimeMs, &m_active_channels);
+		pollReturnTime_ = m_ppoller->poll(kPollTimeMs, &m_active_channels);
 
 		list_for_each(pos, &m_active_channels){
 
@@ -55,7 +53,6 @@ void eventloop::loop() {
 			it->handleEvent(pollReturnTime_);
 		}
 	}
-
 }
 
 void eventloop::update_channel(channel* channel) {

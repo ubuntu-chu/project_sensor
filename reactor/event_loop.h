@@ -2,6 +2,7 @@
 #define REACTOR_EVENT_LOOP_H
 
 #include "../includes/service.h"
+#include "../api/log/log.h"
 #include "../api/timestamp.h"
 #include "../app/devices.h"
 
@@ -29,7 +30,6 @@ private:
 	timer_handle_type run_at(const uint32& ms, uint8 flag, fp_void_pvoid *cb, void *pparam, const char* pname);
 	static int event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
 	bool 					looping_; /* atomic */
-	bool 					quit_; /* atomic */
 	bool 					eventHandling_; /* atomic */
 	bool 					callingPendingFunctors_; /* atomic */
 	Timestamp 				pollReturnTime_;

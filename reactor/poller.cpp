@@ -30,7 +30,6 @@ poller* poller::newDefaultPoller(eventloop* loop)
 //poller  eventloop  share channels
 Timestamp poller::poll(int timeoutMs, list_head_t* activeChannels)
 {
-	Timestamp now(Timestamp::now());
 	channel 			*it;
 	list_node_t 		*pos;
 	class device		*pdevice;
@@ -64,7 +63,7 @@ Timestamp poller::poll(int timeoutMs, list_head_t* activeChannels)
 		}
 	}
 
-	return now;
+	return Timestamp::now();
 }
 
 

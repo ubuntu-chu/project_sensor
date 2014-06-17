@@ -50,7 +50,7 @@ public:
 		m_handle_cb						= cb;
 		m_pvoid							= pvoid;
 	}
-	void handleEvent(Timestamp receiveTime);
+	void handleEvent(Timestamp &receiveTime);
 
 	class device *device_get(void) { return 	m_handle; }
 

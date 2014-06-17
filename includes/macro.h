@@ -114,15 +114,15 @@
 #define   		 BIT31 						   					(1UL << 31)
 #endif
 
-#if 0
+#if 1
 #define ASSERT(EX)                                                         \
 if (!(EX))                                                                    \
 {                                                                             \
     volatile char dummy = 0;                                                  \
-    printf("(%s) assert failed at %s:%d \n", #EX, __FUNCTION__, __LINE__);\
+	LOG_FATAL << "(%s) assert failed !" << #EX;									\
     while (dummy == 0);                                                       \
 }
-#endif
+#else
 
 #define ASSERT(EX)                                                         \
 if (!(EX))                                                                    \
@@ -130,6 +130,7 @@ if (!(EX))                                                                    \
     volatile char dummy = 0;                                                  \
     while (dummy == 0);                                                       \
 }
+#endif
 
 
 

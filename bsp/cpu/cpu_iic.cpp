@@ -4,6 +4,7 @@
 
 #include    "cpu_iic.h"
 #include "../../includes/macro.h"
+#include "../../api/log/log.h"
 #include    "../../api/utils.h"
 #include    "../../includes/service.h"
 
