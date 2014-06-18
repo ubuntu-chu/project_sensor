@@ -7,7 +7,6 @@
 #include    "storage.h"
 #include    "../api/log/log.h"
 
-
 void debug_output(const char* msg, int len)
 {
 	//uart_tx(DBG_UART, (uint8 *)msg, len);
@@ -159,6 +158,7 @@ portBASE_TYPE application::init(void)
     m_app_runinfo.m_pdevice_storage 	    = &t_device_storage;
     m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
+    
 	m_modeinfo.name_set(def_MODEL_NAME);
 
 	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
