@@ -55,7 +55,7 @@ private:
     ~application(){}
     application(const application &other);
     application &operator =(const application &other);
-	static portBASE_TYPE package_event_handler(void *pvoid, class protocol_info *pinfo);
+	static portBASE_TYPE package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
 	static void period_handle(void *pdata);
 

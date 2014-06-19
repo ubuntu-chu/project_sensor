@@ -88,7 +88,7 @@ portBASE_TYPE transceiver::force_done(void)
 
 portBASE_TYPE transceiver::push(int8 c)
 {
-	if ((STATUS_TX_PROCESSING == m_status) && (m_duplex == HALF_DUPLEX)){
+	if ((m_duplex == HALF_DUPLEX) && (STATUS_TX_PROCESSING == m_status)){
 		return -1;
 	}
 	if (RECV_STAT_RECV != m_rx_status){

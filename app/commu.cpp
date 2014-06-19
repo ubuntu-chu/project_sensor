@@ -1,15 +1,11 @@
 #include "commu.h"
 #include "protocol.h"
 #include "modbus.h"
+#include 	 "../bsp/driver/drv_interface.h"
 
-device_commu::device_commu(class protocol *pprotocol,
-                             package_event_handler handler,
-                             void *pvoid)
+device_commu::device_commu(class protocol *pprotocol)
                             :device(DEVICE_NAME_COMMU)
 {
-    m_handler			= handler;
-    m_pvoid 			= pvoid;
-
     //protocol init
     m_pprotocol			= pprotocol;
     m_pprotocol->init();
@@ -96,15 +92,10 @@ portBASE_TYPE device_commu::package_recv_handle(uint8 event,
 		if (event == EVENT_ACK){
 		}else {
         	//redirect  send buf
-            //format send data to buf
-            write((char *)pbuf, sizeof(buf));
-            if (m_handler != NULL){
-            	class modbus_rtu_info info;
-            	if (0 == m_pprotocol->info(static_cast<const uint8 *>(pbuf), buf_recv_len, 
-                    static_cast<class protocol_info *>(&info))){
-					m_handler(m_pvoid, static_cast<class protocol_info *>(&info));
-            	}
-			}
+            //format send data to buf  此处write参数中的大小为buf_recv_len的值   但是pbuf要足够大的空间
+            //因为最终的格式化modbus数据在存放在pbuf中
+            write((char *)pbuf, buf_recv_len);
+            m_pprotocol->handle(enum_PROTOCOL_DONE);
 		}
 	}
     if (NULL != pcontinue){

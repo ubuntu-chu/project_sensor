@@ -5,45 +5,74 @@
 #include    "pin.h"
 #include    "commu.h"
 #include    "storage.h"
+#include    "modbus.h"
 #include    "../api/log/log.h"
+#include 	"../bsp/driver/drv_interface.h"
 
 void debug_output(const char* msg, int len)
 {
 	//uart_tx(DBG_UART, (uint8 *)msg, len);
 }
 
-portBASE_TYPE application::package_event_handler(void *pvoid, class protocol_info *pinfo)
+portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo)
 {
-    application  	*pcapplication    		= static_cast<application *>(pvoid);
+    application  	 *pcapplication    		        = static_cast<application *>(pvoid);
     class modbus_rtu_info *pmodbus_rtu_info;
-    struct storage_info storage_info;
-    uint16 	offset;
+    struct          storage_info storage_info;
+    uint16 	         offset, reg, reg_no;
+    uint8           *address;
+    int             function;
 
 	pmodbus_rtu_info = static_cast<class modbus_rtu_info *>(pinfo);
 
-	if (pmodbus_rtu_info->type_get() != enum_MODBUS_RTU){
+    if (pmodbus_rtu_info->type_get() != enum_MODBUS_RTU){
 		return -1;
 	}
-
-    switch (pmodbus_rtu_info->function_get()){
-    case _FC_WRITE_SINGLE_REGISTER: 
-    case _FC_WRITE_MULTIPLE_REGISTERS:
-    {
-        //write hold regs to storage device
-        device_storage *pdevice_storage    = 
-            static_cast<device_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
+    function                                        = pmodbus_rtu_info->function_get();
+    reg                                             = pmodbus_rtu_info->reg_get();
+    reg_no                                          = pmodbus_rtu_info->reg_no_get();
+    address                                         = pmodbus_rtu_info->param_addr_get();
+    //准备协议所需的数据
+    if (enum_PROTOCOL_PREPARE == phase){
+        switch (function){
+        case _FC_READ_HOLDING_REGISTERS: 
+            
         
-        //hold regs type is uint16
-        offset 								= pmodbus_rtu_info->reg_get()<<1;
-        pcapplication->m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
-        pdevice_storage->write(storage_info.m_storage_addr+offset,
-        		(char *)(storage_info.m_pdata + offset),
-        		storage_info.m_len<<1);
-    }
-        break;
+            break;
+        
+        case _FC_READ_INPUT_REGISTERS:
+            
+            break;
+        
+        default:
+            break;
+        }
+        
     
-    default:
-        break;
+    //对于写寄存器操作  要把更新后的寄存器写入到存储设备中
+    }else if (enum_PROTOCOL_DONE == phase){
+    #if 0    
+        switch (function){
+        case _FC_WRITE_SINGLE_REGISTER: 
+        case _FC_WRITE_MULTIPLE_REGISTERS:
+        {
+            //write hold regs to storage device
+            device_storage *pdevice_storage    = 
+                static_cast<device_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
+            
+            //hold regs type is uint16
+            offset 								= pmodbus_rtu_info->reg_get()<<1;
+            pcapplication->m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
+            pdevice_storage->write(storage_info.m_storage_addr+offset,
+                    (char *)(storage_info.m_pdata + offset),
+                    storage_info.m_len<<1);
+        }
+            break;
+        
+        default:
+            break;
+        }
+    #endif   
     }
     
 	return 0;
@@ -125,13 +154,12 @@ void application::input_reg_set(enum input_reg_index index, uint16 value)
 
 portBASE_TYPE application::init(void)
 {
+	static protocol_modbus_rtu 	    t_protocol_modbus_rtu(application::package_event_handler, this);
     static device_ad 		    		t_device_ad;
     static device_pin 				    t_device_pin;
     static device_storage 				t_device_storage;
     static device_pwm		    		t_device_pwm;
-    static device_commu   				t_device_commu( &t_protocol_modbus_rtu,
-                                             application::package_event_handler,
-                                             this);
+    static device_commu   				t_device_commu( &t_protocol_modbus_rtu);
 #ifdef LOGGER
     //log setting
     Logger::setOutput(debug_output);
@@ -181,6 +209,7 @@ portBASE_TYPE application::init(void)
     if (load_app_datum()){
     }
 #endif
+    
     t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
     t_protocol_modbus_rtu.modbus_mapping_set(ARRAY_SIZE(m_modeinfo.m_regs.m_tab_bits),
                                         ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_bits),
@@ -190,6 +219,7 @@ portBASE_TYPE application::init(void)
                                         m_modeinfo.m_regs.m_tab_input_bits,
                                         m_modeinfo.m_regs.m_tab_input_registers,
                                         m_modeinfo.m_regs.m_tab_registers);
+    
     
     hold_reg_set(enum_REG_RHREF_RREQ, 200);
     hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);

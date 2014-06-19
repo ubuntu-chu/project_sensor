@@ -70,87 +70,294 @@ Warning
 Returns ADCxDAT even if it does not contain new data.
 */
 
-static void adc0_init(ADI_ADC_TypeDef *padc);
-static void adc1_init(ADI_ADC_TypeDef *padc);
+//static int uxADC0Data[16]; // ADC0 Data, updated in ADC0 interrupt
+static int uxADC1Data[16]; // ADC1 Data, updated in ADC1 interrupt
+static float fADCTemp[RECORD_LEN];
+static float fADCPres[RECORD_LEN];
+static float fADCRHS[RECORD_LEN];
 
-enum{
-    enum_ADC0       = 0,
-    enum_ADC1,
-    enum_ADC_MAX_NO,
-};
+int iADCTemp[RECORD_LEN];
+int iADCRHS[RECORD_LEN];
 
-struct adc_resu{
-    
-    volatile uint32         m_value;
-    volatile uint32         m_sta;
-    volatile bool           m_rdy;
-};
+float fPreRHSADCVal;
+signed char cRLPFRatioChangeNum;
 
-class adc:noncopyable{
-public:
-    adc()
-    {
-        m_resu[enum_ADC0].m_rdy     = false; 
-        m_resu[enum_ADC1].m_rdy     = false;
-    }
-    ~adc(){}
-    
-    void init(portuBASE_TYPE index)
-    {
-        if (index == enum_ADC0){
-            adc0_init(pADI_ADC0);
-        }else {
-            adc1_init(pADI_ADC1);
-        }
-    }
-        
-    void cpy(portuBASE_TYPE index)
-    {
-        ADI_ADC_TypeDef *type   = typedef_get(index);
-        
-        m_resu[index].m_sta     = AdcSta(type);        // read ADC status register
-        m_resu[index].m_value   = AdcRd(type);         // read ADC result register
-        m_resu[index].m_rdy     = true; 
-    }
+volatile unsigned long ulDmaStatus = 0;
+//volatile unsigned char ucADC0Status;  // ADC status, updated in ADC0 interrupt
+//volatile unsigned char ucADC1Status;  // ADC status, updated in ADC1 interrupt
 
-    void go(portuBASE_TYPE index, uint32 cmd)
-    {
-        AdcGo(typedef_get(index),cmd); 
-    }
+//volatile unsigned char ucADC0NewData; // New data flag, set in ADC0 interrupt
+volatile unsigned char ucADC1NewData; // New data flag, set in ADC1 interrupt
+//volatile unsigned char ucADC0RunStus;
+volatile unsigned char ucADC1RunStus;
 
-    void wait(portuBASE_TYPE index)
-    {
-        while (!m_resu[index].m_rdy); 
-        m_resu[index].m_rdy         = false;
-    }
-    
-    uint32 value(portuBASE_TYPE index)
-    {
-        return m_resu[index].m_value; 
-    }
 
-    uint32 sta(portuBASE_TYPE index)
-    {
-        return m_resu[index].m_sta; 
-    }
-    
-    void int_enable(portuBASE_TYPE index)
-    {
-        NVIC_EnableIRQ((index == enum_ADC0)?(ADC0_IRQn):(ADC1_IRQn));
-    }
+void AD_DMAINIT(void)
+{
+	DmaBase();
+    DmaSet(0,DMAENSET_ADC1,0,DMAPRISET_ADC1);       // Enable ADC0 && ADC1 DMA primary structure
+}
 
-private:
-    ADI_ADC_TypeDef *typedef_get(portuBASE_TYPE index)
-    {
-        return (index == enum_ADC0)?(pADI_ADC0):(pADI_ADC1);
-    }
-        
-private:
-    
-    struct adc_resu         m_resu[enum_ADC_MAX_NO];
-};    
+//ADC0 SINGLE
+void ADC0_Init(void)
+{
+    AdcGo(pADI_ADC0,ADCMDE_ADCMD_IDLE);          // Place ADC1 in Idle mode
+    //AdcMski(pADI_ADC0,ADCMSKI_RDY,1);
 
-class adc       t_adc; 
+    //AdcFlt(pADI_ADC0,124,14,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);    // ADC filter set for 3.75Hz update rate with chop on enabled
+	//AdcFlt(pADI_ADC0,125,9,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);   //4.12Hz
+	//AdcFlt(pADI_ADC0,126,2,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);  //6.0Hz
+	//AdcFlt(pADI_ADC0,127,0,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);   // 8.239Hz
+	AdcFlt(pADI_ADC0,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
+}
+int ADC0_GetSglADC_RTD()
+{
+    IexcDat(IEXCDAT_IDAT_50uA,IDAT0Dis);         // Set output for 50uA
+    IexcCfg(IEXCCON_PD_off,IEXCCON_REFSEL_Int,IEXCCON_IPSEL1_Off,IEXCCON_IPSEL0_AIN5);
+
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_IDLE);
+    AdcFlt(pADI_ADC1,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
+    // Turn off input buffers to ADC and external reference
+    //AdcBuf(pADI_ADC0,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+    //AdcBuf(pADI_ADC0,ADCCFG_EXTBUF_OFF,ADC_BUF_ON);
+    AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_VREFP_VREF2P,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+
+    AdcPin(pADI_ADC1,ADCCON_ADCCN_AIN7,ADCCON_ADCCP_AIN6);            // Select AIN6 as postive input and AIN7 as negative input
+    //AdcRng(pADI_ADC0,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G8,ADCCON_ADCCODE_UINT);  // Internal reference selected, Gain of 8, Signed integer output
+    AdcRng(pADI_ADC1,ADCCON_ADCREF_EXTREF2,ADCMDE_PGA_G16,ADCCON_ADCCODE_UINT);
+
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_SINGLE);
+
+    while(!(AdcSta(pADI_ADC1)&0x01));
+    return AdcRd(pADI_ADC1);
+}
+int ADC0_GetSglADC_RHS()
+{
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_IDLE);
+    AdcFlt(pADI_ADC1,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
+    // Turn off input buffers to ADC and internal reference
+    //AdcBuf(pADI_ADC0,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+    //AdcBuf(pADI_ADC0,ADCCFG_EXTBUF_OFF,ADC_BUF_ON);
+    AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+
+    AdcPin(pADI_ADC1,ADCCON_ADCCN_AGND,ADCCON_ADCCP_AIN2);            // Select AIN2 as postive input and AGND as negative input
+    //AdcRng(pADI_ADC0,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G8,ADCCON_ADCCODE_UINT);  // Internal reference selected, Gain of 32, Signed integer output
+    AdcRng(pADI_ADC1,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G1,ADCCON_ADCCODE_UINT);
+
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_SINGLE);
+
+    while(!(AdcSta(pADI_ADC1)&0x01));
+    return AdcRd(pADI_ADC1);
+}
+// ****************************************************************************
+// ADC 1 RTD INITIALISATION
+// ****************************************************************************
+// Measures RTD (PT1000) voltage
+// Input(+) buffered, AIN6, via RC filter to RTD
+// Input(-) buffered, AIN7, via RC filter to RTD
+// Gain = 16
+// Reference ext. based on Reference Resistor( 37.4kohm 10ppm )
+// Conversion continuous
+
+void ADC1_Init(void)
+{
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_IDLE);          // Place ADC1 in Idle mode
+    AdcMski(pADI_ADC1,ADCMSKI_RDY,1);
+
+    AdcFlt(pADI_ADC1,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
+
+    AdcDmaCon(ADC1DMAREAD,1);     // Call function to init ADc1 for DMA reads
+	AdcDmaReadSetup(ADC1DMAREAD,DMA_SIZE_WORD|DMA_DSTINC_WORD|DMA_SRCINC_NO|DMA_BASIC,16,uxADC1Data);
+    //NVIC_EnableIRQ(ADC1_IRQn); // Enable ADC interrupt
+    NVIC_EnableIRQ(DMA_ADC1_IRQn);
+
+} // ADC1_Init_RTD
+
+void ADC1_Switch_to_RTD(void)
+{
+    IexcDat(IEXCDAT_IDAT_50uA,IDAT0Dis);         // Set output for 50uA
+    IexcCfg(IEXCCON_PD_off,IEXCCON_REFSEL_Int,IEXCCON_IPSEL1_Off,IEXCCON_IPSEL0_AIN5);
+
+    // Turn off input buffers to ADC and external reference
+    //AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_VREFP_VREF2P,ADC_BUF_ON);
+    AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_VREFP_VREF2P,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+    // Select AIN6 as postive input and AIN7 as negative input
+    AdcPin(pADI_ADC1,ADCCON_ADCCN_AIN7,ADCCON_ADCCP_AIN6);
+	AdcRng(pADI_ADC1,ADCCON_ADCREF_EXTREF2,ADCMDE_PGA_G16,ADCCON_ADCCODE_UINT);
+}
+void ADC1_Switch_to_PrsSensor(void)
+{
+    IexcDat(IEXCDAT_IDAT_400uA,IDAT0Dis);         // Set output for 400uA
+	IexcCfg(IEXCCON_PD_off,IEXCCON_REFSEL_Int,IEXCCON_IPSEL1_AIN4,IEXCCON_IPSEL0_Off);
+    // Turn off input buffers to ADC and external reference
+    //AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_VREFP_VREF2P,ADC_BUF_ON);
+    AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+    // Select AIN0 as postive input and AIN1 as negative input
+    AdcPin(pADI_ADC1,ADCCON_ADCCN_AIN1,ADCCON_ADCCP_AIN0);
+    //AdcPin(pADI_ADC1,ADCCON_ADCCN_AIN0,ADCCON_ADCCP_AIN1);
+    AdcRng(pADI_ADC1,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G8,ADCCON_ADCCODE_INT);  // Internal reference selected, Gain of 8, Signed integer output
+}
+void ADC1_Switch_to_RHS(void)
+{
+    IexcDat(IEXCDAT_IDAT_0uA,IDAT0Dis);         // Set output for 400uA
+	IexcCfg(IEXCCON_PD_En,IEXCCON_REFSEL_Int,IEXCCON_IPSEL1_Off,IEXCCON_IPSEL0_Off);
+    // Turn off input buffers to ADC and external reference
+    //AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_VREFP_VREF2P,ADC_BUF_ON);
+    AdcBuf(pADI_ADC1,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN);
+    // Select AIN2 as postive input and AGND as negative input
+    AdcPin(pADI_ADC1,ADCCON_ADCCN_AGND,ADCCON_ADCCP_AIN2);
+	AdcRng(pADI_ADC1,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G1,ADCCON_ADCCODE_UINT);
+}
+
+
+void ADC1_StartRTD_ADC(void)
+{
+
+    ADC1_Switch_to_RTD();
+    DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
+	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
+                              DMA_SRCINC_NO|DMA_SIZE_WORD|DMA_BASIC);
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_CONT);		            // Start ADC1 for continuous conversions
+}
+void ADC1_StartPRS_ADC(void)
+{
+
+    ADC1_Switch_to_PrsSensor();
+    DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
+	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
+                              DMA_SRCINC_NO|DMA_SIZE_WORD|DMA_BASIC);
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_CONT);		            // Start ADC1 for continuous conversions
+}
+void ADC1_StartRHS_ADC(void)
+{
+    ADC1_Switch_to_RHS();
+    DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
+	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
+                              DMA_SRCINC_NO|DMA_SIZE_WORD|DMA_BASIC);
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_CONT);		            // Start ADC1 for continuous conversions
+}
+
+float GetAvarageValue(int iAry[],char cnt)
+{
+    unsigned char i;
+    float fVal;
+    for(i=0;i<cnt;i++)
+    {
+        fVal += (iAry[i]);
+    }
+    return (fVal/cnt);
+}
+
+#ifndef ADC_SOFT_FILTER
+float ADC1_GetADC(void)
+{
+    return GetAvarageValue(uxADC1Data,16);
+}
+#else
+
+//递推中位值平均滤波
+float CombiFilter(float fADC,float fAry[])
+{
+    signed char i;
+    float max,min;
+	float sum;
+	if( (fAry[0] < 0.000001) && (fAry[0] > -0.000001) ) //采样值为0 初始化队列
+	{
+	   for(i=RECORD_LEN-1;i>=0;i--)
+	      fAry[i] = fADC;
+	}
+
+	max = min = sum = fAry[0] = fADC;
+	for(i=RECORD_LEN-1;i!=0;i--)
+	{
+	    if(fAry[i]>max) max = fAry[i];
+		else if(fAry[i]<min) min = fAry[i];
+		sum += fAry[i];
+		fAry[i] = fAry[i-1];
+	}
+	i = RECORD_LEN-2;
+	sum = sum - max - min + i/2;
+	sum /= i;
+	return (sum);
+}
+#define CHANG_LIMIT  0x0A
+float RapidLPFilter(float fNewVal,float fPreVal,signed char *cChgNum)
+{
+    float fDelta;
+	signed char cRatio=1;
+
+    if( (fNewVal < 0.000001) && (fNewVal > -0.000001) )
+	    return (float)fNewVal;
+
+	if(fNewVal>fPreVal)
+	{
+	    fDelta = fNewVal-fPreVal;
+		if(fDelta>800000)
+	        return (float)fNewVal;
+
+	    if(*cChgNum<0)
+		{
+		    *cChgNum=0;
+		}
+		else
+		{
+		    if(*cChgNum >= CHANG_LIMIT)
+	    	{
+			    cRatio = (fDelta/50000)+1;
+		        if(cRatio> 16)
+		            cRatio = 16;
+		    }
+			else
+			    (*cChgNum)++;
+		}
+
+	}
+	else if(fNewVal<fPreVal)
+	{
+	    fDelta = fPreVal-fNewVal;
+		if(fDelta>800000)
+	        return (float)fNewVal;
+
+	    if(*cChgNum>0)
+		    *cChgNum=0;
+		else
+		{
+		    if( *cChgNum <= (0-CHANG_LIMIT) )
+		    {
+			    cRatio = (fDelta/50000)+1;
+		        if(cRatio> 16)
+		            cRatio = 16;
+		    }
+			else
+	            (*cChgNum)--;
+		}
+	}
+	else
+	    return (float)fNewVal;
+
+    return (fPreVal + cRatio*(fNewVal-fPreVal)/16);
+}
+//
+float ADC1_GetADC_RHS(void)
+{
+    float fNewRHS;
+    fNewRHS = CombiFilter(GetAvarageValue(uxADC1Data,16),fADCRHS);
+    fPreRHSADCVal = RapidLPFilter(fNewRHS,fPreRHSADCVal,&cRLPFRatioChangeNum);
+    return fPreRHSADCVal;
+}
+//GetFltRsutTemp
+float ADC1_GetADC_Temp(void)
+{
+    return CombiFilter(GetAvarageValue(uxADC1Data,16),fADCTemp);
+}
+//GetFltRsutTemp
+float ADC1_GetADC_Pres(void)
+{
+    return CombiFilter(GetAvarageValue(uxADC1Data,16),fADCPres);
+}
+#endif
+
+
 
 /******************************************************************************
  *  函数名称 :
@@ -180,10 +387,14 @@ portuBASE_TYPE drv_adregister(void){
 }
 
 
-static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
-    
-	
-    return DEVICE_OK;
+static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev)
+{
+	AD_DMAINIT();
+    DioCfgPin(pADI_GP0,PIN0,0); //Set P0.0 as GPIO
+	DioOenPin(pADI_GP0,PIN0,1); //Enable P0.0 Output
+    DioPulPin(pADI_GP0,PIN0,1); //Enable P0.0 Output Pullup 
+
+	return DEVICE_OK;
 }
 
 /*
@@ -197,74 +408,9 @@ or power-down mode or when ADCEN= 0 (ADCxCON[19]). However, a software delay is 
 between writing to ADCMDE and writing to the offset or gain register.
 */
 
-static void adc0_init(ADI_ADC_TypeDef *padc)
-{
-    AdcGo(padc,ADCMDE_ADCMD_IDLE);                  // Place ADC1 in Idle mode
-    
-    //ADC_M_NONE
-    AdcMski(padc,ADCMSKI_RDY,1);              // Enable ADC ready interrupt source          
-    //enable sinc3 filter: sample freq less than 500Hz
-    //ADC filter set for 3.75Hz update rate with chop on enabled  
-    //NOTCH2 enable: can generate notches at both 50Hz and 60Hz
-    //when chop enable, auto enable RAVG2
-    AdcFlt(padc,124,14,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);
-    // Internal reference selected, Gain of 4, Signed integer output
-    AdcRng(padc,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G4,ADCCON_ADCCODE_INT); 
-    // Turn off input buffers to ADC and external reference      
-    //AdcBuf(padc,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN); 
-    // Turn on input buffers   ADC_BUF_ON for both reference buffers on
-    // ADCxCFG:EXTBUF   11: External buffer on VREF+ is enabled. External buffer on VREF? is powered down and bypassed.
-    AdcBuf(padc,ADCCFG_EXTBUF_OFF,ADC_BUF_ON);
-    // Select AIN6 as postive input and AIN7 as negative input
-    AdcPin(padc,ADCCON_ADCCN_AIN6,ADCCON_ADCCP_AIN7);
-}
-
-static void adc1_init(ADI_ADC_TypeDef *padc)
-{
-    AdcGo(padc,ADCMDE_ADCMD_IDLE);                  // Place ADC1 in Idle mode
-    
-    //ADC_M_NONE
-    AdcMski(padc,ADCMSKI_RDY,1);              // Enable ADC ready interrupt source          
-    //enable sinc3 filter: sample freq less than 500Hz
-    //ADC filter set for 3.75Hz update rate with chop on enabled  
-    //NOTCH2 enable: can generate notches at both 50Hz and 60Hz
-    //when chop enable, auto enable RAVG2
-    AdcFlt(padc,124,14,FLT_NORMAL|ADCFLT_NOTCH2|ADCFLT_CHOP);
-    // Internal reference selected, Gain of 4, Signed integer output
-    AdcRng(padc,ADCCON_ADCREF_INTREF,ADCMDE_PGA_G4,ADCCON_ADCCODE_INT); 
-    // Turn off input buffers to ADC and external reference      
-    //AdcBuf(padc,ADCCFG_EXTBUF_OFF,ADCCON_BUFBYPN|ADCCON_BUFBYPP|ADCCON_BUFPOWP|ADCCON_BUFPOWN); 
-    // Turn on input buffers   ADC_BUF_ON for both reference buffers on
-    // ADCxCFG:EXTBUF   11: External buffer on VREF+ is enabled. External buffer on VREF- is powered down and bypassed.
-    AdcBuf(padc,3,ADC_BUF_ON);
-    // Select AIN2 as postive input and AIN3 as negative input
-    AdcPin(padc,ADCCON_ADCCN_AIN2,ADCCON_ADCCP_AIN3);
-    
-}
 
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     
-    //使能电流源
-    //REFPD = 0   This bit must be cleared for the ADCs to work, regardless of if an external 
-    //reference is selected
-    pADI_ANA->REFCTRL                       = 0;
-    //PD        0: Enable excitation current source block.
-    //REFSEL    1: Select internal current reference resistor source
-    //IPSEL1    100: IEXC1 output on AIN4.
-    //IPSEL0    101: IEXC0 output on AIN5.
-    IexcCfg(IEXCCON_PD_off,IEXCCON_REFSEL_Int,IEXCCON_IPSEL1_AIN4, IEXCCON_IPSEL0_AIN5);
-    IexcDat(IEXCDAT_IDAT_0uA,IDAT0Dis);
-    
-    t_adc.init(enum_ADC0);
-    t_adc.init(enum_ADC1);
-    
-    // Start ADC0 for continuous conversions
-    t_adc.go(enum_ADC0, ADCMDE_ADCMD_CONT);
-    // Start ADC1 for continuous conversions
-    t_adc.go(enum_ADC1, ADCMDE_ADCMD_CONT);
-    
-    t_adc.int_enable(enum_ADC0);
-    t_adc.int_enable(enum_ADC1);
     
     return DEVICE_OK;
 }
@@ -280,46 +426,9 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
   
 	char 	*ptr		= reinterpret_cast<char *>(buffer);
 
-	strcpy(ptr, "abcdef");
-//    return size;
-    return 6;
+    return size;
 }
 
-#if 0
-
-static const uint8 iexcdat[ECS_CUR_MAX_NO] = {
-    
-    //IEXCDAT[5:3]  IEXCDAT[2:1] IEXCDAT[0] 
-    //ECS_CUR_0UA
-    (0UL<<3)|(0UL<<1)|(0UL<<0),
-    //ECS_CUR_50UA
-    (1UL<<3)|(0UL<<1)|(0UL<<0),
-    //ECS_CUR_100UA
-    (1UL<<3)|(1UL<<1)|(0UL<<0),
-    //ECS_CUR_150UA
-    (1UL<<3)|(2UL<<1)|(0UL<<0),
-    //ECS_CUR_200UA
-    (1UL<<3)|(3UL<<1)|(0UL<<0),
-    //ECS_CUR_250UA
-    (5UL<<3)|(0UL<<1)|(0UL<<0),
-    //ECS_CUR_300UA
-    (2UL<<3)|(2UL<<1)|(0UL<<0),
-    //ECS_CUR_400UA
-    (2UL<<3)|(3UL<<1)|(0UL<<0),
-    //ECS_CUR_450UA
-    (3UL<<3)|(2UL<<1)|(0UL<<0),
-    //ECS_CUR_500UA
-    (5UL<<3)|(1UL<<1)|(0UL<<0),
-    //ECS_CUR_600UA
-    (3UL<<3)|(3UL<<1)|(0UL<<0),
-    //ECS_CUR_750UA
-    (5UL<<3)|(2UL<<1)|(0UL<<0),
-    //ECS_CUR_800UA
-    (4UL<<3)|(3UL<<1)|(0UL<<0),
-    //ECS_CUR_1000UA
-    (5UL<<3)|(3UL<<1)|(0UL<<0),
-};
-#endif
     
 
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
@@ -334,7 +443,7 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
     switch (cmd) {
         case AD_IOC_ECS0_SET:
         case AD_IOC_ECS1_SET:
-            
+/*            
             if (value == ECS_CUR_CLOSE){
                 CBI(pADI_ANA->IEXCCON, ((cmd == AD_IOC_ECS0_SET)?(2):(5)));
             }else if (value == ECS_CUR_EXTRA_10UA){
@@ -345,6 +454,7 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
                 
                 //pADI_ANA->IEXCDAT = (pADI_ANA->IEXCDAT&(BIT5|BIT4|BIT3|BIT2|BIT1))|iexcdat[value];
             }
+*/
             break;
 
         default:
@@ -354,14 +464,33 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
 	return rt;
 }
 
+static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev)
+{
+
+	return DEVICE_POLLIN;
+	//return DEVICE_POLLNONE;
+}
+
+// ****************************************************************************
+// ADC 0 INTERRUPT
+// ****************************************************************************
+
 extern "C" void ADC0_Int_Handler ()
 {
-    t_adc.cpy(enum_ADC0);
+	//ucADC0Status = pADI_ADC0->STA;  // Read ADC status
+	//lADC0Data = pADI_ADC0->DAT;     // Read ADC conversion result
+	//ucADC0NewData++;                // Set ADC new data flag
 }
+
+// ****************************************************************************
+// ADC 1 INTERRUPT
+// ****************************************************************************
 
 extern "C" void ADC1_Int_Handler ()
 {
-    t_adc.cpy(enum_ADC1);
+	//ucADC1Status = pADI_ADC1->STA;  // Read ADC status
+	//lADC1Data = pADI_ADC1->DAT;     // Read ADC conversion result
+	//ucADC1NewData++;                // Set ADC new data flag
 }
 
 extern "C" void SINC2_Int_Handler()
@@ -369,12 +498,33 @@ extern "C" void SINC2_Int_Handler()
  
 }
 
-static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev)
+// ****************************************************************************
+// ADC 0 DMA INTERRUPT
+// ****************************************************************************
+void DMA_ADC0_Int_Handler ()
 {
-
-	return DEVICE_POLLIN;
-	//return DEVICE_POLLNONE;
+    //ulDmaStatus = DmaSta();
+	//ucADC0NewData++;
+    //AdcGo(pADI_ADC0,ADCMDE_ADCMD_IDLE);
+	//DmaSet(DMARMSKSET_ADC0,DMAENSET_ADC0,0,DMAPRISET_ADC0);
 }
+
+// ****************************************************************************
+// ADC 1 DMA INTERRUPT
+// ****************************************************************************
+void DMA_ADC1_Int_Handler ()
+{
+	ulDmaStatus = DmaSta();
+	ucADC1NewData++;
+    AdcGo(pADI_ADC1,ADCMDE_ADCMD_IDLE);
+	DmaSet(DMARMSKSET_ADC1,DMAENSET_ADC1,0,DMAPRISET_ADC1);
+}
+void DMA_Err_Int_Handler ()
+{
+	ulDmaStatus = DmaSta();
+	DmaErr(DMA_ERR_CLR);
+}
+
 
 
 /*********************************************************************************

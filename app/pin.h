@@ -8,11 +8,7 @@
 
 class device_pin:public device{
 public:
-	device_pin():device(DEVICE_NAME_PIN)
-	{
-
-	}
-
+	device_pin();
     virtual ~device_pin();
 };    
     

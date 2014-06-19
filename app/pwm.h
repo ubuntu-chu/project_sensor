@@ -5,13 +5,9 @@
 #include "devices.h"
 
 
-
 class device_pwm:public device{
 public:
-	device_pwm():device(DEVICE_NAME_PWM)
-	{
-
-	}
+	device_pwm();
     virtual ~device_pwm();
 };    
     

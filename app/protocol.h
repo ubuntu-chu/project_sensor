@@ -17,24 +17,39 @@ public:
 public:
 	void type_set(enum protocol_type type){m_type = type;}
 	enum protocol_type type_get(void){return m_type;}
+	void package_addr_set(char *package){m_ppackage 	= package;}
+	char *package_addr_get(void){return m_ppackage;}
+	void package_len_set(uint16 len){m_len 	= len;}
+	uint16 package_len_get(void){return m_len;}
 
 protected:
-    enum protocol_type   m_type;             //protocol type
+    enum protocol_type   	m_type;             //protocol type
+    char 					*m_ppackage;
+    uint16 					m_len;
 };
 
+enum protocol_phase{
+	enum_PROTOCOL_PREPARE	= 0,
+	enum_PROTOCOL_DONE,
+};
+
+typedef portBASE_TYPE  (fp_protocol_handle)(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo);
 
 class protocol{
 public:
-	protocol(){};
-	virtual ~protocol(){};
+	protocol(fp_protocol_handle *handle, void *pvoid):m_fp_handle(handle), m_pvoid(pvoid){}
+	virtual ~protocol(){}
 
 	virtual void init(void) = 0;
     virtual uint16 pack(uint8_t*dst, uint8 *src, uint16 len){return 0;}
 	virtual int8   unpack(uint8_t* pbuf, uint16 len){return 0;}
-	virtual portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo){return 0;}
+	virtual portBASE_TYPE  handle(enum protocol_phase phase){return 0;}
 
-protected:
-    enum protocol_type   m_type;             //protocol type
+//protected:
+public:
+    enum protocol_type   	m_type;             //protocol type
+    fp_protocol_handle		*m_fp_handle;
+    void 					*m_pvoid;
 };
 
 #ifdef RAW_MAC

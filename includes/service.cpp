@@ -411,7 +411,7 @@ sv_err_t sv_timer_start(sv_timer_t timer)
 
 		/*
 		 * It supposes that the new tick shall less than the half duration of
-		 * tick max.
+		 * tick max.  timer->timeout_tick值回绕处理
 		 */
 		if ((t->timeout_tick - timer->timeout_tick) < TICK_MAX/2)
 		{
@@ -511,8 +511,14 @@ timer_handle_type timer_manage::timer_register(uint32 expired_ms,
 {
 	timer_handle_type handle;
 	portuBASE_TYPE 		i;
+    tick_t            tick  = sv_tick_from_millisecond(expired_ms);
 
-	for (i = 0; i < m_size; ++i){
+    //防止超时tick回绕情况出现
+	if (tick >= (TICK_MAX/2)){
+        return (timer_handle_type)-2;
+    }
+    
+    for (i = 0; i < m_size; ++i){
 		if (!(m_bitmap & (1UL << i))){
 			break;
 		}
@@ -522,7 +528,7 @@ timer_handle_type timer_manage::timer_register(uint32 expired_ms,
 	}
 	handle 									= i;
 	m_bitmap 								|= (1UL << i);
-	sv_timer_init(&m_timer[handle], pname, func, data, sv_tick_from_millisecond(expired_ms), flag);
+	sv_timer_init(&m_timer[handle], pname, func, data, tick, flag);
 
     return handle;
 }
@@ -540,10 +546,13 @@ bool timer_manage::timer_unregister(timer_handle_type handle)
 
 sv_err_t timer_manage::timer_start(timer_handle_type handle, uint32 expired_ms)
 {
-	if (handle >= m_size) {
+	tick_t            tick  = sv_tick_from_millisecond(expired_ms);
+    
+    //防止超时tick回绕情况出现
+    if ((handle >= m_size) || (tick >= (TICK_MAX/2))) {
 		return -SV_EPARAM;
 	}
-	m_timer[handle].init_tick 				= sv_tick_from_millisecond(expired_ms);
+	m_timer[handle].init_tick 				= tick;
 	return sv_timer_start(&m_timer[handle]);
 }
 
@@ -600,7 +609,7 @@ void timer_manage::timer_handle(list_head_t *list_head)
 
 		/*
 		 * It supposes that the new tick shall less than the half duration of
-		 * tick max.
+		 * tick max. timer->timeout_tick值回绕处理 ((current_tick - t->timeout_tick) < TICK_MAX / 2)
 		 */
 		if ((current_tick - t->timeout_tick) < TICK_MAX / 2) {
 

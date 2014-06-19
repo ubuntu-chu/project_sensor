@@ -8,11 +8,7 @@
 
 class device_event:public device{
 public:
-	device_event():device(DEVICE_NAME_EVENT)
-	{
-
-	}
-
+	device_event();
     virtual ~device_event();
 };    
     

@@ -59,109 +59,63 @@ static int response_exception(modbus_t *ctx, sft_t *sft,
 }
 
 
-int modbus_reply(modbus_t *ctx, uint8 *rsp, const uint8_t *req,
+int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
                  int req_length, modbus_mapping_t *mb_mapping)
 {
     int offset          = _MODBUS_RTU_HEADER_LENGTH;
     int slave           = req[offset - 1];
     int function        = req[offset];
-    uint16_t address    = (req[offset + 1] << 8) + req[offset + 2];
     int rsp_length = 0;
+    int nb;
     sft_t sft;
 
     sft.slave           = slave;
     sft.function        = function;
+    //从接收到的长度中 取出crc校验的两个字节
     sft.t_id            = _modbus_rtu_prepare_response_tid(req, &req_length);
 
-    switch (function) {
-    case _FC_READ_HOLDING_REGISTERS: {
-        int nb = (req[offset + 3] << 8) + req[offset + 4];
+    if ((_FC_READ_HOLDING_REGISTERS == function)
+    	|| (_FC_READ_INPUT_REGISTERS == function)
+    	|| (_FC_WRITE_SINGLE_REGISTER == function)
+    	|| (_FC_WRITE_MULTIPLE_REGISTERS == function)){
 
-        if ((address + nb) > mb_mapping->nb_registers) {
-            if (ctx->debug) {
-                
+        bool   read_operation               = false;
+
+		rtu->info(req, req_length, &rtu->m_info);
+		if (_FC_WRITE_SINGLE_REGISTER == function) {
+			nb                              = 1;
+		} else {
+			nb 					            = (req[offset + 3] << 8) + req[offset + 4];
+		}
+        rsp_length                          = _modbus_rtu_build_response_basis(&sft, rsp);
+		if ((_FC_READ_HOLDING_REGISTERS == function)
+			|| (_FC_READ_INPUT_REGISTERS == function)){
+            rsp[rsp_length++]               = nb << 1;
+            read_operation                  = true;
+		}
+        if (0 == rtu->handle(enum_PROTOCOL_PREPARE)){
+            if (true == read_operation){
+                rsp_length                  += rtu->m_info.param_len_get();
+            }else {
+                if (_FC_WRITE_SINGLE_REGISTER == function){
+                    memcpy(rsp, req, req_length);
+                    rsp_length = req_length;
+                }else {
+                    rsp_length = _modbus_rtu_build_response_basis(&sft, rsp);
+                    /* 4 to copy the address (2) and the no. of registers */
+                    memcpy(rsp + rsp_length, req + rsp_length, 4);
+                    rsp_length += 4;
+                }
             }
+
+        }else {
             rsp_length = response_exception(
-                ctx, &sft,
+                &rtu->m_modbus, &sft,
                 MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS, rsp);
-        } else {
-            int i;
-
-            rsp_length = _modbus_rtu_build_response_basis(&sft, rsp);
-            rsp[rsp_length++] = nb << 1;
-            for (i = address; i < address + nb; i++) {
-                rsp[rsp_length++] = mb_mapping->tab_registers[i] >> 8;
-                rsp[rsp_length++] = mb_mapping->tab_registers[i] & 0xFF;
-            }
         }
-    }
-        break;
-    case _FC_READ_INPUT_REGISTERS: {
-        /* Similar to holding registers (but too many arguments to use a
-         * function) */
-        int nb = (req[offset + 3] << 8) + req[offset + 4];
+        
+    }else if (_FC_REPORT_SLAVE_ID == function) {
 
-        if ((address + nb) > mb_mapping->nb_input_registers) {
-            if (ctx->debug) {
-                
-            }
-            rsp_length = response_exception(
-                ctx, &sft,
-                MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS, rsp);
-        } else {
-            int i;
-
-            rsp_length = _modbus_rtu_build_response_basis(&sft, rsp);
-            rsp[rsp_length++] = nb << 1;
-            for (i = address; i < address + nb; i++) {
-                rsp[rsp_length++] = mb_mapping->tab_input_registers[i] >> 8;
-                rsp[rsp_length++] = mb_mapping->tab_input_registers[i] & 0xFF;
-            }
-        }
-    }
-        break;
-    case _FC_WRITE_SINGLE_REGISTER:
-        if (address >= mb_mapping->nb_registers) {
-            if (ctx->debug) {
-                
-            }
-            rsp_length = response_exception(
-                ctx, &sft,
-                MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS, rsp);
-        } else {
-            int data = (req[offset + 3] << 8) + req[offset + 4];
-
-            mb_mapping->tab_registers[address] = data;
-            memcpy(rsp, req, req_length);
-            rsp_length = req_length;
-        }
-        break;
-    case _FC_WRITE_MULTIPLE_REGISTERS: {
-        int nb = (req[offset + 3] << 8) + req[offset + 4];
-
-        if ((address + nb) > mb_mapping->nb_registers) {
-            if (ctx->debug) {
-                
-            }
-            rsp_length = response_exception(
-                ctx, &sft,
-                MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS, rsp);
-        } else {
-            int i, j;
-            for (i = address, j = 6; i < address + nb; i++, j += 2) {
-                /* 6 and 7 = first value */
-                mb_mapping->tab_registers[i] =
-                    (req[offset + j] << 8) + req[offset + j + 1];
-            }
-
-            rsp_length = _modbus_rtu_build_response_basis(&sft, rsp);
-            /* 4 to copy the address (2) and the no. of registers */
-            memcpy(rsp + rsp_length, req + rsp_length, 4);
-            rsp_length += 4;
-        }
-    }
-        break;
-    case _FC_REPORT_SLAVE_ID: {
         int str_len;
         int byte_count_pos;
 
@@ -176,27 +130,19 @@ int modbus_reply(modbus_t *ctx, uint8 *rsp, const uint8_t *req,
         memcpy(rsp + rsp_length, "LMB" LIBMODBUS_VERSION_STRING, str_len);
         rsp_length += str_len;
         rsp[byte_count_pos] = rsp_length - byte_count_pos - 1;
-    }
-        break;
-    default:
-        rsp_length = response_exception(ctx, &sft,
+    }else {
+        rsp_length = response_exception(&rtu->m_modbus, &sft,
                                         MODBUS_EXCEPTION_ILLEGAL_FUNCTION,
                                         rsp);
-        break;
     }
     rsp_length = _modbus_rtu_send_msg_pre(rsp, rsp_length);
     
     return rsp_length;
 }
 
-
-
-
-
-
-protocol_modbus_rtu::protocol_modbus_rtu()
+protocol_modbus_rtu::protocol_modbus_rtu(fp_protocol_handle *handle, void *pvoid):protocol(handle, pvoid)
 {
-	m_type 			= enum_MODBUS_RTU;
+    m_type 			                = enum_MODBUS_RTU;
 }
 
 protocol_modbus_rtu::~protocol_modbus_rtu()
@@ -217,7 +163,7 @@ void protocol_modbus_rtu::init(void)
 
 uint16 protocol_modbus_rtu::pack(uint8_t*dst, uint8 *src, uint16 len)
 {
-    return modbus_reply(&m_modbus, dst, src, len, &m_mapping);
+    return modbus_reply(this, dst, src, len, &m_mapping);
 }
 
 int8   protocol_modbus_rtu::unpack(uint8_t* pbuf, uint16 len)
@@ -246,8 +192,8 @@ int8   protocol_modbus_rtu::unpack(uint8_t* pbuf, uint16 len)
     return 0;
 }
 
-
 portBASE_TYPE  protocol_modbus_rtu::info(const uint8_t*package, uint16 len, class protocol_info *pinfo)
+
 {
     int offset          = _MODBUS_RTU_HEADER_LENGTH;
     int function;
@@ -262,18 +208,17 @@ portBASE_TYPE  protocol_modbus_rtu::info(const uint8_t*package, uint16 len, clas
 			|| (function == _FC_WRITE_SINGLE_REGISTER)
 			|| (function == _FC_WRITE_MULTIPLE_REGISTERS)){
 		pmodbus_rtu_info->reg_set((package[offset + 1] << 8) + package[offset + 2]);
-		pmodbus_rtu_info->len_set((package[offset + 3] << 8) + package[offset + 4]);
-		pmodbus_rtu_info->param_set(const_cast<uint8 *>(&(package[offset + 5])));
+		pmodbus_rtu_info->reg_no_set((package[offset + 3] << 8) + package[offset + 4]);
+		pmodbus_rtu_info->param_addr_set(const_cast<uint8 *>(&(package[offset + 5])));
+		pinfo->package_addr_set(reinterpret_cast<char *>(const_cast<uint8_t *>(package)));
+		pinfo->package_len_set(len);
 	}else{
 		pmodbus_rtu_info->reg_set(-1);
-		pmodbus_rtu_info->len_set(-1);
+		pmodbus_rtu_info->reg_no_set(-1);
 	}
 	return 0;
 }
 
-
-
-class protocol_modbus_rtu 	t_protocol_modbus_rtu;
 
 
 

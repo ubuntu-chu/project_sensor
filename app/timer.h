@@ -8,11 +8,7 @@
 
 class device_timer:public device{
 public:
-	device_timer():device(DEVICE_NAME_TIMER)
-	{
-
-	}
-
+	device_timer();
     virtual ~device_timer();
 };    
     

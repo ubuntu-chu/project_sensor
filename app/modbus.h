@@ -80,7 +80,7 @@ struct _modbus {
 
 class modbus_rtu_info:public protocol_info{
 public:
-	modbus_rtu_info():m_function(0),m_reg(0),m_len(0){}
+	modbus_rtu_info():m_reg(0),m_reg_no(0),m_function(0){}
 	~modbus_rtu_info(){}
 
 	void function_set(int function){m_function = function;}
@@ -89,16 +89,20 @@ public:
 	void reg_set(int reg){m_reg = reg;}
 	int reg_get(void){return m_reg;}
 
-	void len_set(int len){m_len = len;}
-	int len_get(void){return m_len;}
+	void reg_no_set(int len){m_reg_no = len;}
+	int reg_no_get(void){return m_reg_no;}
 	
-	void param_set(uint8 *param){m_pparam = param;}
-	uint8 *param_get(void){return m_pparam;}
+	void param_addr_set(uint8 *param){m_pparam = param;}
+	uint8 *param_addr_get(void){return m_pparam;}
+
+	void param_len_set(uint16 len){m_param_len 	= len;}
+	uint16 param_len_get(void){return m_param_len;}
 private:
-	int 	m_function;
-	int		m_reg;
-	int 	m_len;
+	uint16		m_reg;
+	uint16 	m_reg_no;
+	uint16  m_param_len;
 	uint8 	*m_pparam;
+    uint8 	m_function;
 };
 
 typedef struct _modbus modbus_t;
@@ -117,14 +121,21 @@ typedef struct {
 
 class protocol_modbus_rtu:public protocol{
 public:
-	protocol_modbus_rtu();
+	protocol_modbus_rtu(fp_protocol_handle *handle, void *pvoid);
 	virtual ~protocol_modbus_rtu();
 
 	virtual void init(void);
 	virtual uint16 pack(uint8_t*dst, uint8 *src, uint16 len);
 	virtual int8   unpack(uint8_t* pbuf, uint16 len);
+    virtual portBASE_TYPE  handle(enum protocol_phase phase)
+	{
+		if ((NULL != m_fp_handle) && (0 == m_fp_handle(m_pvoid, phase, &m_info))){
+			return 0;
+		}
+		return -1;
+	}
     portBASE_TYPE slave_set(uint8 addr);
-	virtual portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo);
+	portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo);
     void modbus_mapping_set(int nb_bits,
                             int nb_input_bits,
                             int nb_input_registers, 
@@ -145,13 +156,13 @@ public:
         
     }
 
-private:
+public:
     modbus_t                    m_modbus;            /* Slave address */
     modbus_mapping_t            m_mapping;
+    modbus_rtu_info				m_info;
     
 };
 
-extern class protocol_modbus_rtu 	t_protocol_modbus_rtu;
 
 #endif
 

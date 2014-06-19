@@ -8,11 +8,7 @@
 
 class device_storage:public device{
 public:
-	device_storage():device(DEVICE_NAME_STORAGE)
-	{
-
-	}
-
+	device_storage();
     virtual ~device_storage();
 };    
     

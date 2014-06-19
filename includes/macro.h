@@ -116,19 +116,19 @@
 
 #ifdef LOGGER
 #define ASSERT(EX)                                                         \
-if (!(EX))                                                                    \
-{                                                                             \
-    volatile char dummy = 0;                                                  \
-	LOG_FATAL << "(%s) assert failed !" << #EX;									\
-    while (dummy == 0);                                                       \
+if (!(EX))                                                                 \
+{                                                                          \
+    volatile char dummy = 0;                                              \
+	LOG_FATAL << "(%s) assert failed !" << #EX;							   \
+    while (dummy == 0);                                                   \
 }
 #else
 
 #define ASSERT(EX)                                                         \
-if (!(EX))                                                                    \
-{                                                                             \
-    volatile char dummy = 0;                                                  \
-    while (dummy == 0);                                                       \
+if (!(EX))                                                                 \
+{                                                                          \
+    volatile char dummy = 0;                                              \
+    while (dummy == 0);                                                    \
 }
 #endif
 
