@@ -16,12 +16,13 @@ void debug_output(const char* msg, int len)
 
 portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo)
 {
-    application  	 *pcapplication    		        = static_cast<application *>(pvoid);
+    portBASE_TYPE    rt                             = 0;
+    application  	 *papplication    		        = static_cast<application *>(pvoid);
     class modbus_rtu_info *pmodbus_rtu_info;
-    struct          storage_info storage_info;
-    uint16 	         offset, reg, reg_no;
-    uint8           *address;
+    uint16 	         reg, reg_no;
+    uint8           *buffer;
     int             function;
+	uint32 			i;
 
 	pmodbus_rtu_info = static_cast<class modbus_rtu_info *>(pinfo);
 
@@ -31,125 +32,136 @@ portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phas
     function                                        = pmodbus_rtu_info->function_get();
     reg                                             = pmodbus_rtu_info->reg_get();
     reg_no                                          = pmodbus_rtu_info->reg_no_get();
-    address                                         = pmodbus_rtu_info->param_addr_get();
+    buffer                                          = pmodbus_rtu_info->param_addr_get();
     //准备协议所需的数据
     if (enum_PROTOCOL_PREPARE == phase){
         switch (function){
-        case _FC_READ_HOLDING_REGISTERS: 
-            
-        
-            break;
-        
+        case _FC_READ_HOLDING_REGISTERS:
         case _FC_READ_INPUT_REGISTERS:
-            
-            break;
-        
-        default:
-            break;
+        {
+        	portMODBUS_REG_VALUE 	value;
+
+			//高字节在前   大端格式
+			for (i = 0; i < reg_no; i++) {
+				value			= papplication->m_modelinfo.modbus_reg_get(
+										(function == _FC_READ_HOLDING_REGISTERS)?(enum_REG_TYPE_HOLD):(enum_REG_TYPE_INPUT),
+										reg + i);
+				out16(buffer[1], buffer[0], value);
+				buffer 			+= sizeof(uint16);
+			}
+            //每个寄存器sizeof(uint16)长度
+            pmodbus_rtu_info->param_len_set(reg_no*sizeof(uint16));
         }
-        
-    
-    //对于写寄存器操作  要把更新后的寄存器写入到存储设备中
-    }else if (enum_PROTOCOL_DONE == phase){
-    #if 0    
-        switch (function){
-        case _FC_WRITE_SINGLE_REGISTER: 
+            break;
+
+        case _FC_WRITE_SINGLE_REGISTER:
         case _FC_WRITE_MULTIPLE_REGISTERS:
         {
-            //write hold regs to storage device
-            device_storage *pdevice_storage    = 
-                static_cast<device_storage *>(pcapplication->m_app_runinfo.m_pdevice_storage);
-            
-            //hold regs type is uint16
-            offset 								= pmodbus_rtu_info->reg_get()<<1;
-            pcapplication->m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
-            pdevice_storage->write(storage_info.m_storage_addr+offset,
-                    (char *)(storage_info.m_pdata + offset),
-                    storage_info.m_len<<1);
+			portMODBUS_REG_VALUE 	value;
+
+			for (i = 0; i < reg_no; i++) {
+				in16(value, buffer[1], buffer[0]);
+				if (0 != (rt = papplication->m_modelinfo.modbus_reg_set(enum_REG_TYPE_HOLD, reg + i, value))){
+                    break;
+                }
+				buffer 			+= sizeof(uint16);
+			}
         }
             break;
-        
         default:
             break;
         }
-    #endif   
+    //对于写寄存器操作  要把更新后的寄存器写入到存储设备中
+    }else if (enum_PROTOCOL_DONE == phase){
+        switch (function){
+        case _FC_WRITE_SINGLE_REGISTER:
+        case _FC_WRITE_MULTIPLE_REGISTERS:
+        {
+            class event 	t_event(&application::datum_save, papplication);
+
+            papplication->m_peventloop->run_inloop(&t_event);
+        }
+            break;
+
+        default:
+            break;
+        }
     }
-    
-	return 0;
+
+	return rt;
 }
 
-portBASE_TYPE application::load_app_datum(void)
+portBASE_TYPE application::datum_load(void)
 {
-    uint8               magic_string[100];
     portSSIZE_TYPE      ssize;
-    struct storage_info storage_info_magic;
     struct storage_info storage_info_modbus;
-    device_storage *pdevice_storage    = 
+    device_storage *pdevice_storage    =
             static_cast<device_storage *>(m_app_runinfo.m_pdevice_storage);
-    
-    m_modeinfo.storage_info_query(enum_REG_TYPE_MAGIC, &storage_info_magic);
-while (1){  
-#if 0    
-    ssize    = pdevice_storage->read(storage_info_magic.m_storage_addr, 
-                    reinterpret_cast<char *>(magic_string), 
-                    storage_info_magic.m_len);
-    
-#endif    
-    ssize    = pdevice_storage->write(storage_info_magic.m_storage_addr, 
-                    reinterpret_cast<char *>(storage_info_magic.m_pdata), 
-                    storage_info_magic.m_len);
 
-    ssize    = pdevice_storage->read(storage_info_magic.m_storage_addr, 
-                    reinterpret_cast<char *>(magic_string), 
-                    storage_info_magic.m_len);
-    delay_ms(1000);
-}    
-    if ((ssize <= 0) || (ssize != storage_info_magic.m_len)){
-    #ifdef LOGGER
-        LOG_FATAL << "magic load failed!";
-    #endif
-        return -1;
-    }
-    m_modeinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info_modbus);
-    //first load   do init - modbus regs
-    if (strcmp(reinterpret_cast<const char *>(magic_string), 
-                reinterpret_cast<const char *>(storage_info_magic.m_pdata))){
-        
+    m_modelinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info_modbus);
+	//load modbus regs
+	ssize   = pdevice_storage->read(storage_info_modbus.m_storage_addr,
+							reinterpret_cast<char *>(storage_info_modbus.m_pdata),
+							storage_info_modbus.m_len);
+	if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
+	#ifdef LOGGER
+		LOG_FATAL << "modbus regs load/write failed!";
+	#endif
+		return -1;
+	}
+	//判断校验和是否正确
+	if (m_modelinfo.storage_param_verify(enum_REG_TYPE_HOLD)){
+		//校验码错误  写入默认参数
+		m_modelinfo.storage_param_chksum(enum_REG_TYPE_HOLD);
         ssize   = pdevice_storage->write(storage_info_modbus.m_storage_addr,
-                                reinterpret_cast<char *>(storage_info_modbus.m_pdata), 
+                                reinterpret_cast<char *>(storage_info_modbus.m_pdata),
                                 storage_info_modbus.m_len);
-    }else {
-        //load modbus regs
-        ssize   = pdevice_storage->read(storage_info_modbus.m_storage_addr,
-                                reinterpret_cast<char *>(storage_info_modbus.m_pdata), 
-                                storage_info_modbus.m_len);
-    }
-    if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
-    #ifdef LOGGER
-        LOG_FATAL << "modbus regs load/write failed!";
-    #endif
-        return -1;
-    }
-    
+		if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
+		#ifdef LOGGER
+			LOG_FATAL << "modbus regs write failed!";
+		#endif
+			return -1;
+		}
+	}
+
     return 0;
 }
 
+portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
+{
+	application 	*papplication	= static_cast<application *> (pvoid);
+    struct          storage_info storage_info;
+
+	//write hold regs to storage device
+	device_storage *pdevice_storage    =
+		static_cast<device_storage *>(papplication->m_app_runinfo.m_pdevice_storage);
+
+	//hold regs
+	papplication->m_modelinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
+	papplication->m_modelinfo.storage_param_chksum(enum_REG_TYPE_HOLD);
+	pdevice_storage->write(storage_info.m_storage_addr,
+							reinterpret_cast<char *>(storage_info.m_pdata), storage_info.m_len);
+
+	return 0;
+}
+
+
 uint16  application::hold_reg_get(enum hold_reg_index index)
 {
-    return m_modeinfo.hold_reg_get(index);
+    return m_modelinfo.modbus_reg_get(enum_REG_TYPE_HOLD, index);
 }
 void application::hold_reg_set(enum hold_reg_index index, uint16 value)
 {
-    m_modeinfo.hold_reg_set(index, value);
+    m_modelinfo.modbus_reg_set(enum_REG_TYPE_HOLD, index, value);
 }
 
 uint16  application::input_reg_get(enum input_reg_index index)
 {
-    return m_modeinfo.input_reg_get(index);
+    return m_modelinfo.modbus_reg_get(enum_REG_TYPE_INPUT, index);
 }
 void application::input_reg_set(enum input_reg_index index, uint16 value)
 {
-    m_modeinfo.input_reg_set(index, value);
+    m_modelinfo.modbus_reg_set(enum_REG_TYPE_INPUT, index, value);
 }
 
 portBASE_TYPE application::init(void)
@@ -160,23 +172,24 @@ portBASE_TYPE application::init(void)
     static device_storage 				t_device_storage;
     static device_pwm		    		t_device_pwm;
     static device_commu   				t_device_commu( &t_protocol_modbus_rtu);
+    
 #ifdef LOGGER
     //log setting
     Logger::setOutput(debug_output);
 #endif
 #if 0
     {
-        struct tm   tm_time;
-        time_t      time;
+        struct tm                      tm_time;
+        time_t                          time;
         
         tm_time.tm_year                     = 2014-1900;
-        tm_time.tm_mon                      = 4; 
+        tm_time.tm_mon                      = 4;
         tm_time.tm_mday                     = 1;
-        tm_time.tm_hour                     = 17; 
-        tm_time.tm_min                      = 20; 
+        tm_time.tm_hour                     = 17;
+        tm_time.tm_min                      = 20;
         tm_time.tm_sec                      = 50;
-        time        = mktime(&tm_time);
-        cpu_sys_time_set(time);
+        time                                = mktime(&tm_time);
+        sv_tick_set(time*TICK_PER_SECOND);
     }
 #endif
     //device setting
@@ -186,61 +199,45 @@ portBASE_TYPE application::init(void)
     m_app_runinfo.m_pdevice_storage 	    = &t_device_storage;
     m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
 	m_app_runinfo.m_status 					= STAT_OK;
-    
-	m_modeinfo.name_set(def_MODEL_NAME);
 
-	m_app_runinfo.m_handle_period 			= t_timer_manage.soft_timer_register(1000, 
-                                                SV_TIMER_FLAG_PERIODIC, 
-                                                period_handle, 
-                                                this,
-                                                "period handle");
-    ASSERT(m_app_runinfo.m_handle_period != (timer_handle_type)-1);
-	t_timer_manage.timer_start(m_app_runinfo.m_handle_period);
+	m_modelinfo.name_set(def_MODEL_NAME);
 	cpu_pendsv_register(pendsv_handle, this);
-    
+
     m_app_runinfo.m_pdevice_commu->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_pin->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_ad->open(DEVICE_FLAG_RDONLY);
     m_app_runinfo.m_pdevice_pwm->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_storage->open(DEVICE_FLAG_RDWR);
-    
+
     //load conf_datum from storage device
-#if 0
-    if (load_app_datum()){
+    if (datum_load()){
+        datum_load();
+        while (1);
     }
-#endif
-    
+
     t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
-    t_protocol_modbus_rtu.modbus_mapping_set(ARRAY_SIZE(m_modeinfo.m_regs.m_tab_bits),
-                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_bits),
-                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_input_registers),
-                                        ARRAY_SIZE(m_modeinfo.m_regs.m_tab_registers),
-                                        m_modeinfo.m_regs.m_tab_bits,
-                                        m_modeinfo.m_regs.m_tab_input_bits,
-                                        m_modeinfo.m_regs.m_tab_input_registers,
-                                        m_modeinfo.m_regs.m_tab_registers);
-    
-    
+#if 0
     hold_reg_set(enum_REG_RHREF_RREQ, 200);
     hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
     hold_reg_set(enum_REG_HEAT_RREQ, 400);
     hold_reg_set(enum_REG_HEAT_DUTY_CYCLE, 150);
-    
+#endif
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_H, NULL);
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_L, NULL);
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_H, NULL);
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
     
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FREQ, 
+#if 0
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FREQ,
             (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_RREQ)));
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_DUTY_CYCLE, 
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_DUTY_CYCLE,
             (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_DUTY_CYCLE)));
-        
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FREQ, 
+
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FREQ,
             (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_RREQ)));
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE, 
+    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE,
             (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_DUTY_CYCLE)));
-    
+#endif
     return 0;
 }
 
@@ -273,7 +270,7 @@ portBASE_TYPE   application::event_cb(void *pvoid, class event *pevent)
 	volatile int16 			b				= t_buffer.readInt16();
 
     papplication    = papplication;
-    
+
 	return 0;
 }
 
@@ -287,11 +284,20 @@ portBASE_TYPE application::run()
 	eventloop t_loop;
 	channel t_channel_ad(&t_loop, pdevice_ad);
     
-    pdevice_commu               = pdevice_commu;
-
-	m_peventloop 				= &t_loop;
+    //消除未使用的变量警告
+    pdevice_commu                           = pdevice_commu;
+	m_peventloop 				            = &t_loop;
+    //每隔4分钟执行一次
+    m_app_runinfo.m_handle_period 			= t_loop.run_every(1*60*1000,
+                                                self_calc_handle,
+                                                this,
+                                                "self calc handle");
+    ASSERT(m_app_runinfo.m_handle_period != (timer_handle_type)-1);
+    
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
 	t_channel_ad.enableReading();
+    
+    //启动loop循环
 	t_loop.loop();
 
 	return 0;
@@ -306,23 +312,26 @@ void application::pendsv_handle(void *pvoid)
 	pdevice_commu->package_event_fetch();
 }
 
-void application::period_handle(void *pdata)
+void application::self_calc_handle(void *pdata)
 {
 	application *papplication  = static_cast<application *> (pdata);
     papplication    = papplication;
-    
+
     cpu_led_toggle();
 }
 
+application  *papplication_watch;
+
 int main(void)
 {
-    application  *pcapplication    = singleton<application>::instance();
-
+    application  *papplication      = singleton<application>::instance();
+    papplication_watch              = papplication;
+    
     //bsp startup
     bsp_startup();
     sv_startup();
-    pcapplication->init();
-    pcapplication->run();
+    papplication->init();
+    papplication->run();
 
     return 0;
 }

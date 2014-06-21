@@ -94,7 +94,6 @@ volatile unsigned char ucADC1RunStus;
 
 void AD_DMAINIT(void)
 {
-	DmaBase();
     DmaSet(0,DMAENSET_ADC1,0,DMAPRISET_ADC1);       // Enable ADC0 && ADC1 DMA primary structure
 }
 

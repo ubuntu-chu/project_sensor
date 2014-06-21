@@ -1,5 +1,5 @@
-#ifndef _ENV_DATUM_H
-#define _ENV_DATUM_H
+#ifndef _DATUM_H
+#define _DATUM_H
 #include "../includes/includes.h"
 
 enum hold_reg_index{
@@ -99,20 +99,6 @@ enum input_reg_index{
 
 };    
 
-#define     def_NR_TAB_BITS                 (1)
-#define     def_NR_TAB_INPUT_BITS           (1)
-
-
-struct regs{
-    uint8 			        m_tab_bits[def_NR_TAB_BITS];
-    uint8 			        m_tab_input_bits[def_NR_TAB_INPUT_BITS];
-    //input regs
-    uint16 			        m_tab_input_registers[enum_REG_INPUT_REG_MAX];
-    //hold regs
-    uint16			        m_tab_registers[enum_REG_BREAK_SECTION_END_1-enum_REG_BREAK_SECTION_START_1
-                                            +enum_REG_BREAK_SECTION_END_2-enum_REG_BREAK_SECTION_START_2];
-};
-
 enum reg_type{
 	enum_REG_TYPE_INPUT	= 0,
 	enum_REG_TYPE_HOLD,
@@ -121,83 +107,166 @@ enum reg_type{
 	enum_REG_TYPE_MAX,
 };
 
+//寄存器属性 
+enum reg_attr{
+    enum_REG_ATTR_WRONLY	= 0,
+    enum_REG_ATTR_RDONLY,
+    enum_REG_ATTR_RDWR,
+};
+
+template <class T>
+struct param_range{
+    T       	        m_min;
+    T 			        m_max;
+    enum reg_attr       m_attr;
+};
+
+typedef struct __SENSOR_INFO
+{
+    char   strSensorType[24];
+    char   strSensorSerialNo[24];
+    char   strSensorHardwareVer[24];
+    char   strSensorSoftwareVer[24];
+    char   chksum;
+} SENSOR_INFO;
+
+typedef struct __SENSOR_PARA
+{
+//Configure Infomation
+    //0-6
+    unsigned char   ucLinkAddr;	  //1-247
+    unsigned char   ucCommBaud;   //0:2400 1:4800 2:9600 3:19200 4:38400
+    unsigned char   ucGasMixingRatio;    //Gas mixing ratio:0~100% SF6
+    unsigned char   ucNormalTemperature; //Pressure normalization Temperature
+    unsigned char   ucAutoWashON;   //Auto wash
+    unsigned char   ucBootWashON;   //Boot wash
+    unsigned char   ucMannulWashON; //Mannul wash
+    //7-9
+    unsigned short  usWashPowerSet; //Wash power
+    unsigned short  usHeatPowerSet; //Heat for getting humi-zero voltage
+    unsigned short  usHumiZeroSet;  //Humi Zero Setting
+//Calibration Setting
+    //pressure: 10-13;14-17
+    unsigned short  usPValue[4];
+    unsigned short  usPADC[4];
+    //humidity: 18-30;31-43,44-56
+    unsigned short usRH[13];
+    unsigned long  ulHumiADC[13];
+
+	//chech sum
+    unsigned short   chksum;
+
+}SENSOR_PARA,*pSENSOR_PARA;
+
+typedef struct __SENSOR_DATA
+{
+    unsigned short usStatus;
+    unsigned short usPPM;
+    signed short   ssPressure;
+    signed short   ssPressure20;
+    unsigned short usRH;
+    unsigned short usRH20;
+    unsigned short usDensity;
+	signed short   ssTemprature;
+	signed short   ssDew;
+	signed short   ssDewUnderPress;
+	//采样值
+	unsigned short usADCPrs;
+    unsigned short usADCPrsVs;
+    float  fADCTemprature;
+    float  fADCHumiSgl;
+    float  fADCCapcitance;
+} SENSOR_DATA,*pSENSOR_DATA;
+
+//input & output pressure unit
+#define PRESS_ABS_INPUT    FALSE
+#define PRESS_ABS_OUTPUT   FALSE
+//GET FROM g
+#define PUCHG   0.01019716213*100
+
+#define ATMOS_HPA  (ATMOS*10)
+#define LOG_6D112    1.81025405186422
+
+enum RUNMODE{
+    MODE_MEASURE_PARA=0,
+    MODE_SENSOR_WASH,
+    MODE_CALIB_HUMI,
+};
+
+enum reg_operate{
+	enum_REG_READ 	= 0,
+	enum_REG_WRITE,
+};
+
+enum reg_access_type{
+	enum_REG_UINT8 	= 0,
+	enum_REG_UINT16,
+	enum_REG_UINT32,
+	enum_REG_UINT32_HIGH_16,
+	enum_REG_UINT32_LOW_16,
+};
+
+
+//---------------------------------------------------------------------------------------------------------
+
 struct storage_info{
 	uint16 					m_storage_addr;      	//存贮器设备地址
 	uint8					*m_pdata;				//src data
 	uint16 					m_len;					//src data len
 };
 
-class 	CModelInfo{
+typedef 	uint32 				portMODBUS_REG_VALUE;
+typedef 	uint16 				portMODBUS_REG_INDEX;
+
+#define 	_def_SPLIT_HOLD_R_INDEX_1 				(7)				//usWashPowerSet
+#define 	_def_SPLIT_HOLD_R_INDEX_2 				(31)			//ulHumiADC
+#define 	_def_SPLIT_HOLD_R_INDEX_3 				(57)			//保持寄存器的结尾
+//保持寄存器最大数目  依据实际情况看是否做寄存器超限判定
+#define     _def_HOLD_REG_MAX_NO                    _def_SPLIT_HOLD_R_INDEX_3
+
+
+#define 	_def_SPLIT_INPUT_R_INDEX_1 				(12)
+#define 	_def_SPLIT_INPUT_R_INDEX_2 				(18)			//输入寄存器的结尾
+//输入寄存器最大数目
+#define     _def_INPUT_REG_MAX_NO                   _def_SPLIT_INPUT_R_INDEX_2
+
+
+
+class 	model_datum:noncopyable{
 public:
-	CModelInfo(uint8 *pname):m_name(pname)
-    {
-        hold_reg_set(enum_REG_MODBUS_ADDR, 1);
-        m_magic_setup           = "magic setup string";
-    }
-	CModelInfo()
-    {
-        hold_reg_set(enum_REG_MODBUS_ADDR, 1);
-        m_magic_setup           = "magic setup string";
-    }
-    ~CModelInfo(){}
-    
-    uint16  hold_reg_get(enum hold_reg_index index)
-    {
-        return m_regs.m_tab_registers[index];
-    }
-    void hold_reg_set(enum hold_reg_index index, uint16 value)
-    {
-        m_regs.m_tab_registers[index] = value;
-    }
+	model_datum(uint8 *pname = NULL);
+    ~model_datum(){}
 
-    uint16  input_reg_get(enum input_reg_index index)
-    {
-        return m_regs.m_tab_input_registers[index];
-    }
-    void input_reg_set(enum input_reg_index index, uint16 value)
-    {
-        m_regs.m_tab_input_registers[index] = value;
-    }
+    portBASE_TYPE storage_info_query(enum reg_type type, struct storage_info *pinfo);
+    portBASE_TYPE storage_param_verify(enum reg_type type);
+    void storage_param_chksum(enum reg_type type);
+ 
+    const uint8 *name_get(void){ return m_name; }
+    void name_set(const uint8 *pname){ m_name 	= pname; }
 
-    portBASE_TYPE storage_info_query(enum reg_type type, struct storage_info *pinfo)
-    {
-    	if (pinfo == NULL){
-    		return -1;
-    	}
-    	if (type == enum_REG_TYPE_HOLD){
-    		pinfo->m_storage_addr 						= ROUND_UP((strlen(reinterpret_cast<const char *>(m_magic_setup))), 16);
-    		pinfo->m_pdata 								= reinterpret_cast<uint8 *>(&m_regs.m_tab_registers[0]);
-    		pinfo->m_len 								= sizeof(m_regs.m_tab_registers);
-        }else if (type == enum_REG_TYPE_MAGIC){
-            pinfo->m_storage_addr 						= 0;
-            pinfo->m_pdata 								= const_cast<uint8 *>(m_magic_setup);
-    		pinfo->m_len 								= strlen(reinterpret_cast<const char *>(m_magic_setup)) + 1;   //contain end code
-    	}else {
-    		return -1;
-    	}
+    portMODBUS_REG_VALUE modbus_reg_get(enum reg_type type, portMODBUS_REG_INDEX reg);
+    portBASE_TYPE modbus_reg_set(enum reg_type type, portMODBUS_REG_INDEX reg, portMODBUS_REG_VALUE value);
 
-    	return 0;
-    }
-
-    const uint8 *name_get(void)
-    {
-        return m_name;
-    }
-    void name_set(const uint8 *pname)
-    {
-        m_name 				= pname;
-    }
+    void modbus_hold_reg_def_init(void);
 
 private:
-    CModelInfo( CModelInfo &other);
-    CModelInfo &operator =( CModelInfo &other);
+	portBASE_TYPE reg_operate(enum reg_access_type type, enum reg_operate operate, 
+                void *preg_addr, portMODBUS_REG_VALUE &value, void *prange = NULL);
+    
+    portBASE_TYPE hold_reg_operate(enum reg_operate operate, portMODBUS_REG_INDEX reg, portMODBUS_REG_VALUE &value);
+    portBASE_TYPE input_reg_operate(enum reg_operate operate, portMODBUS_REG_INDEX reg, portMODBUS_REG_VALUE &value);
+
+    portMODBUS_REG_VALUE  hold_reg_get(portMODBUS_REG_INDEX reg);
+    portBASE_TYPE hold_reg_set(portMODBUS_REG_INDEX reg, portMODBUS_REG_VALUE value);
+    portMODBUS_REG_VALUE  input_reg_get(portMODBUS_REG_INDEX reg);
+    portBASE_TYPE input_reg_set(portMODBUS_REG_INDEX reg, portMODBUS_REG_VALUE value);
 
 public:
-    const uint8             *m_name;
-    const uint8             *m_magic_setup;
-    struct regs             m_regs;
-
-
+    const uint8             	*m_name;
+    const uint8             	*m_magic_setup;
+    SENSOR_INFO 				m_stuSensorInfo;
+    SENSOR_PARA 				m_stuSensorPara;
+    SENSOR_DATA 				m_stuSensorData;
 };
 
 #endif

@@ -39,7 +39,7 @@ timer_handle_type timer_queue::timer_add(const uint32& ms, uint8 flag, fp_void_p
 	timer_handle_type	handle;
 
 	handle 	= t_timer_manage.soft_timer_register(ms, flag, cb, pparam, pname);
-    if (handle!= (timer_handle_type)-1){
+    if (handle == (timer_handle_type)-1){
     	return handle;
     }
     t_timer_manage.timer_start(handle);

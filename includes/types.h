@@ -14,16 +14,21 @@ typedef unsigned int 								uint32_t;
 typedef unsigned int 								uint32;
 typedef signed int 								int32_t;
 typedef int 										int32;
-typedef unsigned long int 						uint64;
+typedef unsigned long long int 				    uint64;
 #if 0
-typedef unsigned long int 						uint64_t;
-typedef long signed int   					 	int64_t;
+typedef unsigned long long int 					uint64_t;
+typedef long long signed int   					int64_t;
 #endif
-typedef long signed int    						int64;
+typedef long long signed int    					int64;
 typedef float                   					fp32_t;
 typedef double                  					fp64_t;
 
 typedef unsigned int           					bool_t;  	/* Boolean type */
+
+typedef uint8										byte;
+typedef uint16 										hword;
+typedef uint32 										word;
+typedef uint64 										dword;
 
 //最适合cpu类型定义
 typedef int 										portBASE_TYPE;

@@ -13,25 +13,6 @@ void cpu_delay_us(uint16 us)
     
 }
 
-static tick_t 		s_tick		= 0;
-
-tick_t cpu_tick_get(void)
-{
-	return s_tick;
-}
-void cpu_tick_set(tick_t tick)
-{
-	portCPSR_TYPE	level 		= cpu_interruptDisable();
-	s_tick    					= tick;
-	cpu_interruptEnable(level);
-}
-
-void cpu_tick_increase(void)
-{
-	s_tick++;
-	t_timer_manage.timer_check();
-}
-
 //time: 500 ms  interrupt
 portBASE_TYPE cpu_tick_run(void)
 {
@@ -59,7 +40,7 @@ extern "C" void SysTick_Handler(void)
 {
     //portCPSR_TYPE	level = cpu_interruptDisable();
     
-	cpu_tick_increase();
+	sv_tick_increase();
     if (cpu_sleep_status_pend()){
         cpu_sleep_exit();
     }

@@ -72,11 +72,22 @@ timer_handle_type eventloop::run_after(uint32 ms, fp_void_pvoid *cb, void *ppara
 	return run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_ONE_SHOT, cb, pparam, pname);
 }
 
+timer_handle_type eventloop::run_after(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname)
+{
+    uint32 ms                       = mktime(&tm)*1000;
+    return run_after(ms, cb, pparam, pname);
+}
+
 timer_handle_type eventloop::run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
 {
 	return run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_PERIODIC, cb, pparam, pname);
 }
 
+timer_handle_type eventloop::run_every(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname)
+{
+    uint32 ms                       = mktime(&tm)*1000;
+    return run_every(ms, cb, pparam, pname);
+}
 
 int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {

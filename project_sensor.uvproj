@@ -507,6 +507,16 @@
               <FilePath>.\app\main.cpp</FilePath>
             </File>
             <File>
+              <FileName>datum.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\app\datum.h</FilePath>
+            </File>
+            <File>
+              <FileName>datum.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\app\datum.cpp</FilePath>
+            </File>
+            <File>
               <FileName>protocol.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\app\protocol.cpp</FilePath>
@@ -520,11 +530,6 @@
               <FileName>devices.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\app\devices.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>env_datum.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\app\env_datum.cpp</FilePath>
             </File>
             <File>
               <FileName>pin.cpp</FileName>

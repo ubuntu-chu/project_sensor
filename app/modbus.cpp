@@ -60,7 +60,7 @@ static int response_exception(modbus_t *ctx, sft_t *sft,
 
 
 int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
-                 int req_length, modbus_mapping_t *mb_mapping)
+                 int req_length)
 {
     int offset          = _MODBUS_RTU_HEADER_LENGTH;
     int slave           = req[offset - 1];
@@ -83,7 +83,8 @@ int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
 
 		rtu->info(req, req_length, &rtu->m_info);
 		if (_FC_WRITE_SINGLE_REGISTER == function) {
-			nb                              = 1;
+			//此条语句无作用  写操作的应答与此nb变量无关
+            nb                              = 1;
 		} else {
 			nb 					            = (req[offset + 3] << 8) + req[offset + 4];
 		}
@@ -91,6 +92,7 @@ int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
 		if ((_FC_READ_HOLDING_REGISTERS == function)
 			|| (_FC_READ_INPUT_REGISTERS == function)){
             rsp[rsp_length++]               = nb << 1;
+            rtu->m_info.param_addr_set(const_cast<uint8 *>(&(rsp[rsp_length])));
             read_operation                  = true;
 		}
         if (0 == rtu->handle(enum_PROTOCOL_PREPARE)){
@@ -163,7 +165,7 @@ void protocol_modbus_rtu::init(void)
 
 uint16 protocol_modbus_rtu::pack(uint8_t*dst, uint8 *src, uint16 len)
 {
-    return modbus_reply(this, dst, src, len, &m_mapping);
+    return modbus_reply(this, dst, src, len);
 }
 
 int8   protocol_modbus_rtu::unpack(uint8_t* pbuf, uint16 len)
@@ -208,8 +210,13 @@ portBASE_TYPE  protocol_modbus_rtu::info(const uint8_t*package, uint16 len, clas
 			|| (function == _FC_WRITE_SINGLE_REGISTER)
 			|| (function == _FC_WRITE_MULTIPLE_REGISTERS)){
 		pmodbus_rtu_info->reg_set((package[offset + 1] << 8) + package[offset + 2]);
-		pmodbus_rtu_info->reg_no_set((package[offset + 3] << 8) + package[offset + 4]);
-		pmodbus_rtu_info->param_addr_set(const_cast<uint8 *>(&(package[offset + 5])));
+		if (function == _FC_WRITE_SINGLE_REGISTER){
+            pmodbus_rtu_info->reg_no_set(1);
+            pmodbus_rtu_info->param_addr_set(const_cast<uint8 *>(&(package[offset + 3])));
+        }else {
+            pmodbus_rtu_info->reg_no_set((package[offset + 3] << 8) + package[offset + 4]);
+            pmodbus_rtu_info->param_addr_set(const_cast<uint8 *>(&(package[offset + 5])));
+        }
 		pinfo->package_addr_set(reinterpret_cast<char *>(const_cast<uint8_t *>(package)));
 		pinfo->package_len_set(len);
 	}else{

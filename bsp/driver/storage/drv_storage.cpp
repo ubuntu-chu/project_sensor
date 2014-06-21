@@ -83,7 +83,8 @@ static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAd
     uint32   capacity;
     uint16   accessBytes;
     uint16   offset;
-    portSSIZE_TYPE  rt 	= numbBytes;
+    portSSIZE_TYPE  rt;
+    portSSIZE_TYPE  tot_access_bytes   = numbBytes;
     
 
     //判断参数是否合法
@@ -151,7 +152,7 @@ static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAd
         }
     }
 
-    return rt;
+    return tot_access_bytes-numbBytes;
 }
 
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){

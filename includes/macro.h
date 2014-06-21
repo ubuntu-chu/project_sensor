@@ -40,7 +40,7 @@
 #endif
 
 //------------------------------------------------------------------------------
-#define   		BIT(n)											 (1UL << n)
+#define   		 BIT(n)											 (1UL << n)
 #define         SBI(reg, bit)                                 	 ((reg) |= BIT(bit))
 #define         CBI(reg, bit)                                 	 ((reg) &= ~BIT(bit))
 #define         XBI(reg, bit)                                 	 ((reg) ^= BIT(bit))
@@ -48,9 +48,14 @@
 #define         BIT_IS_CLEAR(reg, bit)                           (!BIT_IS_SET(reg, bit))
 
 //------------------------------------------------------------------------------
-#define         XBYTE(addr)                                     (*(volatile uint8 *)addr)
-#define         XHWORD(addr)                                    (*(volatile uint16 *)addr)
-#define         XWORD(addr)                                     (*(volatile uint32 *)addr)
+#define         XBYTE(addr)                                     (*(volatile uint8 *)(addr))
+#define         XHWORD(addr)                                    (*(volatile uint16 *)(addr))
+#define         XWORD(addr)                                     (*(volatile uint32 *)(addr))
+#define         XDWORD(addr)                                    (*(volatile uint64 *)(addr))
+
+/* register access macros */
+#define 		 in16(var,l,h)  								 (var = ((uint16)(l)) | (((uint16)(h)) << 8))
+#define 		 out16(l,h,val) 								 do {l = (uint8)(val); h = (uint8)(((uint16)val) >> 8);}while (0)
 
 //------------------------------------------------------------------------------
 #define         MIN(a,b)                                        ((a)<(b)?(a):(b))
@@ -60,7 +65,7 @@
 
 //------------------------------------------------------------------------------
 #define         OFFSET(Struct, Field) 				            ((unsigned int)(unsigned char*)&(((Struct *)0)->Field))
-#define 		ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
+#define 		 ARRAY_SIZE(arr) 								(sizeof(arr) / sizeof((arr)[0]))
 
 #define         ALIGN_UP(x, a)                                  (((x)+(a))&(~a))
 #define         ALIGN_DOWN(x, a)                                (((x)&(~a))

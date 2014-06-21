@@ -52,6 +52,8 @@ portBASE_TYPE bsp_startup(void)
     //clock
     sys_clock_init();
     cpu_pendsv_init();
+    //dma ≥ı ºªØ
+    DmaBase();
 	//gpio
 	cpu_gpioinit();
 	//start sys tick

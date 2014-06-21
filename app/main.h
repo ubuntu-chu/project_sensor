@@ -6,19 +6,11 @@
 #include "devices.h"
 #include "protocol.h"
 #include "modbus.h"
-#include "../app/env_datum.h"
-#include	"../reactor/reactor.h"
+#include "datum.h"
+#include "../reactor/reactor.h"
 
 enum{
 	STAT_OK				= 0,
-	STAT_RF231_OPEN,
-	STAT_RF231_ACCESS,
-	STAT_BATTERY_OPEN,
-	STAT_BATTERY_ACCESS,
-	STAT_PIN_OPEN,
-	STAT_PIN_ACCESS,
-	STAT_24C02_OPEN,
-	STAT_24C02_ACCESS,
 };
 
 enum{
@@ -57,14 +49,14 @@ private:
     application &operator =(const application &other);
 	static portBASE_TYPE package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
-	static void period_handle(void *pdata);
-
+	static void self_calc_handle(void *pdata);
 
 	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
 	static portBASE_TYPE   event_cb(void *pvoid, class event *pevent);
 
-        
-    portBASE_TYPE load_app_datum(void);
+    portBASE_TYPE datum_load(void);
+	static portBASE_TYPE   datum_save(void *pvoid, class event *pevent);
+
     uint16  hold_reg_get(enum hold_reg_index index);
     void hold_reg_set(enum hold_reg_index index, uint16 value);
 
@@ -72,7 +64,7 @@ private:
     void input_reg_set(enum input_reg_index index, uint16 value);
 
     struct _app_runinfo_    m_app_runinfo;
-	class CModelInfo 	     m_modeinfo;
+	class model_datum 	     m_modelinfo;
 
 	eventloop 				*m_peventloop;
 };

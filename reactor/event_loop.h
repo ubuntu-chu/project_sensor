@@ -20,7 +20,9 @@ public:
 	portBASE_TYPE run_inloop(class event *event);
 
 	timer_handle_type run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
-	timer_handle_type run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
+    timer_handle_type run_after(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname);
+    timer_handle_type run_every(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname);
+	timer_handle_type run_every(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname);
 
 	void update_channel(channel* channel);
 	void remove_channel(channel* channel);

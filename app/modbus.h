@@ -107,18 +107,6 @@ private:
 
 typedef struct _modbus modbus_t;
 
-typedef struct {
-    int nb_bits;
-    int nb_input_bits;
-    int nb_input_registers;
-    int nb_registers;
-    uint8_t *tab_bits;
-    uint8_t *tab_input_bits;
-    uint16_t *tab_input_registers;
-    uint16_t *tab_registers;
-} modbus_mapping_t;
-
-
 class protocol_modbus_rtu:public protocol{
 public:
 	protocol_modbus_rtu(fp_protocol_handle *handle, void *pvoid);
@@ -136,31 +124,10 @@ public:
 	}
     portBASE_TYPE slave_set(uint8 addr);
 	portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo);
-    void modbus_mapping_set(int nb_bits,
-                            int nb_input_bits,
-                            int nb_input_registers, 
-                            int nb_registers,
-                            uint8_t *tab_bits,
-                            uint8_t *tab_input_bits,
-                            uint16_t *tab_input_registers,
-                            uint16_t *tab_registers)
-    {
-        m_mapping.nb_bits                   = nb_bits;
-        m_mapping.nb_input_bits             = nb_input_bits;
-        m_mapping.nb_input_registers        = nb_input_registers;
-        m_mapping.nb_registers              = nb_registers;
-        m_mapping.tab_bits                  = tab_bits;
-        m_mapping.tab_input_bits            = tab_input_bits;
-        m_mapping.tab_input_registers       = tab_input_registers;
-        m_mapping.tab_registers             = tab_registers;
-        
-    }
 
 public:
     modbus_t                    m_modbus;            /* Slave address */
-    modbus_mapping_t            m_mapping;
     modbus_rtu_info				m_info;
-    
 };
 
 

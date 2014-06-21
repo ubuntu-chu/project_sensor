@@ -186,13 +186,12 @@ extern timer_manage   t_timer_manage;
 
 class buffer {
 public:
-	static const size_t kCheapPrepend = 4;
-
-	buffer(int8 *pdata, size_t len) :
+	buffer(int8 *pdata, size_t len, size_t cheapPrepend = 4) :
 			buffer_(reinterpret_cast<char *>(pdata)),
 			len_(len),
-			readerIndex_( kCheapPrepend),
-			writerIndex_(kCheapPrepend)
+			cheapPrepend_(cheapPrepend),
+			readerIndex_(cheapPrepend),
+			writerIndex_(cheapPrepend)
 	{
 
 	}
@@ -211,6 +210,7 @@ public:
 		}
 		readerIndex_ 			= other.readerIndex_;
 		writerIndex_ 			= other.writerIndex_;
+        cheapPrepend_ 			= other.cheapPrepend_;
 
 		return *this;
 	}
@@ -271,8 +271,8 @@ public:
 
 	void retrieveAll()
 	{
-		readerIndex_ = kCheapPrepend;
-		writerIndex_ = kCheapPrepend;
+		readerIndex_ = cheapPrepend_;
+		writerIndex_ = cheapPrepend_;
 	}
 
 	int retrieveAllAsCharArray(int8 *dst)
@@ -425,6 +425,7 @@ private:
 
 	char *buffer_;
 	size_t len_;
+	size_t cheapPrepend_;
 	size_t readerIndex_;
 	size_t writerIndex_;
 };
@@ -706,6 +707,9 @@ typedef            struct DEVICE_ABSTRACT                      device_t;
 
 
 void sv_startup(void);
+tick_t sv_tick_get(void);
+void sv_tick_set(tick_t tick);
+void sv_tick_increase(void);
 
 #ifdef __cplusplus
 }

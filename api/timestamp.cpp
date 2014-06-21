@@ -1,4 +1,5 @@
 #include "timestamp.h"
+#include "../includes/service.h"
 
 Timestamp::Timestamp(time_t microSecondsSinceEpoch)
   : microSecondsSinceEpoch_(microSecondsSinceEpoch)
@@ -241,12 +242,9 @@ char *ctime(const time_t *timep)
 
 int gettimeofday(struct timeval *tp, void *ignore)
 {
-    extern time_t cpu_tick_get(void);
-	//time_t time;
-
     if (tp != NULL){
-        tp->tv_sec = cpu_tick_get();
-		tp->tv_usec = 0;
+        tp->tv_sec                  = sv_tick_get()/TICK_PER_SECOND;
+		tp->tv_usec                 = 0;
     }
 
 	return 0;

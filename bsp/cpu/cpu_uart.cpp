@@ -24,7 +24,7 @@ enum RECV_STAT{
 };
 
 #define     def_TRANSCEIVER_RX_BUF_SIZE                     (100)
-#define     def_TRANSCEIVER_TX_BUF_SIZE                     (100)
+#define     def_TRANSCEIVER_TX_BUF_SIZE                     (300)
 
 class transceiver:noncopyable {
 public:
@@ -49,6 +49,9 @@ public:
 protected:
 	uint8 					m_status;
 	uint8					m_duplex;
+#ifdef def_DMA_SEND
+	uint8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
+#endif
 
 private:
 	uint16					m_rx_index;
@@ -56,7 +59,6 @@ private:
 	uint16					m_tx_len;
 	enum RECV_STAT 			m_rx_status;
 	int8 					m_rx_buf[def_TRANSCEIVER_RX_BUF_SIZE];
-	//uint8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
     timer_handle_type     m_handle_rx;
     struct buf_queue        m_buf_queue;    
 };
@@ -140,6 +142,7 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
             break;
         }
     }
+    t_timer_manage.timer_stop(m_handle_rx);
 
 	return rt;
 }
@@ -169,10 +172,6 @@ public:
         //Select IO pins for UART.
         // Configure P0.1/P0.2 for UART
         pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
-		//    pADI_GP0->GPCON |= 0x9000;                   // Configure P0.6/P0.7 for UART
-	#ifdef def_DMA_SEND	
-        DmaBase();
-    #endif
         
         UrtCfg(pADI_UART, B9600, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits
@@ -212,12 +211,17 @@ public:
         //recv_init();
 		status_set(STATUS_TX_IDLE);
     #else 
-        DmaStructPtrOutSetup(UARTTX_C, len , reinterpret_cast<uint8 *>(pdata));  // Setup UARTTX source/destination pointers and number of bytes to send
+        if (len > sizeof(m_tx_buf)){
+            return 0;
+        }
+        memcpy(m_tx_buf, pdata, len);
+        DmaStructPtrOutSetup(UARTTX_C, len , reinterpret_cast<uint8 *>(m_tx_buf));  // Setup UARTTX source/destination pointers and number of bytes to send
         DmaCycleCntCtrl(UARTTX_C, len, DMA_DSTINC_NO| // Setup CHNL_CFG settings
                         DMA_SRCINC_BYTE|DMA_SIZE_BYTE|DMA_BASIC);
         DmaClr(DMARMSKCLR_UARTTX,0,0,0);           // Disable masking of UARTTX DMA channel
         DmaSet(0,DMAENSET_UARTTX,0,                // Enable UART TX DMA channel
                         DMAPRISET_UARTTX);                      // Enable UART DMA primary structure
+        
         UrtTx(pADI_UART,0);                        // Send byte 0 to the UART to start transfer
         
     #endif

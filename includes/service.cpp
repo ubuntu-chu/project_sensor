@@ -3,6 +3,33 @@
 #include "../bsp/hal/hal.h"
 #include 	 "../bsp/driver/drv_interface.h"
 
+
+static tick_t 		s_tick		= 0;
+
+static void sv_tick_init(void)
+{
+    s_tick                      = 0;
+}
+
+tick_t sv_tick_get(void)
+{
+	return s_tick;
+}
+void sv_tick_set(tick_t tick)
+{
+	portCPSR_TYPE	level 		= sv_hw_interrupt_disable();
+	s_tick    					= tick;
+	sv_hw_interrupt_enable(level);
+}
+
+void sv_tick_increase(void)
+{
+	s_tick++;
+	t_timer_manage.timer_check();
+}
+
+//---------------------------------------------------------------------------------------
+
 void list_init(list *l)
 {
 	l->m_next                                                   = l; 
@@ -94,7 +121,7 @@ void list_splice_init(list_head_t *list, list_head_t *head)
 	}
 }
 
-
+//---------------------------------------------------------------------------------------
 
 void sv_object_init(struct sv_object *object, enum sv_object_class_type type, const char *name)
 {
@@ -107,10 +134,9 @@ void sv_object_detach(sv_object_t object)
 
 }
 
-extern void cpu_interruptEnable(portCPSR_TYPE level);
-extern portCPSR_TYPE cpu_interruptDisable(void);
+//---------------------------------------------------------------------------------------
 
-size_t kCheapPrepend;
+//暂未使用事件队列功能
 
 #ifdef 	SV_EVENT_QUEUE
 
@@ -180,7 +206,7 @@ portBASE_TYPE sv_eq_send(sv_eq_t mq, void *buffer, portSIZE_TYPE size)
 		return -SV_ERROR;
 
 	/* disable interrupt */
-	temp = cpu_interruptDisable();
+	temp = sv_hw_interrupt_disable();
 
 	/* get a free list, there must be an empty item */
 	msg = (struct sv_mq_message*)mq->msg_queue_free;
@@ -188,7 +214,7 @@ portBASE_TYPE sv_eq_send(sv_eq_t mq, void *buffer, portSIZE_TYPE size)
 	if (msg == NULL)
 	{
 		/* enable interrupt */
-		cpu_interruptEnable(temp);
+		sv_hw_interrupt_enable(temp);
 
 		return -SV_EFULL;
 	}
@@ -196,7 +222,7 @@ portBASE_TYPE sv_eq_send(sv_eq_t mq, void *buffer, portSIZE_TYPE size)
 	mq->msg_queue_free = msg->next;
 
 	/* enable interrupt */
-	cpu_interruptEnable(temp);
+	sv_hw_interrupt_enable(temp);
 
 	/* the msg is the new tailer of list, the next shall be NULL */
 	msg->next = NULL;
@@ -204,7 +230,7 @@ portBASE_TYPE sv_eq_send(sv_eq_t mq, void *buffer, portSIZE_TYPE size)
 	memcpy(msg + 1, buffer, size);
 
 	/* disable interrupt */
-	temp = cpu_interruptDisable();
+	temp = sv_hw_interrupt_disable();
 	/* link msg to message queue */
 	if (mq->msg_queue_tail != NULL)
 	{
@@ -222,7 +248,7 @@ portBASE_TYPE sv_eq_send(sv_eq_t mq, void *buffer, portSIZE_TYPE size)
 	mq->entry ++;
 
 	/* enable interrupt */
-	cpu_interruptEnable(temp);
+	sv_hw_interrupt_enable(temp);
 
 	return SV_EOK;
 }
@@ -237,11 +263,11 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
 	tick_delta = 0;
 
 	/* disable interrupt */
-	temp = cpu_interruptDisable();
+	temp = sv_hw_interrupt_disable();
 
 	/* for non-blocking call */
 	if (mq->entry == 0 && timeout == 0){
-		cpu_interruptEnable(temp);
+		sv_hw_interrupt_enable(temp);
 
 		return -SV_ETIMEOUT;
 	}
@@ -253,7 +279,7 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
 		if (timeout == 0)
 		{
 			/* enable interrupt */
-			cpu_interruptEnable(temp);
+			sv_hw_interrupt_enable(temp);
 			return -SV_ETIMEOUT;
 		}
    #if 0
@@ -272,10 +298,10 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
      #endif
 
 		/* enable interrupt */
-		cpu_interruptEnable(temp);
+		sv_hw_interrupt_enable(temp);
    #if 0     
 		/* disable interrupt */
-		temp = cpu_interruptDisable();
+		temp = sv_hw_interrupt_disable();
 
 		/* if it's not waiting forever and then re-calculate timeout tick */
 		if (timeout > 0)
@@ -301,23 +327,25 @@ portBASE_TYPE sv_eq_recv(sv_eq_t mq, void *buffer, portSIZE_TYPE size, int32_t t
 	mq->entry --;
 
 	/* enable interrupt */
-	cpu_interruptEnable(temp);
+	sv_hw_interrupt_enable(temp);
 
 	/* copy message */
 	memcpy(buffer, msg + 1, size > mq->msg_size ? mq->msg_size : size);
 
 	/* disable interrupt */
-	temp = cpu_interruptDisable();
+	temp = sv_hw_interrupt_disable();
 	/* put message to free list */
 	msg->next = (struct sv_mq_message *)mq->msg_queue_free;
 	mq->msg_queue_free = msg;
 	/* enable interrupt */
-	cpu_interruptEnable(temp);
+	sv_hw_interrupt_enable(temp);
 
 	return SV_EOK;
 }
 
 #endif
+
+//---------------------------------------------------------------------------------------
 
 static void _sv_timer_init(sv_timer_t timer,
 						   void (*timeout)(void *parameter), void *parameter,
@@ -379,8 +407,6 @@ sv_err_t sv_timer_detach(sv_timer_t timer)
 	return -SV_EOK;
 }
 
-extern tick_t cpu_tick_get(void);
-
 sv_err_t sv_timer_start(sv_timer_t timer)
 {
 	struct sv_timer *t;
@@ -391,7 +417,7 @@ sv_err_t sv_timer_start(sv_timer_t timer)
 	if (timer->parent.flag & SV_TIMER_FLAG_ACTIVATED)
 		return -SV_ERROR;
 
-	timer->timeout_tick = cpu_tick_get() + timer->init_tick;
+	timer->timeout_tick = sv_tick_get() + timer->init_tick;
 
 	/* disable interrupt */
 	level = sv_hw_interrupt_disable();
@@ -603,7 +629,7 @@ void timer_manage::timer_handle(list_head_t *list_head)
 	sv_base_t level;
 
 	level = sv_hw_interrupt_disable();
-	current_tick 							= cpu_tick_get();
+	current_tick 							= sv_tick_get();
 	while (!list_empty(list_head)) {
 		t = list_entry(list_head->m_next, struct sv_timer, list);
 
@@ -624,7 +650,7 @@ void timer_manage::timer_handle(list_head_t *list_head)
             }
 
 			/* re-get tick */
-			current_tick = cpu_tick_get();
+			current_tick = sv_tick_get();
 
 			if ((t->parent.flag & SV_TIMER_FLAG_PERIODIC)
 					&& (t->parent.flag & SV_TIMER_FLAG_ACTIVATED)) {
@@ -677,7 +703,7 @@ void timer_manage::timer_check(void)
 		tick_t current_tick;
 
 		/* re-get tick */
-		current_tick = cpu_tick_get();
+		current_tick = sv_tick_get();
 		soft_timer_timeout_tick 	= sv_timer_list_next_timeout(&m_soft_timer_list);
 		if ((current_tick - soft_timer_timeout_tick) < TICK_MAX / 2) {
 			uint32 	event = 0;
@@ -693,12 +719,12 @@ void timer_manage::timer_check(void)
 
 timer_manage 	t_timer_manage;
 
+//---------------------------------------------------------------------------------------
 
 event_manage::event_manage():
 		m_size(def_EVENT_NR),m_bitmap(0)
 {
 }
-
 
 event_manage::~event_manage()
 {
@@ -737,9 +763,11 @@ sv_err_t event_manage::event_free(event *pevent)
 
 void sv_startup(void)
 {
-	t_timer_manage.init();
+	sv_tick_init();
+    t_timer_manage.init();
 }
 
+//---------------------------------------------------------------------------------------
 
 
 

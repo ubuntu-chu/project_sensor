@@ -5,33 +5,33 @@
  *              cpu relative settings
 **------------------------------------------------------------------*/
 
-#define     PEND_SV_PRIO                ((1<<__NVIC_PRIO_BITS) - 1)
-#define     SYS_TICK_PRIO               ((1<<__NVIC_PRIO_BITS) - 1)
-#define     UART_IRQ_PRIO               (1)
-#define     I2CM_IRQ_PRIO               (2)
-#define     DMA_UART_TX_IRQ_PRIO        (0)
+#define     PEND_SV_PRIO                            ((1<<__NVIC_PRIO_BITS) - 1)
+#define     SYS_TICK_PRIO                           ((1<<__NVIC_PRIO_BITS) - 1)
+#define     UART_IRQ_PRIO                           (1)
+#define     I2CM_IRQ_PRIO                           (2)
+#define     DMA_UART_TX_IRQ_PRIO                    (0)
 
 //******************************************************************************
 
 #if 0
-#define     def_FRAME_delimiter	        0x5AA5
-#define     def_FRAME_END_delimiter		0xAA55
+#define     def_FRAME_delimiter	                    0x5AA5
+#define     def_FRAME_END_delimiter		            0xAA55
 #endif
 
 /*------------------------------------------------------------------
  *              APP settings
 **------------------------------------------------------------------*/
 
-#define		def_MODEL_NAME 			("sensor")
+#define		def_MODEL_NAME 			                ("sensor")
 
 /*------------------------------------------------------------------
  *              OS settings
 **------------------------------------------------------------------*/
 //#define		LINUX_OS
-#define             DEVICE_NAME_MAX	                        (8)
-#define             OBJECT_NAME_MAX	                        (8)
-#define             def_USING_SERVICE_MQ
-#define 			 TICK_PER_SECOND						(100)
+#define     DEVICE_NAME_MAX	                        (8)
+#define     OBJECT_NAME_MAX	                        (8)
+#define     def_USING_SERVICE_MQ
+#define     TICK_PER_SECOND						    (100)
 
 /*------------------------------------------------------------------
  *              APIs settings
@@ -42,7 +42,7 @@
 //#define 	LOGGER
 //#define 	LOG_IN_EMBEDED
 //define time monitor count
-#define 	def_MONITOR_MANAGE							(1)
+#define 	def_MONITOR_MANAGE				        (1)
 #define 	def_MONITOR_TIME_NR						(6)
 
 //define timer nr   both  hard timer and soft timer
@@ -63,7 +63,7 @@
 //#define    RAW_MAC
 
 //debug  define
-#define    DBG_UART								(UART_0)
+#define    DBG_UART								    (UART_0)
 
 
 /******************************************************************************
