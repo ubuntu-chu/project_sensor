@@ -110,6 +110,7 @@ char *utils_itoa(int num, char *str, int radix) {
 
 void buf_dump_hex(const char *buf, uint16 len)
 {
+#if 0
 	uint16 i;
 	uint16 index;
 	uint8 buff[] = "0x00\r\n";
@@ -129,6 +130,7 @@ void buf_dump_hex(const char *buf, uint16 len)
 		buff[3] = chartable[(buf[i] & 0x0f)];
 		//SYS_LOG_LEV_TINY_LEN(SYS_LOG_LEV_DEBUG, buff, strlen((char const * )buff));
 	}
+#endif
 }
 
 void bzero(void *s, size_t len)

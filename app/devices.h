@@ -10,9 +10,11 @@ enum PROC_PHASE{
 	PHASE_DONE,
 };
 
-enum PROC_DIR{
-	DIR_READ 		= 0,
-	DIR_WRITE,
+enum PROC_CMD{
+	CMD_READ 		= 0,
+	CMD_WRITE,
+	CMD_IOC,
+	CMD_POLL,
 };
 
 struct device_buffer{
@@ -26,6 +28,9 @@ struct device_buffer{
     portSIZE_TYPE       m_buf_send_size;            //设备内用于发送的缓冲区大小
     portSSIZE_TYPE      m_recv_actual_size;         //设备内实际接收数据的大小  也即read函数的返回值
     portSSIZE_TYPE      m_send_actual_size;         //设备内实际发送数据的大小  也即write函数的返回值
+
+    uint8				m_cmd;						//ioctl 命令
+    void				*m_args;					//ioctl 参数
 };
 
 class device:noncopyable{
@@ -41,7 +46,7 @@ public:
 	DevicePoll_TYPE poll(void);
 	uint8	device_stat_get(void);
 	uint8	device_is_valid(void);
-	virtual portBASE_TYPE process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
+	virtual portBASE_TYPE process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
     //portBASE_TYPE   name_set(const char *pname);
     portDEVHANDLE_TYPE handle_get(void)
     {

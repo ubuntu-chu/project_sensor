@@ -44,31 +44,16 @@
 
 #define         DEVICE_NAME_AD                                  ("AD")
 
-#define     RECORD_LEN      9
-
 
 //excitation  current  source
 enum{
-    AD_IOC_ECS0_SET     = (DEVICE_IOC_USER+1),
-    AD_IOC_ECS1_SET,
-    AD_IOC_H_CONV,
-    AD_IOC_T_CONV,
-    AD_IOC_P_CONV,
+    AD_IOC_START_RTD_ADC     = (DEVICE_IOC_USER+1),
+    AD_IOC_START_RHS_ADC,
+    AD_IOC_START_PRS_ADC,
+    AD_IOC_GET_SGL_RTD_ADC,
+    AD_IOC_GET_SGL_RHS_ADC,
+    AD_IOC_FAKE_READABLE,
     AD_IOC_MAX_NO,
-};
-
-#define ADC_SOFT_FILTER
-enum ADC1_RUN_STATUS
-{
-    ADC_T=0,
-    CALC_T,
-    ADC_RHS,
-    CALC_RH,
-    ADC_PRS,
-    CALC_P,
-    CALC_D,
-    CALC_PPM,
-    CALC_DEW,
 };
 
 #define GPIO_TMeasOn()  DioSet(pADI_GP0,1)
@@ -80,8 +65,6 @@ extern volatile unsigned char ucADC1NewData;// New data flag, set in ADC1 int.
 //extern volatile unsigned char ucADC0RunStus;
 extern volatile unsigned char ucADC1RunStus;
 
-extern int iADCTemp[RECORD_LEN];
-extern int iADCRHS[RECORD_LEN];
 
 void AFE_Init(void);
 

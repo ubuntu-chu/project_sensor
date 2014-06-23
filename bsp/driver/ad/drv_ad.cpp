@@ -70,27 +70,21 @@ Warning
 Returns ADCxDAT even if it does not contain new data.
 */
 
-//static int uxADC0Data[16]; // ADC0 Data, updated in ADC0 interrupt
-static int uxADC1Data[16]; // ADC1 Data, updated in ADC1 interrupt
-static float fADCTemp[RECORD_LEN];
-static float fADCPres[RECORD_LEN];
-static float fADCRHS[RECORD_LEN];
-
-int iADCTemp[RECORD_LEN];
-int iADCRHS[RECORD_LEN];
-
-float fPreRHSADCVal;
-signed char cRLPFRatioChangeNum;
-
-volatile unsigned long ulDmaStatus = 0;
+static int uxADC1Data[def_AD_SAMPLE_LEN]; // ADC1 Data, updated in ADC1 interrupt
 //volatile unsigned char ucADC0Status;  // ADC status, updated in ADC0 interrupt
 //volatile unsigned char ucADC1Status;  // ADC status, updated in ADC1 interrupt
-
 //volatile unsigned char ucADC0NewData; // New data flag, set in ADC0 interrupt
-volatile unsigned char ucADC1NewData; // New data flag, set in ADC1 interrupt
 //volatile unsigned char ucADC0RunStus;
-volatile unsigned char ucADC1RunStus;
 
+enum adc_status{
+	ADC_STAT_NONE = 0,
+	ADC_STAT_READABLE,
+	ADC_STAT_READABLE_FAKE,
+	ADC_STAT_IN_PROCESSING,
+};
+
+volatile enum adc_status 	adc_stat 		= ADC_STAT_NONE;
+uint8			adc_stage;
 
 void AD_DMAINIT(void)
 {
@@ -128,6 +122,7 @@ int ADC0_GetSglADC_RTD()
     AdcGo(pADI_ADC1,ADCMDE_ADCMD_SINGLE);
 
     while(!(AdcSta(pADI_ADC1)&0x01));
+
     return AdcRd(pADI_ADC1);
 }
 int ADC0_GetSglADC_RHS()
@@ -146,6 +141,7 @@ int ADC0_GetSglADC_RHS()
     AdcGo(pADI_ADC1,ADCMDE_ADCMD_SINGLE);
 
     while(!(AdcSta(pADI_ADC1)&0x01));
+
     return AdcRd(pADI_ADC1);
 }
 // ****************************************************************************
@@ -166,7 +162,7 @@ void ADC1_Init(void)
     AdcFlt(pADI_ADC1,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
 
     AdcDmaCon(ADC1DMAREAD,1);     // Call function to init ADc1 for DMA reads
-	AdcDmaReadSetup(ADC1DMAREAD,DMA_SIZE_WORD|DMA_DSTINC_WORD|DMA_SRCINC_NO|DMA_BASIC,16,uxADC1Data);
+	AdcDmaReadSetup(ADC1DMAREAD,DMA_SIZE_WORD|DMA_DSTINC_WORD|DMA_SRCINC_NO|DMA_BASIC,def_AD_SAMPLE_LEN,uxADC1Data);
     //NVIC_EnableIRQ(ADC1_IRQn); // Enable ADC interrupt
     NVIC_EnableIRQ(DMA_ADC1_IRQn);
 
@@ -211,7 +207,7 @@ void ADC1_Switch_to_RHS(void)
 
 void ADC1_StartRTD_ADC(void)
 {
-
+	adc_stat 								= ADC_STAT_IN_PROCESSING;
     ADC1_Switch_to_RTD();
     DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
 	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
@@ -220,7 +216,7 @@ void ADC1_StartRTD_ADC(void)
 }
 void ADC1_StartPRS_ADC(void)
 {
-
+	adc_stat 								= ADC_STAT_IN_PROCESSING;
     ADC1_Switch_to_PrsSensor();
     DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
 	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
@@ -229,134 +225,13 @@ void ADC1_StartPRS_ADC(void)
 }
 void ADC1_StartRHS_ADC(void)
 {
+	adc_stat 								= ADC_STAT_IN_PROCESSING;
     ADC1_Switch_to_RHS();
     DmaClr(DMARMSKCLR_ADC1,0,0,0);                     // Clear Masking of ADC1 DMA channel
 	DmaCycleCntCtrl(ADC1_C,16,DMA_DSTINC_WORD|
                               DMA_SRCINC_NO|DMA_SIZE_WORD|DMA_BASIC);
     AdcGo(pADI_ADC1,ADCMDE_ADCMD_CONT);		            // Start ADC1 for continuous conversions
 }
-
-float GetAvarageValue(int iAry[],char cnt)
-{
-    unsigned char i;
-    float fVal;
-    for(i=0;i<cnt;i++)
-    {
-        fVal += (iAry[i]);
-    }
-    return (fVal/cnt);
-}
-
-#ifndef ADC_SOFT_FILTER
-float ADC1_GetADC(void)
-{
-    return GetAvarageValue(uxADC1Data,16);
-}
-#else
-
-//递推中位值平均滤波
-float CombiFilter(float fADC,float fAry[])
-{
-    signed char i;
-    float max,min;
-	float sum;
-	if( (fAry[0] < 0.000001) && (fAry[0] > -0.000001) ) //采样值为0 初始化队列
-	{
-	   for(i=RECORD_LEN-1;i>=0;i--)
-	      fAry[i] = fADC;
-	}
-
-	max = min = sum = fAry[0] = fADC;
-	for(i=RECORD_LEN-1;i!=0;i--)
-	{
-	    if(fAry[i]>max) max = fAry[i];
-		else if(fAry[i]<min) min = fAry[i];
-		sum += fAry[i];
-		fAry[i] = fAry[i-1];
-	}
-	i = RECORD_LEN-2;
-	sum = sum - max - min + i/2;
-	sum /= i;
-	return (sum);
-}
-#define CHANG_LIMIT  0x0A
-float RapidLPFilter(float fNewVal,float fPreVal,signed char *cChgNum)
-{
-    float fDelta;
-	signed char cRatio=1;
-
-    if( (fNewVal < 0.000001) && (fNewVal > -0.000001) )
-	    return (float)fNewVal;
-
-	if(fNewVal>fPreVal)
-	{
-	    fDelta = fNewVal-fPreVal;
-		if(fDelta>800000)
-	        return (float)fNewVal;
-
-	    if(*cChgNum<0)
-		{
-		    *cChgNum=0;
-		}
-		else
-		{
-		    if(*cChgNum >= CHANG_LIMIT)
-	    	{
-			    cRatio = (fDelta/50000)+1;
-		        if(cRatio> 16)
-		            cRatio = 16;
-		    }
-			else
-			    (*cChgNum)++;
-		}
-
-	}
-	else if(fNewVal<fPreVal)
-	{
-	    fDelta = fPreVal-fNewVal;
-		if(fDelta>800000)
-	        return (float)fNewVal;
-
-	    if(*cChgNum>0)
-		    *cChgNum=0;
-		else
-		{
-		    if( *cChgNum <= (0-CHANG_LIMIT) )
-		    {
-			    cRatio = (fDelta/50000)+1;
-		        if(cRatio> 16)
-		            cRatio = 16;
-		    }
-			else
-	            (*cChgNum)--;
-		}
-	}
-	else
-	    return (float)fNewVal;
-
-    return (fPreVal + cRatio*(fNewVal-fPreVal)/16);
-}
-//
-float ADC1_GetADC_RHS(void)
-{
-    float fNewRHS;
-    fNewRHS = CombiFilter(GetAvarageValue(uxADC1Data,16),fADCRHS);
-    fPreRHSADCVal = RapidLPFilter(fNewRHS,fPreRHSADCVal,&cRLPFRatioChangeNum);
-    return fPreRHSADCVal;
-}
-//GetFltRsutTemp
-float ADC1_GetADC_Temp(void)
-{
-    return CombiFilter(GetAvarageValue(uxADC1Data,16),fADCTemp);
-}
-//GetFltRsutTemp
-float ADC1_GetADC_Pres(void)
-{
-    return CombiFilter(GetAvarageValue(uxADC1Data,16),fADCPres);
-}
-#endif
-
-
 
 /******************************************************************************
  *  函数名称 :
@@ -410,7 +285,8 @@ between writing to ADCMDE and writing to the offset or gain register.
 
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     
-    
+	ADC1_Init();
+    adc_stat 								= ADC_STAT_NONE;
     return DEVICE_OK;
 }
 
@@ -425,6 +301,19 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
   
 	char 	*ptr		= reinterpret_cast<char *>(buffer);
 
+	if (adc_stat == ADC_STAT_NONE){
+		return 0;
+	}
+	if (adc_stat == ADC_STAT_READABLE_FAKE){
+		adc_stat 							= ADC_STAT_NONE;
+		return 0;
+	}
+	adc_stat 								= ADC_STAT_NONE;
+	if (size > sizeof(uxADC1Data)){
+		size								= sizeof(uxADC1Data);
+	}
+	memcpy((char *)buffer, (char *)uxADC1Data, size);
+
     return size;
 }
 
@@ -432,32 +321,55 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
 
 static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
 {
-	DeviceStatus_TYPE   rt  = DEVICE_OK;
-    uint32  value           = reinterpret_cast<uint32>(args);  
+	DeviceStatus_TYPE   rt  					= DEVICE_OK;
+    int32  *pbuf           						= reinterpret_cast<int32 *>(args);
     
     if (cmd >= AD_IOC_MAX_NO){
         return DEVICE_ECMD_INVALID;
     }
     
     switch (cmd) {
-        case AD_IOC_ECS0_SET:
-        case AD_IOC_ECS1_SET:
-/*            
-            if (value == ECS_CUR_CLOSE){
-                CBI(pADI_ANA->IEXCCON, ((cmd == AD_IOC_ECS0_SET)?(2):(5)));
-            }else if (value == ECS_CUR_EXTRA_10UA){
-                SBI(pADI_ANA->IEXCDAT, 0);
-            }else {
-                //IEXCDAT_IDAT_0uA
-                IexcDat(value, (BIT_IS_SET(pADI_ANA->IEXCDAT, 0)));
-                
-                //pADI_ANA->IEXCDAT = (pADI_ANA->IEXCDAT&(BIT5|BIT4|BIT3|BIT2|BIT1))|iexcdat[value];
-            }
-*/
-            break;
+	case AD_IOC_START_RTD_ADC:
 
-        default:
-            rt              = DEVICE_ECMD_INVALID;
+		adc_stage								= AD_IOC_START_RTD_ADC;
+		ADC1_StartRTD_ADC();
+		break;
+
+	case AD_IOC_START_RHS_ADC:
+
+		adc_stage								= AD_IOC_START_RHS_ADC;
+		ADC1_StartRHS_ADC();
+		break;
+
+	case AD_IOC_START_PRS_ADC:
+
+		adc_stage								= AD_IOC_START_PRS_ADC;
+		ADC1_StartPRS_ADC();
+		break;
+
+	case AD_IOC_FAKE_READABLE:
+
+		if (adc_stat == ADC_STAT_NONE){
+			adc_stat 							= ADC_STAT_READABLE_FAKE;
+		}
+		break;
+
+	case AD_IOC_GET_SGL_RTD_ADC:
+    case AD_IOC_GET_SGL_RHS_ADC:
+
+		while (adc_stat == ADC_STAT_IN_PROCESSING);
+        if (NULL != pbuf){
+			if (cmd == AD_IOC_GET_SGL_RTD_ADC){
+                *pbuf 							= ADC0_GetSglADC_RTD();
+            }else {
+                *pbuf 							= ADC0_GetSglADC_RHS();
+            }
+		}
+        adc_stat 						        = ADC_STAT_NONE;
+		break;
+
+	default:
+		rt = DEVICE_ECMD_INVALID;
 	}
 
 	return rt;
@@ -465,9 +377,7 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
 
 static DevicePoll_TYPE _drv_poll(pDeviceAbstract pdev)
 {
-
-	return DEVICE_POLLIN;
-	//return DEVICE_POLLNONE;
+	return ((adc_stat == ADC_STAT_READABLE_FAKE) || (adc_stat == ADC_STAT_READABLE))?(DEVICE_POLLIN):(DEVICE_POLLNONE);
 }
 
 // ****************************************************************************
@@ -500,7 +410,7 @@ extern "C" void SINC2_Int_Handler()
 // ****************************************************************************
 // ADC 0 DMA INTERRUPT
 // ****************************************************************************
-void DMA_ADC0_Int_Handler ()
+extern "C" void DMA_ADC0_Int_Handler ()
 {
     //ulDmaStatus = DmaSta();
 	//ucADC0NewData++;
@@ -511,16 +421,16 @@ void DMA_ADC0_Int_Handler ()
 // ****************************************************************************
 // ADC 1 DMA INTERRUPT
 // ****************************************************************************
-void DMA_ADC1_Int_Handler ()
+extern "C" void DMA_ADC1_Int_Handler ()
 {
-	ulDmaStatus = DmaSta();
-	ucADC1NewData++;
+	volatile unsigned long ulDmaStatus = DmaSta();
     AdcGo(pADI_ADC1,ADCMDE_ADCMD_IDLE);
 	DmaSet(DMARMSKSET_ADC1,DMAENSET_ADC1,0,DMAPRISET_ADC1);
+	adc_stat 									= ADC_STAT_READABLE;
 }
-void DMA_Err_Int_Handler ()
+extern "C" void DMA_Err_Int_Handler ()
 {
-	ulDmaStatus = DmaSta();
+	volatile unsigned long ulDmaStatus = DmaSta();
 	DmaErr(DMA_ERR_CLR);
 }
 

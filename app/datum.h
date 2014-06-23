@@ -187,12 +187,6 @@ typedef struct __SENSOR_DATA
 #define ATMOS_HPA  (ATMOS*10)
 #define LOG_6D112    1.81025405186422
 
-enum RUNMODE{
-    MODE_MEASURE_PARA=0,
-    MODE_SENSOR_WASH,
-    MODE_CALIB_HUMI,
-};
-
 enum reg_operate{
 	enum_REG_READ 	= 0,
 	enum_REG_WRITE,

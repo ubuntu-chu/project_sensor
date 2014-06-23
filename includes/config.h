@@ -23,6 +23,9 @@
 **------------------------------------------------------------------*/
 
 #define		def_MODEL_NAME 			                ("sensor")
+#define     def_AD_SAMPLE_LEN                       (16)
+#define     def_ADC_SOFT_FILTER
+#define     def_RECORD_LEN                          (9)
 
 /*------------------------------------------------------------------
  *              OS settings

@@ -566,6 +566,11 @@
               <FileType>8</FileType>
               <FilePath>.\app\timer.cpp</FilePath>
             </File>
+            <File>
+              <FileName>algorithm.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\app\algorithm.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

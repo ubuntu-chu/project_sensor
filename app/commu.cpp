@@ -16,9 +16,9 @@ device_commu::~device_commu()
 
 }
 
-portBASE_TYPE device_commu::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
+portBASE_TYPE device_commu::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
-	if (DIR_READ == dir){
+	if (CMD_READ == dir){
 		switch (phase){
 		case PHASE_PREPARE:
 
@@ -35,7 +35,7 @@ portBASE_TYPE device_commu::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE
 		default:
 			break;
 		}
-	}else {
+	}else if (CMD_WRITE == dir){
 		switch (phase){
 		case PHASE_PREPARE:
 
@@ -52,6 +52,8 @@ portBASE_TYPE device_commu::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE
 		default:
 			break;
 		}
+	}else {
+		device::process_command(dir, phase, device_buffer);
 	}
 
 	return 0;

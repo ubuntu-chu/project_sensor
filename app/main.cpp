@@ -6,6 +6,7 @@
 #include    "commu.h"
 #include    "storage.h"
 #include    "modbus.h"
+#include    "algorithm.h"
 #include    "../api/log/log.h"
 #include 	"../bsp/driver/drv_interface.h"
 
@@ -275,12 +276,105 @@ quit:
 
 int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {
-	application *papplication      = static_cast<application *> (pvoid);
+	application *papplication      		= static_cast<application *> (pvoid);
+	device_ad 	*pdevice_ad 			= static_cast<device_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
+	portBASE_TYPE 	buf_readablebytes 	= buf.readableBytes();
+    float       value					= 0.0;
 
-	char aa[100];
+    //只运行在参数测量模式下
+    if (papplication->m_app_runinfo.ucSensorRunMode != MODE_MEASURE_PARA){
+    	return 0;
+    }
+	//判断是否是由于AD_IOC_FAKE_READABLE命令而引发的可读
+	if ((0 == buf_readablebytes) && (papplication->m_app_runinfo.ucADC1RunStus == ADC_T)){
 
-	buf.retrieveAllAsCharArray(reinterpret_cast<int8 *>(aa));
+		//进入到温度校准状态
+		papplication->m_app_runinfo.ucADC1RunStus				= CALC_T;
+		pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
+	}else {
+		pSENSOR_DATA pSensorData 								= &papplication->m_modelinfo.m_stuSensorData;
+		pSENSOR_PARA pSensorPara 								= &papplication->m_modelinfo.m_stuSensorPara;
 
+		if (0 != buf_readablebytes){
+            value       						= buf.readFloat();
+		}
+		switch (papplication->m_app_runinfo.ucADC1RunStus){
+		case CALC_T:
+		{
+			float fTemperature;
+
+            fTemperature 						= CalculateRTDTemp(value);
+            pSensorData->fADCTemprature 		= fTemperature;
+			pSensorData->ssTemprature 			= (signed short)(pSensorData->fADCTemprature*100);
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_RH;
+			pdevice_ad->ioctl(AD_IOC_START_RHS_ADC, NULL);
+		}
+			break;
+
+		case CALC_RH:
+		{
+            pSensorData->fADCHumiSgl 			= value;
+			pSensorData->fADCCapcitance 		= value/0.003063808;
+
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_P;
+			pdevice_ad->ioctl(AD_IOC_START_PRS_ADC, NULL);
+		}
+			break;
+
+		case CALC_P:
+		{
+			float fPRSValue;
+
+            fPRSValue = CalculatePRSVal(value, pSensorPara->usPADC, pSensorPara->usPValue);
+			pSensorData->usADCPrs 				= (unsigned short)value;
+			pSensorData->ssPressure 			= (signed short)fPRSValue;
+
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_D;
+			pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
+		}
+			break;
+
+		case CALC_D:
+		{
+			float fDensity;
+			float fPRS20Value;
+
+			fDensity = CalculateDensity((float*) &fPRS20Value, pSensorData->ssPressure, pSensorData->ssPressure);
+			pSensorData->ssPressure20 			= (signed short) fPRS20Value;
+			pSensorData->usDensity 				= (unsigned short) (fDensity * 100);
+
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_PPM;
+			pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
+		}
+			break;
+
+		case CALC_PPM:
+		{
+
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_DEW;
+			pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
+		}
+			break;
+
+		case CALC_DEW:
+		{
+
+			papplication->m_app_runinfo.ucADC1RunStus				= CALC_T;
+			pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
+		}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return 0;
+}
+
+portBASE_TYPE   application::event_cb(void *pvoid, class event *pevent)
+{
+#if 0
 {
 	class event 	t_event(&application::event_cb, papplication);
 	class buffer   &t_buffer 	= t_event.buffer_get();
@@ -290,18 +384,13 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 	t_buffer.appendInt16(222);
 	papplication->m_peventloop->run_inloop(&t_event);
 }
-
-	return 0;
-}
-
-portBASE_TYPE   application::event_cb(void *pvoid, class event *pevent)
-{
 	application 	*papplication	= static_cast<application *> (pvoid);
 	class buffer 	&t_buffer 		= pevent->buffer_get();
 	volatile int32 			a				= t_buffer.readInt32();
 	volatile int16 			b				= t_buffer.readInt16();
 
     papplication    = papplication;
+#endif
 
 	return 0;
 }
@@ -328,6 +417,10 @@ portBASE_TYPE application::run()
     
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
 	t_channel_ad.enableReading();
+
+	m_app_runinfo.ucSensorRunMode			= MODE_MEASURE_PARA;
+	m_app_runinfo.ucADC1RunStus				= ADC_T;
+	pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
     
     //启动loop循环
 	t_loop.loop();

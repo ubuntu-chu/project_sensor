@@ -340,6 +340,12 @@ public:
 		append(&x, sizeof x);
 	}
 
+	float readFloat()
+	{
+		float result = peekFloat();
+		retrieveInt32();
+		return result;
+	}
 	///
 	/// Read int32_t from network endian
 	///
@@ -363,6 +369,13 @@ public:
 		int8_t result = peekInt8();
 		retrieveInt8();
 		return result;
+	}
+
+	float peekFloat() const
+	{
+		float be32 = 0;
+		memcpy(&be32, peek(), sizeof be32);
+		return (be32);
 	}
 
 	int32_t peekInt32() const

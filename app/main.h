@@ -19,6 +19,25 @@ enum{
 	MODE_IDLE_EXIT,
 };
 
+enum RUNMODE{
+    MODE_MEASURE_PARA=0,
+    MODE_SENSOR_WASH,
+    MODE_CALIB_HUMI,
+};
+
+enum ADC1_RUN_STATUS
+{
+    ADC_T					= 0,
+    CALC_T,
+    ADC_RHS,
+    CALC_RH,
+    ADC_PRS,
+    CALC_P,
+    CALC_D,
+    CALC_PPM,
+    CALC_DEW,
+};
+
 struct _app_runinfo_{
     device        				*m_pdevice_commu;
     device        				*m_pdevice_ad;
@@ -27,10 +46,13 @@ struct _app_runinfo_{
     device        				*m_pdevice_storage;
     device        				*m_pdevice_pwm;
     protocol					*m_pprotocol;
+	timer_handle_type 			m_handle_period;
 	enum app_status				m_status;
 	uint8 						m_mode;
 
-	timer_handle_type m_handle_period;
+	enum RUNMODE 				ucSensorRunMode;
+	enum ADC1_RUN_STATUS 		ucADC1RunStus;
+
 
 };
 typedef struct _app_runinfo_ app_runinfo_t;

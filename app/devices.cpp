@@ -71,7 +71,7 @@ portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE siz
     }
     t_device_buffer.m_pbuf_recv 		= buffer;
     t_device_buffer.m_buf_recv_size 	= size;
-    if (this->process_readwrite(DIR_READ, PHASE_PREPARE, t_device_buffer)){
+    if (this->process_command(CMD_READ, PHASE_PREPARE, t_device_buffer)){
     	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
     	return -1;
     }
@@ -93,7 +93,7 @@ portSSIZE_TYPE device::read(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE siz
     t_device_buffer.m_pbuf_recv_actual		= t_device_buffer.m_pbuf_recv;
     t_device_buffer.m_recv_actual_size		= actual_size;
     //call virtual process_read to done
-    if (this->process_readwrite(DIR_READ, PHASE_DONE, t_device_buffer)){
+    if (this->process_command(CMD_READ, PHASE_DONE, t_device_buffer)){
     	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
 		return -1;
 	}
@@ -120,7 +120,7 @@ portSSIZE_TYPE device::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE si
     t_device_buffer.m_pbuf_send_actual      = buffer;
     t_device_buffer.m_buf_send_size 	    = size;
     t_device_buffer.m_send_actual_size      = size;
-    if (this->process_readwrite(DIR_WRITE, PHASE_PREPARE, t_device_buffer)){
+    if (this->process_command(CMD_WRITE, PHASE_PREPARE, t_device_buffer)){
     	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
     	return -1;
     }
@@ -129,7 +129,7 @@ portSSIZE_TYPE device::write(portOFFSET_TYPE pos, char *buffer, portSIZE_TYPE si
         return -1;
     }
     actual_size = API_DeviceWrite(m_pdevice, pos, t_device_buffer.m_pbuf_send_actual, t_device_buffer.m_send_actual_size);
-    if (this->process_readwrite(DIR_WRITE, PHASE_DONE, t_device_buffer)){
+    if (this->process_command(CMD_WRITE, PHASE_DONE, t_device_buffer)){
     	API_DeviceErrorInfoSet(DEVICE_EPARAM_INVALID);
     	return -1;
     }
@@ -155,9 +155,15 @@ portSSIZE_TYPE device::write(char *buffer)
 
 DeviceStatus_TYPE device::ioctl(uint8 cmd, void *args)
 {
+    struct device_buffer    t_device_buffer;
+
     if (NULL == m_pdevice){
         return DEVICE_ENULL;
     }
+    t_device_buffer.m_cmd 							= cmd;
+    t_device_buffer.m_args 							= args;
+    this->process_command(CMD_IOC, PHASE_DONE, t_device_buffer);
+
     return API_DeviceControl(m_pdevice, cmd, args);
 }
 
@@ -169,9 +175,9 @@ DevicePoll_TYPE device::poll(void)
     return hal_poll(m_pdevice);
 }
 
-portBASE_TYPE device::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
+portBASE_TYPE device::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
-	if (DIR_READ == dir){
+	if (CMD_READ == dir){
 		switch (phase){
 		case PHASE_PREPARE:
 
@@ -183,7 +189,7 @@ portBASE_TYPE device::process_readwrite(enum PROC_DIR dir, enum PROC_PHASE phase
 		default:
 			break;
 		}
-	}else {
+	}else if (CMD_WRITE == dir){
 		switch (phase){
 		case PHASE_PREPARE:
 
