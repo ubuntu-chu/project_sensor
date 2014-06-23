@@ -51,7 +51,7 @@ portuBASE_TYPE drv_commuregister(void){
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
     
     uart_ctl_init();
-	uart_init(UART_0, 9600);
+	uart_init(UART_0, B9600);
     return DEVICE_OK;
 }
 
@@ -106,6 +106,16 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
         case COMMU_IOC_RX_ENTER:
             uart_start_rx(UART_0);
             break;
+
+        case COMMU_IOC_BAUD:
+        {
+        	uint32 	baud_array[] = {B2400, B4800, B9600, B19200, B38400};
+        	uint32 	index 	= reinterpret_cast<uint32>(reinterpret_cast<uint32 *>(args));
+
+			uart_ios(UART_0, baud_array[index]);
+        }
+            break;
+
         default:
             rt                 = DEVICE_ECMD_INVALID;
             break;

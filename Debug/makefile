@@ -8,14 +8,18 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include reactor/subdir.mk
 -include obj/subdir.mk
 -include lib/common/subdir.mk
+-include includes/subdir.mk
 -include bsp/hal/subdir.mk
 -include bsp/driver/uart/subdir.mk
+-include bsp/driver/timer/subdir.mk
 -include bsp/driver/template/subdir.mk
 -include bsp/driver/storage/subdir.mk
 -include bsp/driver/pwm/subdir.mk
 -include bsp/driver/pin/subdir.mk
+-include bsp/driver/event/subdir.mk
 -include bsp/driver/commu/subdir.mk
 -include bsp/driver/ad/subdir.mk
 -include bsp/driver/subdir.mk

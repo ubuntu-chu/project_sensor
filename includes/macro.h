@@ -77,6 +77,7 @@
 #define         DIV_ROUND_DOWN(n,d)                             (((n) / (d))
 
 //------------------------------------------------------------------------------
+#define         IN_RANGES(x, start, end)                        (((x) >= (start)) && ((x) <= (end)))
 
 #if 	0
 #define   		 BIT0 						   					(1UL << 0)

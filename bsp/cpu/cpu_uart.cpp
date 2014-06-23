@@ -3,7 +3,8 @@
 #include    "../../api/utils.h"
 #include    "../../includes/includes.h"
 
-#define def_DMA_SEND                
+#define     def_DMA_SEND     
+#define     def_HALF_DUPLEX_RS485
 
 enum{
 	STATUS_TX_IDLE 			= 0x00,
@@ -149,7 +150,7 @@ portSSIZE_TYPE transceiver::poll(int8 *pbuf, uint16 *plen, uint16 timeout)
 
 class transceiver_uart0:public transceiver {
 public:
-	transceiver_uart0(uint8 duplex):transceiver(duplex){};
+	transceiver_uart0(uint8 duplex):transceiver(duplex){m_handle_uart = (timer_handle_type)-1;};
 	virtual ~transceiver_uart0(){};
 
     static void clock_init(void)
@@ -160,20 +161,32 @@ public:
         }
     }
         
-	void init(void)
+	void init(uint32_t baud_rate)
 	{
-        //300ms
-		m_handle_uart = t_timer_manage.hard_timer_register(300, 
-                                SV_TIMER_FLAG_ONE_SHOT, 
-                                transceiver_uart0::byte_timer_timeout, 
-                                this,
-                                "byte timer");
-        ASSERT(m_handle_uart != (timer_handle_type)-1);
-        //Select IO pins for UART.
-        // Configure P0.1/P0.2 for UART
-        pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
+        if (m_handle_uart == (timer_handle_type)-1){
+			//300ms
+			m_handle_uart = t_timer_manage.hard_timer_register(300,
+									SV_TIMER_FLAG_ONE_SHOT,
+									transceiver_uart0::byte_timer_timeout,
+									this,
+									"byte timer");
+			ASSERT(m_handle_uart != (timer_handle_type)-1);
+        }
         
-        UrtCfg(pADI_UART, B9600, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
+		//Select IO pins for UART.
+		// Configure P0.1/P0.2 for UART
+		//pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
+    #ifdef def_HALF_DUPLEX_RS485
+        DioCfgPin(pADI_GP0,PIN4,0); //Set P0.4 as UART RTS 
+        //DioPulPin(pADI_GP0,PIN4,0);
+        DioOcePin(pADI_GP0,PIN4,1);
+        DioOenPin(pADI_GP0,PIN4,1);
+    #endif
+        
+        DioCfgPin(pADI_GP0,PIN6,1); //Set P0.6 as UART RXD
+        DioCfgPin(pADI_GP0,PIN7,2); //Set P0.7 as UART TXD
+        
+        UrtCfg(pADI_UART, baud_rate, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits
 		// Setup UART IRQ sources
         UrtIntCfg(pADI_UART,
@@ -191,7 +204,20 @@ public:
         NVIC_EnableIRQ(DMA_UART_TX_IRQn);                  // Enable UART Tx DMA interrupts
     #endif
         recv_init();
+    #ifdef def_HALF_DUPLEX_RS485
+        rs485_recv();
+    #endif
 	}
+
+	void ios(uint32_t baud_rate)
+	{
+		init(baud_rate);
+	}
+    
+#ifdef def_HALF_DUPLEX_RS485    
+    void rs485_recv(void){DioSet(pADI_GP0,GP0OUT_OUT4);}
+    void rs485_send(void){DioClr(pADI_GP0,GP0OUT_OUT4);}
+#endif
 
 	virtual uint16 transmit(int8 *pdata, uint16 len)
 	{
@@ -206,7 +232,7 @@ public:
 			UrtTx(pADI_UART, pdata[i]);
 			do {
 				ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
-			}while (!(ucCOMSTA0 & BIT5));
+			}while (!(ucCOMSTA0 & COMLSR_TEMT));
 		}
         //recv_init();
 		status_set(STATUS_TX_IDLE);
@@ -222,6 +248,9 @@ public:
         DmaSet(0,DMAENSET_UARTTX,0,                // Enable UART TX DMA channel
                         DMAPRISET_UARTTX);                      // Enable UART DMA primary structure
         
+    #ifdef def_HALF_DUPLEX_RS485
+        rs485_send();
+    #endif
         UrtTx(pADI_UART,0);                        // Send byte 0 to the UART to start transfer
         
     #endif
@@ -297,7 +326,22 @@ void uart_init(uint8_t uart_id, uint32_t baud_rate)
 {
 	switch (uart_id) {
 	case UART_0:
-		t_transceiver_uart0.init();
+		t_transceiver_uart0.init(baud_rate);
+		break;
+
+	default:
+		break;
+	}
+}
+
+
+void uart_ios(uint8_t uart_id, uint32_t baud_rate)
+{
+	switch (uart_id) {
+	case UART_0:
+		NVIC_DisableIRQ(UART_IRQn);
+        t_transceiver_uart0.ios(baud_rate);
+        NVIC_EnableIRQ(UART_IRQn);
 		break;
 
 	default:
@@ -400,11 +444,17 @@ quit:
 extern "C" void DMA_UART_TX_Int_Handler()
 {
 #ifdef def_DMA_SEND	
-    volatile unsigned char ucCOMSTA0 = 0;
+    volatile unsigned char ucCOMSTA0;
     volatile unsigned char ucCOMIID0 = 0;
     
     ucCOMIID0 = UrtIntSta(pADI_UART);                // Read UART Interrupt ID register 
     DmaSet(DMARMSKSET_UARTTX,DMAENSET_UARTTX,0,0);   // MASK UART DMA channel to prevent further interrupts triggering - unmask when ready to re-transmit
+    do {
+		ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
+	}while (!(ucCOMSTA0 & COMLSR_TEMT));
+#ifdef def_HALF_DUPLEX_RS485
+        t_transceiver_uart0.rs485_recv();
+    #endif
     t_transceiver_uart0.status_set(STATUS_TX_IDLE);
 #endif
 }

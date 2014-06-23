@@ -51,8 +51,8 @@ portBASE_TYPE model_datum::storage_param_verify(enum reg_type type)
 	portBASE_TYPE 	 rt				= 0;
     uint16          crc;
 
-	crc = crc16((const uint8*)&m_stuSensorPara, 
-                        sizeof(m_stuSensorPara)-sizeof(m_stuSensorPara.chksum));
+	crc = crc16((const uint8*)&m_stuSensorPara.ucLinkAddr, 
+                        sizeof(m_stuSensorPara) - sizeof(m_stuSensorPara.chksum));
     if (m_stuSensorPara.chksum != crc){
     	modbus_hold_reg_def_init();
 		rt 							= -1;
@@ -63,8 +63,8 @@ portBASE_TYPE model_datum::storage_param_verify(enum reg_type type)
 
 void model_datum::storage_param_chksum(enum reg_type type)
 {
-	m_stuSensorPara.chksum = crc16((const uint8*)&m_stuSensorPara, 
-                    sizeof(m_stuSensorPara)-sizeof(m_stuSensorPara.chksum));
+	m_stuSensorPara.chksum = crc16((const uint8*)&m_stuSensorPara.ucLinkAddr, 
+                        sizeof(m_stuSensorPara) - sizeof(m_stuSensorPara.chksum));
 }
 
 portMODBUS_REG_VALUE model_datum::modbus_reg_get(enum reg_type type, portMODBUS_REG_INDEX reg)

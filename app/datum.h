@@ -132,6 +132,9 @@ typedef struct __SENSOR_INFO
 
 typedef struct __SENSOR_PARA
 {
+    //chech sum
+    unsigned short   chksum;          //编译器在实际编译时 可能对此结构体中的数据有填充行为
+                                        //因此将chksum放在首部和尾部的影响不同
 //Configure Infomation
     //0-6
     unsigned char   ucLinkAddr;	  //1-247
@@ -152,9 +155,6 @@ typedef struct __SENSOR_PARA
     //humidity: 18-30;31-43,44-56
     unsigned short usRH[13];
     unsigned long  ulHumiADC[13];
-
-	//chech sum
-    unsigned short   chksum;
 
 }SENSOR_PARA,*pSENSOR_PARA;
 
@@ -222,13 +222,13 @@ typedef 	uint16 				portMODBUS_REG_INDEX;
 #define 	_def_SPLIT_HOLD_R_INDEX_2 				(31)			//ulHumiADC
 #define 	_def_SPLIT_HOLD_R_INDEX_3 				(57)			//保持寄存器的结尾
 //保持寄存器最大数目  依据实际情况看是否做寄存器超限判定
-#define     _def_HOLD_REG_MAX_NO                    _def_SPLIT_HOLD_R_INDEX_3
+#define     def_HOLD_REG_MAX_NO                    _def_SPLIT_HOLD_R_INDEX_3
 
 
 #define 	_def_SPLIT_INPUT_R_INDEX_1 				(12)
 #define 	_def_SPLIT_INPUT_R_INDEX_2 				(18)			//输入寄存器的结尾
 //输入寄存器最大数目
-#define     _def_INPUT_REG_MAX_NO                   _def_SPLIT_INPUT_R_INDEX_2
+#define     def_INPUT_REG_MAX_NO                   _def_SPLIT_INPUT_R_INDEX_2
 
 
 

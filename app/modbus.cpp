@@ -66,7 +66,6 @@ int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
     int slave           = req[offset - 1];
     int function        = req[offset];
     int rsp_length = 0;
-    int nb;
     sft_t sft;
 
     sft.slave           = slave;
@@ -80,22 +79,24 @@ int modbus_reply(protocol_modbus_rtu *rtu, uint8 *rsp, const uint8_t *req,
     	|| (_FC_WRITE_MULTIPLE_REGISTERS == function)){
 
         bool   read_operation               = false;
+        uint16	max_reg_no;
 
 		rtu->info(req, req_length, &rtu->m_info);
-		if (_FC_WRITE_SINGLE_REGISTER == function) {
-			//此条语句无作用  写操作的应答与此nb变量无关
-            nb                              = 1;
-		} else {
-			nb 					            = (req[offset + 3] << 8) + req[offset + 4];
-		}
         rsp_length                          = _modbus_rtu_build_response_basis(&sft, rsp);
 		if ((_FC_READ_HOLDING_REGISTERS == function)
 			|| (_FC_READ_INPUT_REGISTERS == function)){
-            rsp[rsp_length++]               = nb << 1;
+            rsp[rsp_length++]               = (rtu->m_info.reg_no_get()) << 1;
             rtu->m_info.param_addr_set(const_cast<uint8 *>(&(rsp[rsp_length])));
             read_operation                  = true;
 		}
-        if (0 == rtu->handle(enum_PROTOCOL_PREPARE)){
+		//获取modbus寄存器最大数目
+		if (_FC_READ_INPUT_REGISTERS == function){
+			max_reg_no						= rtu->m_modbus.input_reg_max_no;
+		}else {
+			max_reg_no						= rtu->m_modbus.hold_reg_max_no;
+		}
+		if ((rtu->m_info.reg_get() + rtu->m_info.reg_no_get() < max_reg_no)
+			&& (0 == rtu->handle(enum_PROTOCOL_PREPARE))){
             if (true == read_operation){
                 rsp_length                  += rtu->m_info.param_len_get();
             }else {

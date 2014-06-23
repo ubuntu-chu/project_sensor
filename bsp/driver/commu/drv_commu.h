@@ -13,6 +13,7 @@
 
 #define     DEVICE_NAME_COMMU                       ("COMMU")
 #define		COMMU_IOC_RX_ENTER				        (DEVICE_IOC_USER+1)
+#define		COMMU_IOC_BAUD				        	(DEVICE_IOC_USER+2)
 
 
 

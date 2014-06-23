@@ -9,8 +9,9 @@
 #include "datum.h"
 #include "../reactor/reactor.h"
 
-enum{
-	STAT_OK				= 0,
+enum app_status{
+	enum_STAT_OK				= 0,
+	enum_STAT_DATUM_FAILED,
 };
 
 enum{
@@ -19,14 +20,15 @@ enum{
 };
 
 struct _app_runinfo_{
-    device        *m_pdevice_commu;
-    device        *m_pdevice_ad;
-    device        *m_pdevice_log;
-    device        *m_pdevice_pin;
-    device        *m_pdevice_storage;
-    device        *m_pdevice_pwm;
-	uint8				m_status;
-	uint8 				m_mode;
+    device        				*m_pdevice_commu;
+    device        				*m_pdevice_ad;
+    device        				*m_pdevice_log;
+    device        				*m_pdevice_pin;
+    device        				*m_pdevice_storage;
+    device        				*m_pdevice_pwm;
+    protocol					*m_pprotocol;
+	enum app_status				m_status;
+	uint8 						m_mode;
 
 	timer_handle_type m_handle_period;
 

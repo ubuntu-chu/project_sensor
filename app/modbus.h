@@ -74,8 +74,11 @@ typedef struct _sft {
 } sft_t;
 
 struct _modbus {
-    int slave;
-    int debug;
+    uint8 					slave;
+    uint8 					debug;
+
+    uint16					input_reg_max_no;
+    uint16 					hold_reg_max_no;
 };
 
 class modbus_rtu_info:public protocol_info{
@@ -123,6 +126,11 @@ public:
 		return -1;
 	}
     portBASE_TYPE slave_set(uint8 addr);
+    void reg_max_no_set(uint16 input_reg, uint16 hold_reg)
+    {
+    	m_modbus.input_reg_max_no					= input_reg;
+    	m_modbus.hold_reg_max_no					= hold_reg;
+    }
 	portBASE_TYPE  info(const uint8_t*package, uint16 len, class protocol_info *pinfo);
 
 public:

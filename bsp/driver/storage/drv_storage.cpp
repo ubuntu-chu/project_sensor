@@ -78,7 +78,8 @@ static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
 }
 
 
-static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAddr, uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
+static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAddr,
+								uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
 {
     uint32   capacity;
     uint16   accessBytes;
@@ -155,16 +156,34 @@ static portSSIZE_TYPE _i2c_access(uint8 slaAddr, uint8 subAddrType, uint16 subAd
     return tot_access_bytes-numbBytes;
 }
 
+static portSSIZE_TYPE _i2c_access_retry(uint8 slaAddr, uint8 subAddrType, uint16 subAddr,
+								uint8 *acessAddr, uint32 numbBytes, portuBASE_TYPE accessCtrl)
+{
+	portBASE_TYPE 	retry_numb					= 3;
+	portSSIZE_TYPE  size;
+
+	do{
+
+		if (numbBytes == (size = _i2c_access(slaAddr, subAddrType,
+                            subAddr, acessAddr, numbBytes, accessCtrl))){
+			break;
+		}
+
+	}while (retry_numb-- > 0);
+
+	return size;
+}
+
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size){
 
 
-	return _i2c_access(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+	return _i2c_access_retry(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type,
                             pos, (uint8 *)buffer, size, I2C_WRITE);
 }
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
     
-	return _i2c_access(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type, 
+	return _i2c_access_retry(t_storage_geometry.m_dev_addr, t_storage_geometry.m_suba_type,
                             pos, (uint8 *)buffer, size, I2C_READ);
 }
 

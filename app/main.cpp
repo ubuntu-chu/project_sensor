@@ -78,6 +78,11 @@ portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phas
         case _FC_WRITE_MULTIPLE_REGISTERS:
         {
             class event 	t_event(&application::datum_save, papplication);
+            class buffer   &t_buffer 	= t_event.buffer_get();
+
+            //将此次操作的寄存器起始位置及长度添加到event参数列表中
+            t_buffer.appendInt16(reg);
+            t_buffer.appendInt16(reg_no);
 
             papplication->m_peventloop->run_inloop(&t_event);
         }
@@ -105,7 +110,7 @@ portBASE_TYPE application::datum_load(void)
 							storage_info_modbus.m_len);
 	if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
 	#ifdef LOGGER
-		LOG_FATAL << "modbus regs load/write failed!";
+		LOG_ERROR << "modbus regs read failed!";
 	#endif
 		return -1;
 	}
@@ -118,7 +123,7 @@ portBASE_TYPE application::datum_load(void)
                                 storage_info_modbus.m_len);
 		if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
 		#ifdef LOGGER
-			LOG_FATAL << "modbus regs write failed!";
+			LOG_ERROR << "modbus regs write failed!";
 		#endif
 			return -1;
 		}
@@ -129,8 +134,14 @@ portBASE_TYPE application::datum_load(void)
 
 portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
 {
+#define     _def_MODIFY_VALID_IMMEDIATELY
 	application 	*papplication	= static_cast<application *> (pvoid);
     struct          storage_info storage_info;
+#ifdef _def_MODIFY_VALID_IMMEDIATELY
+	class buffer 	&t_buffer 		= pevent->buffer_get();
+	uint16 			reg				= t_buffer.readInt16();
+	uint16 			reg_no			= t_buffer.readInt16();
+#endif
 
 	//write hold regs to storage device
 	device_storage *pdevice_storage    =
@@ -141,7 +152,19 @@ portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
 	papplication->m_modelinfo.storage_param_chksum(enum_REG_TYPE_HOLD);
 	pdevice_storage->write(storage_info.m_storage_addr,
 							reinterpret_cast<char *>(storage_info.m_pdata), storage_info.m_len);
-
+    
+#ifdef _def_MODIFY_VALID_IMMEDIATELY
+	if (IN_RANGES(0, reg, reg+reg_no))
+	{
+		dynamic_cast<protocol_modbus_rtu *>(papplication->m_app_runinfo.m_pprotocol)->slave_set(
+            papplication->m_modelinfo.m_stuSensorPara.ucLinkAddr);
+	}
+	if (IN_RANGES(1, reg, reg+reg_no))
+    {
+		 papplication->m_app_runinfo.m_pdevice_commu->ioctl(COMMU_IOC_BAUD,
+                        reinterpret_cast<void *>(papplication->m_modelinfo.m_stuSensorPara.ucCommBaud));
+    }
+#endif    
 	return 0;
 }
 
@@ -166,12 +189,13 @@ void application::input_reg_set(enum input_reg_index index, uint16 value)
 
 portBASE_TYPE application::init(void)
 {
-	static protocol_modbus_rtu 	    t_protocol_modbus_rtu(application::package_event_handler, this);
+	static protocol_modbus_rtu 	    	t_protocol_modbus_rtu(application::package_event_handler, this);
     static device_ad 		    		t_device_ad;
     static device_pin 				    t_device_pin;
     static device_storage 				t_device_storage;
     static device_pwm		    		t_device_pwm;
     static device_commu   				t_device_commu( &t_protocol_modbus_rtu);
+    portBASE_TYPE   rt  = 0;
     
 #ifdef LOGGER
     //log setting
@@ -198,24 +222,31 @@ portBASE_TYPE application::init(void)
     m_app_runinfo.m_pdevice_commu 			= &t_device_commu;
     m_app_runinfo.m_pdevice_storage 	    = &t_device_storage;
     m_app_runinfo.m_pdevice_pin 			= &t_device_pin;
-	m_app_runinfo.m_status 					= STAT_OK;
+    m_app_runinfo.m_pprotocol 				= &t_protocol_modbus_rtu;
+	m_app_runinfo.m_status 					= enum_STAT_OK;
 
 	m_modelinfo.name_set(def_MODEL_NAME);
 	cpu_pendsv_register(pendsv_handle, this);
 
-    m_app_runinfo.m_pdevice_commu->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_pin->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_ad->open(DEVICE_FLAG_RDONLY);
     m_app_runinfo.m_pdevice_pwm->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_storage->open(DEVICE_FLAG_RDWR);
+    m_app_runinfo.m_pdevice_commu->open(DEVICE_FLAG_RDWR);
+    //设置通讯波特率
+    m_app_runinfo.m_pdevice_commu->ioctl(COMMU_IOC_BAUD, 
+                        reinterpret_cast<void *>(m_modelinfo.m_stuSensorPara.ucCommBaud));
+    //设置modbus协议地址
+    t_protocol_modbus_rtu.slave_set(m_modelinfo.m_stuSensorPara.ucLinkAddr);
+    t_protocol_modbus_rtu.reg_max_no_set(def_INPUT_REG_MAX_NO, def_HOLD_REG_MAX_NO);
 
     //load conf_datum from storage device
     if (datum_load()){
-        datum_load();
-        while (1);
+        //应该上报错误
+        rt                                  = -1;
+		m_app_runinfo.m_status 				= enum_STAT_DATUM_FAILED;
+        goto quit;
     }
-
-    t_protocol_modbus_rtu.slave_set(hold_reg_get(enum_REG_MODBUS_ADDR));
 #if 0
     hold_reg_set(enum_REG_RHREF_RREQ, 200);
     hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
@@ -238,7 +269,8 @@ portBASE_TYPE application::init(void)
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE,
             (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_DUTY_CYCLE)));
 #endif
-    return 0;
+quit:
+    return rt;
 }
 
 int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
