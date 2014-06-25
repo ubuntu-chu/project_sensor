@@ -13,6 +13,7 @@ public:
 
 	timer_handle_type timer_add(const uint32& ms, uint8 flag, fp_void_pvoid *cb,
 			void *pparam, const char* pname);
+	portBASE_TYPE timer_ioctl(timer_handle_type handle, enum timer_ioc ioc, void *pparam);
 	int timer_cancel(timer_handle_type handle);
 
 	static timer_queue* new_timerqueue(eventloop* loop);

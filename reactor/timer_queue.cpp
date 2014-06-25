@@ -52,6 +52,38 @@ int timer_queue::timer_cancel(timer_handle_type handle)
 	return t_timer_manage.timer_stop(handle);
 }
 
+portBASE_TYPE timer_queue::timer_ioctl(timer_handle_type handle, enum timer_ioc ioc, void *pparam)
+{
+	portBASE_TYPE	rt	= 0;
+
+	switch (ioc){
+	case enum_TIMER_IOC_RESTART:
+
+		rt 	= t_timer_manage.timer_restart(handle);
+		break;
+
+	case enum_TIMER_IOC_RESTART_WITH_TIME:
+
+		rt 	= t_timer_manage.timer_restart(handle, reinterpret_cast<uint32>(pparam));
+		break;
+
+	case enum_TIMER_IOC_STOP:
+
+		rt 	= t_timer_manage.timer_stop(handle);
+		break;
+
+	case enum_TIMER_IOC_UNREGISTER:
+
+		rt 	= t_timer_manage.timer_unregister(handle);
+		break;
+
+	default:
+		rt	= -1;
+		break;
+	}
+
+	return rt;
+}
 int timer_queue::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {
 	timer_queue *ptimer_queue      = static_cast<timer_queue *> (pvoid);

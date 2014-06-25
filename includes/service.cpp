@@ -570,6 +570,23 @@ bool timer_manage::timer_unregister(timer_handle_type handle)
     return true;
 }
 
+bool timer_manage::timer_unregister(struct sv_timer *ptimer)
+{
+	timer_handle_type handle;
+
+	for (handle = 0; handle < m_size; handle++){
+		if (ptimer == &m_timer[handle]){
+			break;
+		}
+	}
+	if (handle >= m_size){
+		return false;
+	}
+	m_bitmap 								&= ~(1UL << handle);
+
+    return true;
+}
+
 sv_err_t timer_manage::timer_start(timer_handle_type handle, uint32 expired_ms)
 {
 	tick_t            tick  = sv_tick_from_millisecond(expired_ms);
@@ -598,7 +615,8 @@ sv_err_t timer_manage::timer_stop(timer_handle_type handle)
 	return sv_timer_stop(&m_timer[handle]);
 }
 
-sv_err_t timer_manage::timer_restart(timer_handle_type handle) {
+sv_err_t timer_manage::timer_restart(timer_handle_type handle)
+{
 	sv_base_t level;
 	sv_err_t 	rt;
 
@@ -611,6 +629,18 @@ sv_err_t timer_manage::timer_restart(timer_handle_type handle) {
 	}
 	sv_hw_interrupt_enable(level);
 	return rt;
+}
+
+sv_err_t timer_manage::timer_restart(timer_handle_type handle, uint32 expired_ms)
+{
+	tick_t            tick  = sv_tick_from_millisecond(expired_ms);
+
+    //防止超时tick回绕情况出现
+    if ((handle >= m_size) || (tick >= (TICK_MAX/2))) {
+		return -SV_EPARAM;
+	}
+	m_timer[handle].init_tick 				= tick;
+	return timer_restart(handle);
 }
 
 portBASE_TYPE timer_manage::timer_expired(timer_handle_type handle)
@@ -661,6 +691,10 @@ void timer_manage::timer_handle(list_head_t *list_head)
 				/* stop timer */
 				t->parent.flag &= ~SV_TIMER_FLAG_ACTIVATED;
 				t->parent.flag |= SV_TIMER_FLAG_TIMEOUT;
+				//对于event loop下的 单次软定时器   超时自动回收定时器资源
+				if (list_head == &m_soft_timer_list){
+					timer_unregister(t);
+				}
 			}
 		} else
 			break;

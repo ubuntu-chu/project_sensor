@@ -106,7 +106,8 @@ static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, c
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
   
     uint8   *ptr    = (uint8 *)buffer;
-
+    ptr = ptr;
+    
     return 1;
 }
 #endif

@@ -18,7 +18,7 @@ const char* strerror_tl(int savedErrno)
 
 Logger::LogLevel initLogLevel()
 {
-    return Logger::INFO;
+    return Logger::TRACE;
 }
 
 Logger::LogLevel g_logLevel = initLogLevel();
@@ -101,14 +101,21 @@ void Logger::Impl::formatTime()
         gmtime_r(&seconds, &tm_time); // FIXME TimeZone::fromUtcTime
 
         int len = snprintf(t_time, sizeof(t_time), "%4d%02d%02d %02d:%02d:%02d",
-            tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
+            tm_time.tm_year + TM_YEAR_BASE, tm_time.tm_mon + 1, tm_time.tm_mday,
             tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
         //ASSERT(len == 17); (void)len;
     }
+#ifdef LOG_IN_EMBEDED
+    //精确到ms
+    Fmt us(".%03d ", microseconds);
+    stream_ << T(t_time, 17) << T(us.data(), 5);
+#else
+    //精确到us
     Fmt us(".%06d ", microseconds);
     //Fmt us(".%06dZ ", microseconds);
     //ASSERT(us.length() == 9);
     stream_ << T(t_time, 17) << T(us.data(), 8);
+#endif
 }
 
 void Logger::Impl::finish()

@@ -42,21 +42,23 @@
  *                           文件接口信息宏定义
 ******************************************************************************/
 
-#define         DEVICE_NAME_PWM                         ("PWM")
-#define		    PWM_IOC_RHREF_FORCE_H				    (DEVICE_IOC_USER+1)
-#define		    PWM_IOC_RHREF_FORCE_L				    (DEVICE_IOC_USER+2)
-#define		    PWM_IOC_HEAT_FORCE_H				    (DEVICE_IOC_USER+3)
-#define		    PWM_IOC_HEAT_FORCE_L				    (DEVICE_IOC_USER+4)
-//freq+duty
-#define		    PWM_IOC_RHREF_FREQ				        (DEVICE_IOC_USER+5)
-#define		    PWM_IOC_RHREF_DUTY_CYCLE				(DEVICE_IOC_USER+6)
-#define		    PWM_IOC_HEAT_FREQ				        (DEVICE_IOC_USER+7)
-#define		    PWM_IOC_HEAT_DUTY_CYCLE				    (DEVICE_IOC_USER+8)
-
-struct pwm_ctrl{
-    uint16                  m_freq;
-    uint16                  m_duty_cycle;
+enum{
+    PWM_IOC_RHREF_FORCE_H     = (DEVICE_IOC_USER+1),
+    PWM_IOC_RHREF_FORCE_L,
+    PWM_IOC_HEAT_FORCE_H,
+    PWM_IOC_HEAT_FORCE_L,
+    PWM_IOC_RHREF_FREQ,
+    PWM_IOC_RHREF_DUTY_CYCLE,
+    PWM_IOC_HEAT_FREQ,
+    PWM_IOC_HEAT_DUTY_CYCLE,
+    PWM_IOC_MEASURE_ON,
+    PWM_IOC_MEASURE_OFF,
+    PWM_IOC_MAX_NO,
 };
+
+#define         DEVICE_NAME_PWM                         ("PWM")
+
+
 
 
 

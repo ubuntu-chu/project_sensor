@@ -45,7 +45,6 @@
 #define         DEVICE_NAME_AD                                  ("AD")
 
 
-//excitation  current  source
 enum{
     AD_IOC_START_RTD_ADC     = (DEVICE_IOC_USER+1),
     AD_IOC_START_RHS_ADC,
@@ -56,9 +55,6 @@ enum{
     AD_IOC_MAX_NO,
 };
 
-#define GPIO_TMeasOn()  DioSet(pADI_GP0,1)
-#define GPIO_TMeasOff() DioClr(pADI_GP0,1)
-#define GPIO_TMeasSta() (DioRd(pADI_GP0)&0x01)
 
 //extern volatile unsigned char ucADC0NewData;// New data flag, set in ADC0 int.
 extern volatile unsigned char ucADC1NewData;// New data flag, set in ADC1 int.

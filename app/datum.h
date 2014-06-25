@@ -181,11 +181,7 @@ typedef struct __SENSOR_DATA
 //input & output pressure unit
 #define PRESS_ABS_INPUT    FALSE
 #define PRESS_ABS_OUTPUT   FALSE
-//GET FROM g
-#define PUCHG   0.01019716213*100
 
-#define ATMOS_HPA  (ATMOS*10)
-#define LOG_6D112    1.81025405186422
 
 enum reg_operate{
 	enum_REG_READ 	= 0,

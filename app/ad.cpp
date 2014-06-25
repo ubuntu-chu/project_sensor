@@ -5,8 +5,6 @@
 #include <math.h>
 #include 	 "../bsp/driver/drv_interface.h"
 
-#define CALC_RTD_TEMP_FORMULA
-
 float ADC1_GetADC_Temp(int32 *pbuf, uint16 len);
 float ADC1_GetADC_Pres(int32 *pbuf, uint16 len);
 float ADC1_GetADC_RHS(int32 *pbuf, uint16 len);
@@ -14,8 +12,6 @@ float ADC1_GetADC_RHS(int32 *pbuf, uint16 len);
 static float fADCTemp[def_RECORD_LEN];
 static float fADCPres[def_RECORD_LEN];
 static float fADCRHS[def_RECORD_LEN];
-int iADCTemp[def_RECORD_LEN];
-int iADCRHS[def_RECORD_LEN];
 
 device_ad::device_ad():device(DEVICE_NAME_AD)
 {

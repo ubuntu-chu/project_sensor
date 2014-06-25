@@ -6,8 +6,10 @@
 
 portBASE_TYPE cpu_gpioinit(void)
 {
-	DioOen(pADI_GP1,0x8);
-    //DioOen(pADI_GP1,0x80);
+#ifdef def_RUN_IN_EVB 
+    DioOen(pADI_GP1,0x8);
+#endif
+
 
     return 0;
 }
@@ -25,8 +27,9 @@ void cpu_led_toggle(void)
 		//m_led1_on();
 	}
 #endif
-	DioTgl(pADI_GP1,0x8);   // Toggle P1.3
-    //DioTgl(pADI_GP1,0x80);   // Toggle P1.7
+#ifdef def_RUN_IN_EVB 
+    DioTgl(pADI_GP1,0x8);   // Toggle P1.3
+#endif    
 }
 
 /*********************************************************************************

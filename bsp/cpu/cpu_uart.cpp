@@ -6,9 +6,9 @@
 #define     def_DMA_SEND     
 #define     def_HALF_DUPLEX_RS485
 
-enum{
-	STATUS_TX_IDLE 			= 0x00,
-	STATUS_TX_PROCESSING 	= 0x01,
+enum TX_STAT{
+	TX_STAT_IDLE 			= 0x00,
+	TX_STAT_PROCESSING,
 };
 
 enum{
@@ -16,11 +16,11 @@ enum{
 	HALF_DUPLEX				= 1,
 };
 
-enum RECV_STAT{
-	RECV_STAT_IDLE		= 0,
-	RECV_STAT_RECV,
-	RECV_STAT_DONE,
-	RECV_STAT_TIMEOUT,
+enum RX_STAT{
+	RX_STAT_IDLE		= 0,
+	RX_STAT_RECV,
+	RX_STAT_DONE,
+	RX_STAT_TIMEOUT,
 
 };
 
@@ -42,13 +42,14 @@ public:
 	portSSIZE_TYPE poll(int8 *pbuf, uint16 * plen, uint16 timeout);
 	virtual bool  is_done(void){return false;}
 	portBASE_TYPE 	force_done(void);
-	void rx_status_set(enum RECV_STAT new_status){ m_rx_status = new_status;}
-    void status_set(uint8 new_status){ m_status = new_status;}
+	void rx_status_set(enum RX_STAT new_status){ m_rx_status = new_status;}
+    void tx_status_set(enum TX_STAT new_status){ m_tx_status = new_status;}
+    enum TX_STAT tx_status_get(void){return m_tx_status;}
 	void recv_init(void);
     static void timer_timeout(void *pvoid);
 
 protected:
-	uint8 					m_status;
+	enum TX_STAT 			m_tx_status;
 	uint8					m_duplex;
 #ifdef def_DMA_SEND
 	uint8 					m_tx_buf[def_TRANSCEIVER_TX_BUF_SIZE];
@@ -58,16 +59,16 @@ private:
 	uint16					m_rx_index;
 	uint16					m_tx_index;
 	uint16					m_tx_len;
-	enum RECV_STAT 			m_rx_status;
+	enum RX_STAT 			m_rx_status;
 	int8 					m_rx_buf[def_TRANSCEIVER_RX_BUF_SIZE];
-    timer_handle_type     m_handle_rx;
+    timer_handle_type       m_handle_rx;
     struct buf_queue        m_buf_queue;    
 };
 
 void transceiver::recv_init(void)
 {
     m_rx_index = 0; 
-    m_rx_status = RECV_STAT_RECV;
+    m_rx_status = RX_STAT_RECV;
 }
 
 portBASE_TYPE transceiver::force_done(void)
@@ -80,7 +81,7 @@ portBASE_TYPE transceiver::force_done(void)
     }
     if (m_duplex == HALF_DUPLEX){
         m_rx_index = 0;
-        rx_status_set(RECV_STAT_DONE); 
+        rx_status_set(RX_STAT_DONE); 
     }else {
         recv_init();
     }
@@ -91,10 +92,10 @@ portBASE_TYPE transceiver::force_done(void)
 
 portBASE_TYPE transceiver::push(int8 c)
 {
-	if ((m_duplex == HALF_DUPLEX) && (STATUS_TX_PROCESSING == m_status)){
+	if ((m_duplex == HALF_DUPLEX) && (TX_STAT_PROCESSING == m_tx_status)){
 		return -1;
 	}
-	if (RECV_STAT_RECV != m_rx_status){
+	if (RX_STAT_RECV != m_rx_status){
 		return -1;
 	}
     if (m_rx_index >= sizeof(m_rx_buf)){
@@ -174,17 +175,20 @@ public:
         }
         
 		//Select IO pins for UART.
-		// Configure P0.1/P0.2 for UART
-		//pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
+		
     #ifdef def_HALF_DUPLEX_RS485
         DioCfgPin(pADI_GP0,PIN4,0); //Set P0.4 as UART RTS 
         //DioPulPin(pADI_GP0,PIN4,0);
         DioOcePin(pADI_GP0,PIN4,1);
         DioOenPin(pADI_GP0,PIN4,1);
     #endif
-        
+    #ifdef def_RUN_IN_EVB    
+        // Configure P0.1/P0.2 for UART
+		pADI_GP0->GPCON = ((pADI_GP0->GPCON)&(~(BIT2|BIT3|BIT4|BIT5)))|0x3C;
+    #else
         DioCfgPin(pADI_GP0,PIN6,1); //Set P0.6 as UART RXD
         DioCfgPin(pADI_GP0,PIN7,2); //Set P0.7 as UART TXD
+    #endif
         
         UrtCfg(pADI_UART, baud_rate, COMLCR_WLS_8BITS, 0); // setup baud rate for 9600, 8-bits
 		UrtMod(pADI_UART, COMMCR_DTR, 0);              // Setup modem bits
@@ -225,17 +229,23 @@ public:
 		uint16_t i;
         (void)i;
 
-		m_status 	= STATUS_TX_PROCESSING;
+        //prevent to send fast 主要是指使用dma发送方式时
+        while (TX_STAT_PROCESSING == tx_status_get());
+        tx_status_set(TX_STAT_PROCESSING);
 	#ifndef def_DMA_SEND		
         
         for (i = 0; i < len; i++){
 			UrtTx(pADI_UART, pdata[i]);
 			do {
 				ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
-			}while (!(ucCOMSTA0 & COMLSR_TEMT));
+			}while (!(ucCOMSTA0 & COMLSR_THRE));
 		}
+        do {
+			ucCOMSTA0 = UrtLinSta(pADI_UART);             //兼容232与485
+		}while (!(ucCOMSTA0 & COMLSR_TEMT));
+        
         //recv_init();
-		status_set(STATUS_TX_IDLE);
+		tx_status_set(TX_STAT_IDLE);
     #else 
         if (len > sizeof(m_tx_buf)){
             return 0;
@@ -453,9 +463,9 @@ extern "C" void DMA_UART_TX_Int_Handler()
 		ucCOMSTA0 = UrtLinSta(pADI_UART);         // Read Line Status register
 	}while (!(ucCOMSTA0 & COMLSR_TEMT));
 #ifdef def_HALF_DUPLEX_RS485
-        t_transceiver_uart0.rs485_recv();
-    #endif
-    t_transceiver_uart0.status_set(STATUS_TX_IDLE);
+    t_transceiver_uart0.rs485_recv();
+#endif
+    t_transceiver_uart0.tx_status_set(TX_STAT_IDLE);
 #endif
 }
 

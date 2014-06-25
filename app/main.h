@@ -14,19 +14,29 @@ enum app_status{
 	enum_STAT_DATUM_FAILED,
 };
 
+enum datum_load_stat{
+	enum_DATUM_LOAD_STAT_FAILED		= 0,
+	enum_DATUM_LOAD_STAT_SUCCESS,
+	enum_DATUM_LOAD_STAT_RETRY,
+};
+
+enum datum_load_ctrl{
+	enum_DATUM_LOAD_CTRL_RECOVER		= 0,
+	enum_DATUM_LOAD_CTRL_NONE,
+};
+
+
 enum{
 	MODE_IDLE_ENTER 	= 0,
 	MODE_IDLE_EXIT,
 };
 
-enum RUNMODE{
-    MODE_MEASURE_PARA=0,
+enum RUNMODE{ MODE_MEASURE_PARA=0,
     MODE_SENSOR_WASH,
     MODE_CALIB_HUMI,
 };
 
-enum ADC1_RUN_STATUS
-{
+enum ADC1_RUN_STATUS {
     ADC_T					= 0,
     CALC_T,
     ADC_RHS,
@@ -49,9 +59,16 @@ struct _app_runinfo_{
 	timer_handle_type 			m_handle_period;
 	enum app_status				m_status;
 	uint8 						m_mode;
+	bool						m_startupcalib;
+	uint8						m_ucCalibRecordTimes;
+	uint32						m_uiCalibRecTimeGap;
+
 
 	enum RUNMODE 				ucSensorRunMode;
 	enum ADC1_RUN_STATUS 		ucADC1RunStus;
+
+	int 						iADCTemp[def_RECORD_LEN];
+	int 						iADCRHS[def_RECORD_LEN];
 
 
 };
@@ -73,19 +90,13 @@ private:
     application &operator =(const application &other);
 	static portBASE_TYPE package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
-	static void self_calc_handle(void *pdata);
+	static void self_calib_handle(void *pdata);
 
 	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
-	static portBASE_TYPE   event_cb(void *pvoid, class event *pevent);
 
-    portBASE_TYPE datum_load(void);
+	portBASE_TYPE datum_load(void);
+	enum datum_load_stat 	_datum_load(enum datum_load_ctrl ctrl);
 	static portBASE_TYPE   datum_save(void *pvoid, class event *pevent);
-
-    uint16  hold_reg_get(enum hold_reg_index index);
-    void hold_reg_set(enum hold_reg_index index, uint16 value);
-
-    uint16  input_reg_get(enum input_reg_index index);
-    void input_reg_set(enum input_reg_index index, uint16 value);
 
     struct _app_runinfo_    m_app_runinfo;
 	class model_datum 	     m_modelinfo;

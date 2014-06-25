@@ -1,6 +1,11 @@
 #include    "drv_pwm.h"
 
 
+#define GPIO_TMeasOn()  DioSet(pADI_GP0,1)
+#define GPIO_TMeasOff() DioClr(pADI_GP0,1)
+#define GPIO_TMeasSta() (DioRd(pADI_GP0)&0x01)
+
+
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev);
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag);
 static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, const void* buffer, portSIZE_TYPE size);
@@ -51,6 +56,7 @@ void pwm_output_enable(void)
     PwmGo(PWMCON0_ENABLE_EN,PWMCON0_MOD_DIS);            // Enable PWM outputs
 }
 
+//p1.2
 static void _pwm_rhref_pins_disable(void)
 {
     pADI_GP1->GPCON = ((pADI_GP1->GPCON)&(~(BIT4|BIT5)));
@@ -71,6 +77,7 @@ static void pwm_rhref_pins_enable(void)
     }
 }
 
+//p1.4
 static void _pwm_heat_pins_disable(void)
 {
     pADI_GP1->GPCON = ((pADI_GP1->GPCON)&(~(BIT8|BIT9)));
@@ -144,7 +151,7 @@ unsigned char PWM_Freq(int channel, uint16 freq)
             duty_cycle                  = freq;
         }
         pwm_output_disable(); 
-        PwmTime(iPair, freq, duty_cycle, 0);
+        PwmTime(iPair, freq, duty_cycle, 1);
         pwm_output_enable();
     }
     
@@ -162,7 +169,7 @@ unsigned char PWM_DutyCycle(int channel, int duty_cycle)
         if (duty_cycle > freq){
             duty_cycle                  = freq;
         }
-        PwmTime(iPair, freq, duty_cycle, 0);
+        PwmTime(iPair, freq, duty_cycle, 1);
         PwmLoad(PWMCON0_LCOMP_EN);
     }
     
@@ -185,9 +192,9 @@ unsigned char PWM_DutyCycle(int channel, int freq)
     }
 #endif
     //Note that
-    //•  Except for LCOMP, all other bits of PWMCON0 register can be changed 
+    //鈥� Except for LCOMP, all other bits of PWMCON0 register can be changed
     //only when PWMEN is low.
-    //•  When LCOMP is written with Value 1, it stays at that value until 
+    //鈥� When LCOMP is written with Value 1, it stays at that value until
     //the new value is loaded in the compare registers for all the channels.
     pwm_output_disable(); 
 #if 0
@@ -207,9 +214,14 @@ unsigned char PWM_DutyCycle(int channel, int freq)
 
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     
+	DioCfgPin(pADI_GP0,PIN0,0); //Set P0.0 as GPIO
+	DioOenPin(pADI_GP0,PIN0,1); //Enable P0.0 Output
+	DioPulPin(pADI_GP0,PIN0,1); //Enable P0.0 Output Pullup
+
     pwm_output_enable();
     _drv_ioctl(pdev, PWM_IOC_RHREF_FORCE_H, NULL);
     _drv_ioctl(pdev, PWM_IOC_HEAT_FORCE_H, NULL);
+    _drv_ioctl(pdev, PWM_IOC_MEASURE_ON, NULL);
     
     return DEVICE_OK;
 }
@@ -273,10 +285,20 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
             PWM_DutyCycle(enum_HEAT, static_cast<uint16>((uint32)args));
             return rt;
 
+        case PWM_IOC_MEASURE_ON:
+
+        	GPIO_TMeasOn();
+        	return rt;
+
+        case PWM_IOC_MEASURE_OFF:
+
+        	GPIO_TMeasOff();
+        	return rt;
+
         default:
             return DEVICE_ECMD_INVALID;
 	}
-    //pwm0 - p1.2   pwm1 - p1.4
+    //pwm0 - p1.2(rhref)   pwm1 - p1.4(HEAT)
     gpio_exec(pADI_GP1, pin_bit);
 
 	return rt;

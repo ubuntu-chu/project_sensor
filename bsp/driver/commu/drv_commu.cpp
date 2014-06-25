@@ -109,7 +109,7 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
 
         case COMMU_IOC_BAUD:
         {
-        	uint32 	baud_array[] = {B2400, B4800, B9600, B19200, B38400};
+        	const uint32 	baud_array[] = {B2400, B4800, B9600, B19200, B38400};
         	uint32 	index 	= reinterpret_cast<uint32>(reinterpret_cast<uint32 *>(args));
 
 			uart_ios(UART_0, baud_array[index]);

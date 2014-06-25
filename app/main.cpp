@@ -10,10 +10,12 @@
 #include    "../api/log/log.h"
 #include 	"../bsp/driver/drv_interface.h"
 
+#ifdef LOGGER
 void debug_output(const char* msg, int len)
 {
-	//uart_tx(DBG_UART, (uint8 *)msg, len);
+	uart_tx(DBG_UART, (uint8 *)msg, len);
 }
+#endif
 
 portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo)
 {
@@ -97,12 +99,13 @@ portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phas
 	return rt;
 }
 
-portBASE_TYPE application::datum_load(void)
+enum datum_load_stat application::_datum_load(enum datum_load_ctrl ctrl)
 {
     portSSIZE_TYPE      ssize;
     struct storage_info storage_info_modbus;
     device_storage *pdevice_storage    =
             static_cast<device_storage *>(m_app_runinfo.m_pdevice_storage);
+    enum datum_load_stat 	rt 						= enum_DATUM_LOAD_STAT_SUCCESS;
 
     m_modelinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info_modbus);
 	//load modbus regs
@@ -110,27 +113,60 @@ portBASE_TYPE application::datum_load(void)
 							reinterpret_cast<char *>(storage_info_modbus.m_pdata),
 							storage_info_modbus.m_len);
 	if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
-	#ifdef LOGGER
+#ifdef LOGGER
 		LOG_ERROR << "modbus regs read failed!";
-	#endif
-		return -1;
+#endif
+		rt 											= enum_DATUM_LOAD_STAT_FAILED;
+		goto quit;
 	}
 	//判断校验和是否正确
 	if (m_modelinfo.storage_param_verify(enum_REG_TYPE_HOLD)){
 		//校验码错误  写入默认参数
 		m_modelinfo.storage_param_chksum(enum_REG_TYPE_HOLD);
-        ssize   = pdevice_storage->write(storage_info_modbus.m_storage_addr,
-                                reinterpret_cast<char *>(storage_info_modbus.m_pdata),
-                                storage_info_modbus.m_len);
-		if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
-		#ifdef LOGGER
-			LOG_ERROR << "modbus regs write failed!";
-		#endif
-			return -1;
+		if (ctrl == enum_DATUM_LOAD_CTRL_RECOVER){
+			ssize   = pdevice_storage->write(storage_info_modbus.m_storage_addr,
+									reinterpret_cast<char *>(storage_info_modbus.m_pdata),
+									storage_info_modbus.m_len);
+			if ((ssize <= 0) || (ssize != storage_info_modbus.m_len)){
+#ifdef LOGGER
+				LOG_ERROR << "modbus regs write failed!";
+#endif
+				rt 									= enum_DATUM_LOAD_STAT_FAILED;
+				goto quit;
+			}
+			//为了确保写入正确 再此进行读取验证
+			rt 										= enum_DATUM_LOAD_STAT_RETRY;
+		}else {
+#ifdef LOGGER
+			LOG_ERROR << "modbus regs load/write failed!";
+#endif
+			rt 										= enum_DATUM_LOAD_STAT_FAILED;
+			goto quit;
 		}
 	}
+quit:
+    return rt;
+}
 
-    return 0;
+portBASE_TYPE application::datum_load(void)
+{
+	portBASE_TYPE 	rt								= 0;
+    enum datum_load_stat	load_stat;
+
+    load_stat 										= _datum_load(enum_DATUM_LOAD_CTRL_RECOVER);
+    if (enum_DATUM_LOAD_STAT_SUCCESS != load_stat){
+    	//再次尝试读取验证
+		if ((enum_DATUM_LOAD_STAT_RETRY == load_stat)
+			//此时若读取发生错误 则不再尝试对存贮器进行写入操作
+			&& (enum_DATUM_LOAD_STAT_SUCCESS != _datum_load(enum_DATUM_LOAD_CTRL_NONE))){
+			rt                                      = -1;
+
+		}else {
+			rt                                  	= -1;
+		}
+    }
+
+    return rt;
 }
 
 portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
@@ -138,6 +174,7 @@ portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
 #define     _def_MODIFY_VALID_IMMEDIATELY
 	application 	*papplication	= static_cast<application *> (pvoid);
     struct          storage_info storage_info;
+    portSSIZE_TYPE      ssize;
 #ifdef _def_MODIFY_VALID_IMMEDIATELY
 	class buffer 	&t_buffer 		= pevent->buffer_get();
 	uint16 			reg				= t_buffer.readInt16();
@@ -151,8 +188,14 @@ portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
 	//hold regs
 	papplication->m_modelinfo.storage_info_query(enum_REG_TYPE_HOLD, &storage_info);
 	papplication->m_modelinfo.storage_param_chksum(enum_REG_TYPE_HOLD);
-	pdevice_storage->write(storage_info.m_storage_addr,
+	ssize = pdevice_storage->write(storage_info.m_storage_addr,
 							reinterpret_cast<char *>(storage_info.m_pdata), storage_info.m_len);
+	if ((ssize <= 0) || (ssize != storage_info.m_len)){
+#ifdef LOGGER
+		LOG_ERROR << "modbus regs read failed!";
+#endif
+		return -1;
+	}
     
 #ifdef _def_MODIFY_VALID_IMMEDIATELY
 	if (IN_RANGES(0, reg, reg+reg_no))
@@ -169,25 +212,6 @@ portBASE_TYPE application::datum_save(void *pvoid, class event *pevent)
 	return 0;
 }
 
-
-uint16  application::hold_reg_get(enum hold_reg_index index)
-{
-    return m_modelinfo.modbus_reg_get(enum_REG_TYPE_HOLD, index);
-}
-void application::hold_reg_set(enum hold_reg_index index, uint16 value)
-{
-    m_modelinfo.modbus_reg_set(enum_REG_TYPE_HOLD, index, value);
-}
-
-uint16  application::input_reg_get(enum input_reg_index index)
-{
-    return m_modelinfo.modbus_reg_get(enum_REG_TYPE_INPUT, index);
-}
-void application::input_reg_set(enum input_reg_index index, uint16 value)
-{
-    m_modelinfo.modbus_reg_set(enum_REG_TYPE_INPUT, index, value);
-}
-
 portBASE_TYPE application::init(void)
 {
 	static protocol_modbus_rtu 	    	t_protocol_modbus_rtu(application::package_event_handler, this);
@@ -199,22 +223,25 @@ portBASE_TYPE application::init(void)
     portBASE_TYPE   rt  = 0;
     
 #ifdef LOGGER
-    //log setting
-    Logger::setOutput(debug_output);
-#endif
-#if 0
     {
         struct tm                      tm_time;
         time_t                          time;
-        
-        tm_time.tm_year                     = 2014-1900;
-        tm_time.tm_mon                      = 4;
-        tm_time.tm_mday                     = 1;
-        tm_time.tm_hour                     = 17;
-        tm_time.tm_min                      = 20;
-        tm_time.tm_sec                      = 50;
+#if defined(__CC_ARM)
+        //获取编译程序时的系统时间 
+        strptime(__DATE__" "__TIME__, "%b %d %Y %H:%M:%S", &tm_time);
+#endif
         time                                = mktime(&tm_time);
         sv_tick_set(time*TICK_PER_SECOND);
+#if 0
+        {
+            struct tm                      tm_t;
+            volatile char time_mm[100];
+            tm_t = *localtime(&time);
+            strcpy((char *)time_mm, asctime(&tm_t));
+        }
+#endif
+        //log setting
+        Logger::setOutput(debug_output);
     }
 #endif
     //device setting
@@ -227,6 +254,7 @@ portBASE_TYPE application::init(void)
 	m_app_runinfo.m_status 					= enum_STAT_OK;
 
 	m_modelinfo.name_set(def_MODEL_NAME);
+	//注册通讯事件响应函数
 	cpu_pendsv_register(pendsv_handle, this);
 
     m_app_runinfo.m_pdevice_pin->open(DEVICE_FLAG_RDWR);
@@ -243,34 +271,13 @@ portBASE_TYPE application::init(void)
 
     //load conf_datum from storage device
     if (datum_load()){
-        //应该上报错误
-        rt                                  = -1;
-		m_app_runinfo.m_status 				= enum_STAT_DATUM_FAILED;
-        goto quit;
+		rt                                      = -1;
+		m_app_runinfo.m_status 				    = enum_STAT_DATUM_FAILED;
     }
-#if 0
-    hold_reg_set(enum_REG_RHREF_RREQ, 200);
-    hold_reg_set(enum_REG_RHREF_DUTY_CYCLE, 150);
-    hold_reg_set(enum_REG_HEAT_RREQ, 400);
-    hold_reg_set(enum_REG_HEAT_DUTY_CYCLE, 150);
-#endif
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_H, NULL);
+    //初始化状态
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_L, NULL);
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_H, NULL);
     m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
     
-#if 0
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FREQ,
-            (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_RREQ)));
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_DUTY_CYCLE,
-            (void *)static_cast<uint32>(hold_reg_get(enum_REG_RHREF_DUTY_CYCLE)));
-
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FREQ,
-            (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_RREQ)));
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE,
-            (void *)static_cast<uint32>(hold_reg_get(enum_REG_HEAT_DUTY_CYCLE)));
-#endif
-quit:
     return rt;
 }
 
@@ -280,25 +287,36 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 	device_ad 	*pdevice_ad 			= static_cast<device_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
 	portBASE_TYPE 	buf_readablebytes 	= buf.readableBytes();
     float       value					= 0.0;
+    struct _app_runinfo_	*pruninfo 	= &(papplication->m_app_runinfo);
+#ifdef LOGGER
+    const char *run_status_str_dbg[] 	= {
+    	"ADC_T", "CALC_T", "ADC_RHS", "CALC_RH", "ADC_PRS", "CALC_P", "CALC_D", "CALC_PPM", "CALC_DEW",
+	};
+#endif
 
     //只运行在参数测量模式下
-    if (papplication->m_app_runinfo.ucSensorRunMode != MODE_MEASURE_PARA){
+    //ad通道只能出现只读事件
+    if ((event_type == POLLOUT) || (pruninfo->ucSensorRunMode != MODE_MEASURE_PARA)){
     	return 0;
     }
-	//判断是否是由于AD_IOC_FAKE_READABLE命令而引发的可读
-	if ((0 == buf_readablebytes) && (papplication->m_app_runinfo.ucADC1RunStus == ADC_T)){
+#ifdef LOGGER
+	//LOG_TRACE << "adc stat:" << run_status_str_dbg[pruninfo->ucADC1RunStus];
+#endif
 
-		//进入到温度校准状态
-		papplication->m_app_runinfo.ucADC1RunStus				= CALC_T;
+	//由于AD_IOC_FAKE_READABLE命令而引发的可读时， buf_readablebytes() = 0
+	if ((0 == buf_readablebytes) && (pruninfo->ucADC1RunStus == ADC_T)){
+
+		//由初始状态(此状态只会执行一次)进入时， 进入到温度校准状态  
+		pruninfo->ucADC1RunStus					= CALC_T;
 		pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
 	}else {
-		pSENSOR_DATA pSensorData 								= &papplication->m_modelinfo.m_stuSensorData;
-		pSENSOR_PARA pSensorPara 								= &papplication->m_modelinfo.m_stuSensorPara;
+		pSENSOR_DATA pSensorData 				= &papplication->m_modelinfo.m_stuSensorData;
+		pSENSOR_PARA pSensorPara 				= &papplication->m_modelinfo.m_stuSensorPara;
 
 		if (0 != buf_readablebytes){
             value       						= buf.readFloat();
 		}
-		switch (papplication->m_app_runinfo.ucADC1RunStus){
+		switch (pruninfo->ucADC1RunStus){
 		case CALC_T:
 		{
 			float fTemperature;
@@ -306,7 +324,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
             fTemperature 						= CalculateRTDTemp(value);
             pSensorData->fADCTemprature 		= fTemperature;
 			pSensorData->ssTemprature 			= (signed short)(pSensorData->fADCTemprature*100);
-			papplication->m_app_runinfo.ucADC1RunStus				= CALC_RH;
+			pruninfo->ucADC1RunStus				= CALC_RH;
 			pdevice_ad->ioctl(AD_IOC_START_RHS_ADC, NULL);
 		}
 			break;
@@ -329,7 +347,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 			pSensorData->usADCPrs 				= (unsigned short)value;
 			pSensorData->ssPressure 			= (signed short)fPRSValue;
 
-			papplication->m_app_runinfo.ucADC1RunStus				= CALC_D;
+			pruninfo->ucADC1RunStus				= CALC_D;
 			pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
 		}
 			break;
@@ -351,7 +369,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 		case CALC_PPM:
 		{
 
-			papplication->m_app_runinfo.ucADC1RunStus				= CALC_DEW;
+			pruninfo->ucADC1RunStus				= CALC_DEW;
 			pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
 		}
 			break;
@@ -359,12 +377,17 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 		case CALC_DEW:
 		{
 
-			papplication->m_app_runinfo.ucADC1RunStus				= CALC_T;
+			pruninfo->ucADC1RunStus				= CALC_T;
 			pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
 		}
 			break;
 
 		default:
+		{
+			//出现了异常状态  重新初始化为CALC_T状态
+			pruninfo->ucADC1RunStus				= CALC_T;
+			pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
+		}
 			break;
 		}
 	}
@@ -372,85 +395,167 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 	return 0;
 }
 
-portBASE_TYPE   application::event_cb(void *pvoid, class event *pevent)
+//intertup context ; interrupt disable   通讯处理函数
+void application::pendsv_handle(void *pvoid)
 {
-#if 0
-{
-	class event 	t_event(&application::event_cb, papplication);
-	class buffer   &t_buffer 	= t_event.buffer_get();
+	application *papplication      		= static_cast<application *> (pvoid);
+	device_commu *pdevice_commu    		= static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
 
-	papplication	= papplication;
-	t_buffer.appendInt32(1234);
-	t_buffer.appendInt16(222);
-	papplication->m_peventloop->run_inloop(&t_event);
+	pdevice_commu->package_event_fetch();
 }
-	application 	*papplication	= static_cast<application *> (pvoid);
-	class buffer 	&t_buffer 		= pevent->buffer_get();
-	volatile int32 			a				= t_buffer.readInt32();
-	volatile int16 			b				= t_buffer.readInt16();
 
-    papplication    = papplication;
+void application::self_calib_handle(void *pdata)
+{
+	application *papplication  			= static_cast<application *> (pdata);
+    device_pwm	*pdevice_pwm 			= static_cast<device_pwm *>(papplication->m_app_runinfo.m_pdevice_pwm);
+	device_ad 	*pdevice_ad 			= static_cast<device_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
+    struct _app_runinfo_	*pruninfo 	= &(papplication->m_app_runinfo);
+#ifdef LOGGER
+    const char *mode_str_dbg[] 	= {
+    	"MODE_MEASURE_PARA", "MODE_SENSOR_WASH", "MODE_CALIB_HUMI",
+	};
 #endif
 
-	return 0;
-}
+#ifdef LOGGER
+	LOG_TRACE << "run mode:" << mode_str_dbg[pruninfo->ucSensorRunMode];
+#endif
+    //运行参数校准功能
+    switch (pruninfo->ucSensorRunMode){
+    case MODE_MEASURE_PARA:
+    {
+    	pdevice_pwm->ioctl(PWM_IOC_MEASURE_OFF, NULL);
+    	// 80kHz freq. PWM0 output for 50% high. PWM1 output 1% duty cycle.
+		// HEAT : HIGH_OFF  ON:75%  0.1Wat
+    	pdevice_pwm->ioctl(PWM_IOC_HEAT_FREQ, (void *)100);
+    	pdevice_pwm->ioctl(PWM_IOC_HEAT_DUTY_CYCLE, (void *)25);
+#ifdef LOGGER
+        LOG_TRACE << "self-calib timer: 10s";
+#endif
+    	//更改定时器超时时间：10秒
+    	papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
+    			enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(10*def_TIME_1_SECOND));
 
+    	pruninfo->ucSensorRunMode = MODE_SENSOR_WASH;
+    }
+    	break;
+
+    case MODE_SENSOR_WASH:
+    {
+    	pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
+    	pdevice_pwm->ioctl(PWM_IOC_MEASURE_ON, NULL);
+
+    	//更改定时器超时时间：1秒
+    	pruninfo->m_uiCalibRecTimeGap 					= 1;
+    	pruninfo->m_ucCalibRecordTimes 					= 0;
+        //立即进行采样
+        pdevice_ad->ioctl(AD_IOC_GET_SGL_RTD_ADC, (void *)&(pruninfo->iADCTemp[pruninfo->m_ucCalibRecordTimes]));
+		pdevice_ad->ioctl(AD_IOC_GET_SGL_RHS_ADC, (void *)&(pruninfo->iADCRHS[pruninfo->m_ucCalibRecordTimes]));
+        
+        //重设定时器
+    	papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
+    			enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
+#ifdef LOGGER
+        LOG_TRACE << "self-calib timer - m_uiCalibRecTimeGap:" << pruninfo->m_uiCalibRecTimeGap << "s";
+#endif
+    	pruninfo->ucSensorRunMode = MODE_CALIB_HUMI;
+    }
+    	break;
+
+    case MODE_CALIB_HUMI:
+    {
+        //定时间隔为2的指数幂
+		pruninfo->m_uiCalibRecTimeGap					<<= 1;
+#ifdef LOGGER
+		LOG_TRACE << "m_ucCalibRecordTimes:" << pruninfo->m_ucCalibRecordTimes;
+#endif
+    	pruninfo->m_ucCalibRecordTimes++;
+		if (pruninfo->m_ucCalibRecordTimes > 8) {
+			pdevice_ad->ioctl(AD_IOC_GET_SGL_RTD_ADC, (void *)&(pruninfo->iADCTemp[pruninfo->m_ucCalibRecordTimes]));
+            pdevice_ad->ioctl(AD_IOC_GET_SGL_RHS_ADC, (void *)&(pruninfo->iADCRHS[pruninfo->m_ucCalibRecordTimes]));
+            
+            //calc rh
+
+            
+			papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
+					enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
+            //        enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_TIME_1_MINUTE));
+            
+			//Switch to normal measure
+			pruninfo->ucSensorRunMode = MODE_MEASURE_PARA;
+#ifdef LOGGER
+            LOG_TRACE << "MODE_CALIB_HUMI complete, now mode = MODE_MEASURE_PARA";
+            LOG_TRACE << "self-calib timer: 8 hour";
+            //LOG_TRACE << "self-calib timer: 1 minute";
+#endif
+		}else {
+            papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
+					enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
+#ifdef LOGGER
+            LOG_TRACE << "self-calib timer - m_uiCalibRecTimeGap:" << pruninfo->m_uiCalibRecTimeGap << "s";
+#endif
+		}
+    }
+    	break;
+
+    default:
+    {
+    	//出现异常状态
+		papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
+				enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
+		//Switch to normal measure
+		pruninfo->ucSensorRunMode = MODE_MEASURE_PARA;
+    }
+    	break;
+    }
+    cpu_led_toggle();
+}
 
 portBASE_TYPE application::run()
 {
-	device_commu *pdevice_commu =
-			(device_commu *) m_app_runinfo.m_pdevice_commu;
-	device_ad *pdevice_ad =
-			static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
-	eventloop t_loop;
-	channel t_channel_ad(&t_loop, pdevice_ad);
-    
+	device_ad   *pdevice_ad 			= static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
+	eventloop   t_loop;
+	channel     t_channel_ad(&t_loop, pdevice_ad);
+
+	//m_app_runinfo.m_startupcalib 		= false;
+    m_app_runinfo.m_startupcalib 		= true;
     //消除未使用的变量警告
-    pdevice_commu                           = pdevice_commu;
-	m_peventloop 				            = &t_loop;
-    //每隔4分钟执行一次
-    m_app_runinfo.m_handle_period 			= t_loop.run_every(1*60*1000,
-                                                self_calc_handle,
+	m_peventloop 				        = &t_loop;
+#ifdef LOGGER
+	LOG_TRACE << "register self calib timer";
+#endif
+	//注册定时器
+    m_app_runinfo.m_handle_period 		= 
+            t_loop.run_every((true == m_app_runinfo.m_startupcalib)?(def_TIME_1_MINUTE):(def_SELF_CALIB_TIME),
+                                                self_calib_handle,
                                                 this,
-                                                "self calc handle");
+                                                "self calib handle");
     ASSERT(m_app_runinfo.m_handle_period != (timer_handle_type)-1);
-    
+
+    //AD通道初始化
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
 	t_channel_ad.enableReading();
 
-	m_app_runinfo.ucSensorRunMode			= MODE_MEASURE_PARA;
-	m_app_runinfo.ucADC1RunStus				= ADC_T;
+	//初始化相关状态变量
+	m_app_runinfo.ucSensorRunMode		= MODE_MEASURE_PARA;
+	m_app_runinfo.ucADC1RunStus			= ADC_T;
+	//控制AD设备产生虚假可读事件  让AD通道的回调函数被调用
 	pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
-    
+
+#ifdef LOGGER
+	LOG_TRACE << "start event loop";
+#endif
     //启动loop循环
 	t_loop.loop();
 
 	return 0;
 }
 
-//intertup context ; interrupt disable
-void application::pendsv_handle(void *pvoid)
-{
-	application *papplication      = static_cast<application *> (pvoid);
-	device_commu *pdevice_commu    = static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
-
-	pdevice_commu->package_event_fetch();
-}
-
-void application::self_calc_handle(void *pdata)
-{
-	application *papplication  = static_cast<application *> (pdata);
-    papplication    = papplication;
-
-    cpu_led_toggle();
-}
-
 application  *papplication_watch;
 
 int main(void)
 {
-    application  *papplication      = singleton<application>::instance();
-    papplication_watch              = papplication;
+    application  *papplication      	= singleton<application>::instance();
+    papplication_watch              	= papplication;
     
     //bsp startup
     bsp_startup();

@@ -8,6 +8,8 @@
 using std::string;
 using std::snprintf;
 
+#define TM_YEAR_BASE 1900	/** from tzfile.h */
+
 #ifdef LOG_IN_EMBEDED
 static const long int kMilliSecondsPerSecond = 1000;
 static const long int kSecondsPerSecond      = kMilliSecondsPerSecond;
@@ -152,6 +154,7 @@ char *asctime_r(const struct tm *t, char *buf);
 char *asctime(const struct tm *timeptr);
 char *ctime(const time_t *timep);
 int gettimeofday(struct timeval *tp, void *ignore);
+char *strptime(const char *buf, const char *fmt, struct tm *tm);
 
 #endif
 

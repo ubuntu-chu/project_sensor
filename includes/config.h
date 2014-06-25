@@ -26,6 +26,10 @@
 #define     def_AD_SAMPLE_LEN                       (16)
 #define     def_ADC_SOFT_FILTER
 #define     def_RECORD_LEN                          (9)
+#define     def_SELF_CALIB_TIME                     (8*def_TIME_1_HOUR)
+
+//定义是否在评估板上运行程序  在传感器的板上运行时 要注释掉此宏 两个板子的硬件配置不同
+//#define     def_RUN_IN_EVB
 
 /*------------------------------------------------------------------
  *              OS settings
@@ -41,9 +45,11 @@
 **------------------------------------------------------------------*/
 //define little endian format
 #define 	BIG_ENDIAN              				(0)
+
 //define logger
-//#define 	LOGGER
-//#define 	LOG_IN_EMBEDED
+#define 	LOGGER
+#define 	LOG_IN_EMBEDED
+
 //define time monitor count
 #define 	def_MONITOR_MANAGE				        (1)
 #define 	def_MONITOR_TIME_NR						(6)
@@ -66,7 +72,7 @@
 //#define    RAW_MAC
 
 //debug  define
-#define    DBG_UART								    (UART_0)
+#define     DBG_UART								 (UART_0)
 
 
 /******************************************************************************

@@ -96,6 +96,12 @@ struct sv_ipc_object
     struct sv_object parent;                            /**< inherit from rt_object */
 };
 
+//------------------------------------------------------------------------------
+//unit: ms
+#define def_TIME_1_SECOND				(1000UL)
+#define def_TIME_1_MINUTE				(60UL*def_TIME_1_SECOND)
+#define def_TIME_1_HOUR					(60UL*def_TIME_1_MINUTE)
+
 #define SV_TIMER_FLAG_DEACTIVATED       0x0             /**< timer is deactive */
 #define SV_TIMER_FLAG_ACTIVATED         0x1             /**< timer is active */
 #define SV_TIMER_FLAG_ONE_SHOT          0x0             /**< one shot timer */
@@ -148,6 +154,7 @@ public:
 	sv_err_t timer_start(timer_handle_type handle, uint32 expired_ms);
 	sv_err_t timer_stop(timer_handle_type handle);
     sv_err_t timer_restart(timer_handle_type handle);
+	sv_err_t timer_restart(timer_handle_type handle, uint32 expired_ms);
 	portBASE_TYPE timer_expired(timer_handle_type handle);
 
     portBASE_TYPE timer_started(timer_handle_type handle)
@@ -163,6 +170,7 @@ public:
 
 private:
 
+	bool timer_unregister(struct sv_timer *ptimer);
 	timer_handle_type timer_register(uint32 expired_ms,
                                         uint8 flag,
                                         fp_void_pvoid *func,

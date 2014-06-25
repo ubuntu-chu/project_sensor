@@ -53,8 +53,8 @@ typedef portCPSR_TYPE								sv_base_t;
 #define SV_EIO                          8               /**< IO error */
 
 //时间类型定义
-typedef unsigned long int 						time_t;
-typedef uint32    				                    tick_t;
+typedef unsigned long long int 					time_t;
+typedef time_t    				                    tick_t;
 //typedef int 										size_t;
 /* maximum value of base type */
 //#define UINT8_MAX                    				0xff            /**< Maxium number of UINT8 */
@@ -135,8 +135,8 @@ typedef void (fp_void_pvoid)(void *);
  * and used in other calls.
  */
 struct timeval {
-	long	tv_sec;		/* seconds */
-	long	tv_usec;	/* and microseconds */
+	time_t	tv_sec;		/* seconds */
+	time_t	tv_usec;	/* and microseconds */
 };
 
 /*
@@ -144,7 +144,7 @@ struct timeval {
  */
 struct timespec {
 	time_t	tv_sec;		/* seconds */
-	long	tv_nsec;	/* and nanoseconds */
+	time_t	tv_nsec;	/* and nanoseconds */
 };
 
 struct timezone {

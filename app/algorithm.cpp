@@ -1,6 +1,13 @@
 #include    "algorithm.h"
 #include    <math.h>
 
+#define CALC_RTD_TEMP_FORMULA
+
+//GET FROM g
+#define PUCHG   0.01019716213*100
+
+#define ATMOS_HPA  (ATMOS*10)
+#define LOG_6D112    1.81025405186422
 
 #ifndef CALC_RTD_TEMP_FORMULA
 

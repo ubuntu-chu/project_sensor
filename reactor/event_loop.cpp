@@ -67,14 +67,18 @@ timer_handle_type eventloop::run_at(const uint32& ms, uint8 flag, fp_void_pvoid 
 	return m_ptimer_queue->timer_add(ms, flag, cb ,pparam, pname);
 }
 
-timer_handle_type eventloop::run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
+bool eventloop::run_after(uint32 ms, fp_void_pvoid *cb, void *pparam, const char* pname)
 {
-	return run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_ONE_SHOT, cb, pparam, pname);
+	timer_handle_type 	handle;
+
+	handle 	= run_at(ms, SV_TIMER_FLAG_SOFT_TIMER|SV_TIMER_FLAG_ONE_SHOT, cb, pparam, pname);
+	return (handle == (timer_handle_type)-1)?(false):(true);
 }
 
-timer_handle_type eventloop::run_after(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname)
+bool eventloop::run_after(struct tm &tm, fp_void_pvoid *cb, void *pparam, const char* pname)
 {
     uint32 ms                       = mktime(&tm)*1000;
+
     return run_after(ms, cb, pparam, pname);
 }
 
@@ -87,6 +91,11 @@ timer_handle_type eventloop::run_every(struct tm &tm, fp_void_pvoid *cb, void *p
 {
     uint32 ms                       = mktime(&tm)*1000;
     return run_every(ms, cb, pparam, pname);
+}
+
+portBASE_TYPE eventloop::timer_ioctl(timer_handle_type handle, enum timer_ioc ioc, void *pparam)
+{
+	return m_ptimer_queue->timer_ioctl(handle, ioc, pparam);
 }
 
 int eventloop::event_handle(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)

@@ -264,9 +264,6 @@ portuBASE_TYPE drv_adregister(void){
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev)
 {
 	AD_DMAINIT();
-    DioCfgPin(pADI_GP0,PIN0,0); //Set P0.0 as GPIO
-	DioOenPin(pADI_GP0,PIN0,1); //Enable P0.0 Output
-    DioPulPin(pADI_GP0,PIN0,1); //Enable P0.0 Output Pullup 
 
 	return DEVICE_OK;
 }
@@ -312,7 +309,7 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
 	if (size > sizeof(uxADC1Data)){
 		size								= sizeof(uxADC1Data);
 	}
-	memcpy((char *)buffer, (char *)uxADC1Data, size);
+	memcpy((char *)ptr, (char *)uxADC1Data, size);
 
     return size;
 }
