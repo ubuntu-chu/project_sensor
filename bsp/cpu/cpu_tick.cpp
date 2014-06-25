@@ -50,14 +50,7 @@ extern "C" void SysTick_Handler(void)
 extern "C" void GP_Tmr0_Int_Handler(void)
 {
 #if 0
-    portCPSR_TYPE	level = cpu_interruptDisable();
-    
     GptClrInt(pADI_TM0,TSTA_TMOUT);  // Clear T0 interrupt
-    t_timer_manage.timer_check();
-    if (cpu_sleep_status_pend()){
-        cpu_sleep_exit();
-    }
-    cpu_interruptEnable(level);
 #endif
 }
 

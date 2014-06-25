@@ -3,15 +3,15 @@
 ******************************************************************************/ 
 #include "ad.h"
 #include <math.h>
-#include 	 "../bsp/driver/drv_interface.h"
 
-float ADC1_GetADC_Temp(int32 *pbuf, uint16 len);
-float ADC1_GetADC_Pres(int32 *pbuf, uint16 len);
-float ADC1_GetADC_RHS(int32 *pbuf, uint16 len);
 
-static float fADCTemp[def_RECORD_LEN];
-static float fADCPres[def_RECORD_LEN];
-static float fADCRHS[def_RECORD_LEN];
+float ADC1_GetADC_Temp(float value);
+float ADC1_GetADC_Pres(float value);
+float ADC1_GetADC_RHS(float value);
+
+float fADCTemp[def_RECORD_LEN];
+float fADCPres[def_RECORD_LEN];
+float fADCRHS[def_RECORD_LEN];
 
 device_ad::device_ad():device(DEVICE_NAME_AD)
 {
@@ -23,43 +23,57 @@ device_ad::~device_ad()
 }
 
 //ADC转换后最大的值  2的28次幂
-#define 		_def_ADC_MAX_VALUE 						(268435456)
-#define 		_def_TEMP_VOLT							(37400)
-#define 		_def_RHS_VOLT							(1200)
+#define 		_def_ADC_MAX_VALUE 						(268435456UL)
+#define 		_def_TEMP_VOLT							(37400UL)
+#define 		_def_RHS_VOLT							(1200UL)
 
-portBASE_TYPE device_ad::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
+enum PROC_CMD_STAT device_ad::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
 	if (CMD_READ == dir){
 		switch (phase){
 		case PHASE_PREPARE:
 
-			device_buffer.m_pbuf_recv						= reinterpret_cast<char *>(m_buffer);
+#ifndef		def_AVARAGE_IN_READ
+			if (m_ioc == AD_IOC_FAKE_READABLE){
+                break;
+            }
+            device_buffer.m_pbuf_recv						= reinterpret_cast<char *>(m_buffer);
 			device_buffer.m_buf_recv_size 					= sizeof(m_buffer);
+#endif
 			break;
 
 		case PHASE_DONE:
 		{
 			//将ADC值换算成电压值
 			float fValue;
+			float fAdc;
 
-			if (m_stage == AD_IOC_START_RTD_ADC){
-			#ifndef def_ADC_SOFT_FILTER
-				fValue 		= ADC1_GetADC(m_buffer, def_AD_SAMPLE_LEN)*_def_TEMP_VOLT/_def_ADC_MAX_VALUE;
-			#else
-				fValue  	= ADC1_GetADC_Temp(m_buffer, def_AD_SAMPLE_LEN)*_def_TEMP_VOLT/_def_ADC_MAX_VALUE;
-			#endif
-			}else if (m_stage == AD_IOC_START_RHS_ADC){
-			#ifndef def_ADC_SOFT_FILTER
-				fValue		= ADC1_GetADC(m_buffer, def_AD_SAMPLE_LEN) * _def_RHS_VOLT / _def_ADC_MAX_VALUE;
-			#else
-				fValue		= ADC1_GetADC_RHS(m_buffer, def_AD_SAMPLE_LEN) * _def_RHS_VOLT / _def_ADC_MAX_VALUE;
-			#endif
-			}else if (m_stage == AD_IOC_START_PRS_ADC){
-			#ifndef def_ADC_SOFT_FILTER
-				fValue 		= ADC1_GetADC(m_buffer, def_AD_SAMPLE_LEN)/256;
-			#else
-				fValue 		= ADC1_GetADC_Pres(m_buffer, def_AD_SAMPLE_LEN)/256;
-			#endif
+#ifdef		def_AVARAGE_IN_READ
+			fAdc											= *((float *)device_buffer.m_pbuf_recv);
+#else
+			fAdc											= GetAvarageValue(m_buf, def_AD_SAMPLE_LEN);
+#endif
+			if (m_ioc == AD_IOC_FAKE_READABLE){
+                break;
+            }
+            if (m_ioc == AD_IOC_START_RTD_ADC){
+#ifndef def_ADC_SOFT_FILTER
+				fValue 		= ADC1_GetADC(fAdc)*_def_TEMP_VOLT/_def_ADC_MAX_VALUE;
+#else
+				fValue  	= ADC1_GetADC_Temp(fAdc)*_def_TEMP_VOLT/_def_ADC_MAX_VALUE;
+#endif
+			}else if (m_ioc == AD_IOC_START_RHS_ADC){
+#ifndef def_ADC_SOFT_FILTER
+				fValue		= ADC1_GetADC(fAdc) * _def_RHS_VOLT / _def_ADC_MAX_VALUE;
+#else
+				fValue		= ADC1_GetADC_RHS(fAdc) * _def_RHS_VOLT / _def_ADC_MAX_VALUE;
+#endif
+			}else if (m_ioc == AD_IOC_START_PRS_ADC){
+#ifndef def_ADC_SOFT_FILTER
+				fValue 		= ADC1_GetADC(fAdc)/256;
+#else
+				fValue 		= ADC1_GetADC_Pres(fAdc)/256;
+#endif
 			}			device_buffer.m_recv_actual_size 				= sizeof(fValue);
 			memcpy(device_buffer.m_pbuf_recv, &fValue, sizeof(fValue));
 		}
@@ -69,31 +83,21 @@ portBASE_TYPE device_ad::process_command(enum PROC_CMD dir, enum PROC_PHASE phas
 			break;
 		}
 	}else if (CMD_IOC == dir){
-		m_stage 											= device_buffer.m_cmd;
+		m_ioc 											    = device_buffer.m_cmd;
 	}else {
 		device::process_command(dir, phase, device_buffer);
 	}
 
-	return 0;
+	return PROC_CMD_STAT_OK;
 }
 
 
 
-float GetAvarageValue(int iAry[],char cnt)
-{
-    unsigned char i;
-    float fVal;
-    for(i=0;i<cnt;i++)
-    {
-        fVal += (iAry[i]);
-    }
-    return (fVal/cnt);
-}
 
 #ifndef     def_ADC_SOFT_FILTER
-float ADC1_GetADC(int32 *pbuf, uint16 len)
+float ADC1_GetADC(float value)
 {
-    return GetAvarageValue(pbuf, len);
+    return value;
 }
 #else
 
@@ -182,26 +186,26 @@ float RapidLPFilter(float fNewVal,float fPreVal,signed char *cChgNum)
 //
 signed char cRLPFRatioChangeNum;
 
-float ADC1_GetADC_RHS(int32 *pbuf, uint16 len)
+float ADC1_GetADC_RHS(float value)
 {
     float fNewRHS;
     float fPreRHSADCVal;
-    fNewRHS = CombiFilter(GetAvarageValue(pbuf, len), fADCRHS);
+    fNewRHS = CombiFilter(value, fADCRHS);
     fPreRHSADCVal = RapidLPFilter(fNewRHS, fPreRHSADCVal, &cRLPFRatioChangeNum);
     
     return fPreRHSADCVal;
 }
 
 //GetFltRsutTemp
-float ADC1_GetADC_Temp(int32 *pbuf, uint16 len)
+float ADC1_GetADC_Temp(float value)
 {
-    return CombiFilter(GetAvarageValue(pbuf, len),fADCTemp);
+    return CombiFilter(value,fADCTemp);
 }
 
 //GetFltRsutTemp
-float ADC1_GetADC_Pres(int32 *pbuf, uint16 len)
+float ADC1_GetADC_Pres(float value)
 {
-    return CombiFilter(GetAvarageValue(pbuf, len),fADCPres);
+    return CombiFilter(value,fADCPres);
 }
 
 #endif

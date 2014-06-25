@@ -77,7 +77,7 @@ static void pwm_rhref_pins_enable(void)
     }
 }
 
-//p1.4
+//p1.4   config pin gpio 
 static void _pwm_heat_pins_disable(void)
 {
     pADI_GP1->GPCON = ((pADI_GP1->GPCON)&(~(BIT8|BIT9)));
@@ -86,6 +86,7 @@ static void _pwm_heat_pins_disable(void)
 
 static void pwm_heat_pins_disable(void)
 {
+    //check pin if in pwm mode
     if (((pADI_GP1->GPCON)&(BIT8|BIT9))){
         _pwm_heat_pins_disable();
     }
@@ -96,18 +97,6 @@ static void pwm_heat_pins_enable(void)
     if (!(((pADI_GP1->GPCON)&(BIT8|BIT9)))){
         pADI_GP1->GPCON = ((pADI_GP1->GPCON)&(~(BIT8|BIT9)))|(BIT8);
     }
-}
-    
-static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
-    //PWM in standard mode
-    PwmInit(UCLK_2,PWMCON0_PWMIEN_DIS,PWMCON0_SYNC_DIS,PWMCON1_TRIPEN_DIS); //UCLK/2 to PWM, Enable IRQs
-    _pwm_heat_pins_disable();
-    _pwm_rhref_pins_disable();
-    //The length of the PWM period is defined by PWMxLEN. Each pair has an associated counter. 
-    //the PWMxCOMx MMRs controls the point at which the PWM output changes state
-    //PWM 1 must have a duty cycle <=PWM0 
-    
-    return DEVICE_OK;
 }
 
 enum{
@@ -211,6 +200,18 @@ unsigned char PWM_DutyCycle(int channel, int freq)
     return 0;
 } 
 #endif
+
+static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev){
+    //PWM in standard mode
+    PwmInit(UCLK_2,PWMCON0_PWMIEN_DIS,PWMCON0_SYNC_DIS,PWMCON1_TRIPEN_DIS); //UCLK/2 to PWM, Enable IRQs
+    _pwm_heat_pins_disable();
+    _pwm_rhref_pins_disable();
+    //The length of the PWM period is defined by PWMxLEN. Each pair has an associated counter. 
+    //the PWMxCOMx MMRs controls the point at which the PWM output changes state
+    //PWM 1 must have a duty cycle <=PWM0 
+    
+    return DEVICE_OK;
+}
 
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     

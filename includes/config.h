@@ -28,17 +28,8 @@
 #define     def_RECORD_LEN                          (9)
 #define     def_SELF_CALIB_TIME                     (8*def_TIME_1_HOUR)
 
-//¶¨ÒåÊÇ·ñÔÚÆÀ¹À°åÉÏÔËÐÐ³ÌÐò  ÔÚ´«¸ÐÆ÷µÄ°åÉÏÔËÐÐÊ± Òª×¢ÊÍµô´Ëºê Á½¸ö°å×ÓµÄÓ²¼þÅäÖÃ²»Í¬
+//ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð³ï¿½ï¿½ï¿½  ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê± Òª×¢ï¿½Íµï¿½ï¿½Ëºï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½Ó²ï¿½ï¿½ï¿½ï¿½ï¿½Ã²ï¿½Í¬
 //#define     def_RUN_IN_EVB
-
-/*------------------------------------------------------------------
- *              OS settings
-**------------------------------------------------------------------*/
-//#define		LINUX_OS
-#define     DEVICE_NAME_MAX	                        (8)
-#define     OBJECT_NAME_MAX	                        (8)
-#define     def_USING_SERVICE_MQ
-#define     TICK_PER_SECOND						    (100)
 
 /*------------------------------------------------------------------
  *              APIs settings
@@ -73,6 +64,24 @@
 
 //debug  define
 #define     DBG_UART								 (UART_0)
+
+/*------------------------------------------------------------------
+ *              OS settings
+**------------------------------------------------------------------*/
+//#define		LINUX_OS
+#define     DEVICE_NAME_MAX	                        (8)
+#define     OBJECT_NAME_MAX	                        (8)
+#define     def_USING_SERVICE_MQ
+#define     TICK_PER_SECOND						    (100)
+#ifdef LOG_IN_EMBEDED
+//unit: ms
+static const long int kMilliSecondsPerSecond = 1000;
+static const long int kAccuracyPerSecond      = kMilliSecondsPerSecond;
+#else
+//unit: ms
+static const long int kMicroSecondsPerSecond = 1000*1000;
+static const long int kAccuracyPerSecond      = kMicroSecondsPerSecond;
+#endif
 
 
 /******************************************************************************

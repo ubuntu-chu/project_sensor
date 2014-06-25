@@ -18,7 +18,6 @@ const struct param_range<uint8> t_hold_reg_0_6[] = {
 	{0, 255, enum_REG_ATTR_RDWR},
 };
 
-
 model_datum::model_datum(uint8 *pname):m_name(pname)
 {
 	hold_reg_set(enum_REG_MODBUS_ADDR, 1);

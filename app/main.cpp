@@ -231,7 +231,7 @@ portBASE_TYPE application::init(void)
         strptime(__DATE__" "__TIME__, "%b %d %Y %H:%M:%S", &tm_time);
 #endif
         time                                = mktime(&tm_time);
-        sv_tick_set(time*TICK_PER_SECOND);
+        sv_xtime_set(time);
 #if 0
         {
             struct tm                      tm_t;
@@ -258,8 +258,8 @@ portBASE_TYPE application::init(void)
 	cpu_pendsv_register(pendsv_handle, this);
 
     m_app_runinfo.m_pdevice_pin->open(DEVICE_FLAG_RDWR);
-    m_app_runinfo.m_pdevice_ad->open(DEVICE_FLAG_RDONLY);
     m_app_runinfo.m_pdevice_pwm->open(DEVICE_FLAG_RDWR);
+    m_app_runinfo.m_pdevice_ad->open(DEVICE_FLAG_RDONLY);
     m_app_runinfo.m_pdevice_storage->open(DEVICE_FLAG_RDWR);
     m_app_runinfo.m_pdevice_commu->open(DEVICE_FLAG_RDWR);
     //设置通讯波特率
@@ -274,20 +274,29 @@ portBASE_TYPE application::init(void)
 		rt                                      = -1;
 		m_app_runinfo.m_status 				    = enum_STAT_DATUM_FAILED;
     }
-    //初始化状态
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_RHREF_FORCE_L, NULL);
-    m_app_runinfo.m_pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
     
     return rt;
+}
+
+//intertup context ; interrupt disable   通讯处理函数
+void application::pendsv_handle(void *pvoid)
+{
+	application *papplication      		= static_cast<application *> (pvoid);
+	device_commu *pdevice_commu    		= static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
+
+	pdevice_commu->package_event_fetch();
 }
 
 int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts)
 {
 	application *papplication      		= static_cast<application *> (pvoid);
 	device_ad 	*pdevice_ad 			= static_cast<device_ad *>(papplication->m_app_runinfo.m_pdevice_ad);
+    device_pwm	*pdevice_pwm 			= static_cast<device_pwm *>(papplication->m_app_runinfo.m_pdevice_pwm);
 	portBASE_TYPE 	buf_readablebytes 	= buf.readableBytes();
     float       value					= 0.0;
     struct _app_runinfo_	*pruninfo 	= &(papplication->m_app_runinfo);
+    static float fTemperature;
+    
 #ifdef LOGGER
     const char *run_status_str_dbg[] 	= {
     	"ADC_T", "CALC_T", "ADC_RHS", "CALC_RH", "ADC_PRS", "CALC_P", "CALC_D", "CALC_PPM", "CALC_DEW",
@@ -305,9 +314,12 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 
 	//由于AD_IOC_FAKE_READABLE命令而引发的可读时， buf_readablebytes() = 0
 	if ((0 == buf_readablebytes) && (pruninfo->ucADC1RunStus == ADC_T)){
-
-		//由初始状态(此状态只会执行一次)进入时， 进入到温度校准状态  
+        //由初始状态(此状态在系统运行期间只会执行一次)进入时， 进入到温度校准状态  
 		pruninfo->ucADC1RunStus					= CALC_T;
+        //初始化硬件相关状态
+    	pdevice_pwm->ioctl(PWM_IOC_MEASURE_ON, NULL);
+        //此引脚电平影响ADC结果
+        pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_H, NULL);
 		pdevice_ad->ioctl(AD_IOC_START_RTD_ADC, NULL);
 	}else {
 		pSENSOR_DATA pSensorData 				= &papplication->m_modelinfo.m_stuSensorData;
@@ -319,12 +331,10 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 		switch (pruninfo->ucADC1RunStus){
 		case CALC_T:
 		{
-			float fTemperature;
-
+            pSensorData->fADCTemprature         = value;
             fTemperature 						= CalculateRTDTemp(value);
-            pSensorData->fADCTemprature 		= fTemperature;
-			pSensorData->ssTemprature 			= (signed short)(pSensorData->fADCTemprature*100);
-			pruninfo->ucADC1RunStus				= CALC_RH;
+			pSensorData->ssTemprature 			= (signed short)(fTemperature*100);
+            pruninfo->ucADC1RunStus				= CALC_RH;
 			pdevice_ad->ioctl(AD_IOC_START_RHS_ADC, NULL);
 		}
 			break;
@@ -334,7 +344,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
             pSensorData->fADCHumiSgl 			= value;
 			pSensorData->fADCCapcitance 		= value/0.003063808;
 
-			papplication->m_app_runinfo.ucADC1RunStus				= CALC_P;
+			pruninfo->ucADC1RunStus				= CALC_P;
 			pdevice_ad->ioctl(AD_IOC_START_PRS_ADC, NULL);
 		}
 			break;
@@ -357,7 +367,7 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 			float fDensity;
 			float fPRS20Value;
 
-			fDensity = CalculateDensity((float*) &fPRS20Value, pSensorData->ssPressure, pSensorData->ssPressure);
+			fDensity = CalculateDensity((float*) &fPRS20Value, pSensorData->ssPressure, fTemperature);
 			pSensorData->ssPressure20 			= (signed short) fPRS20Value;
 			pSensorData->usDensity 				= (unsigned short) (fDensity * 100);
 
@@ -395,15 +405,6 @@ int application::event_handle_ad(void *pvoid, int event_type, class buffer &buf,
 	return 0;
 }
 
-//intertup context ; interrupt disable   通讯处理函数
-void application::pendsv_handle(void *pvoid)
-{
-	application *papplication      		= static_cast<application *> (pvoid);
-	device_commu *pdevice_commu    		= static_cast<device_commu *>(papplication->m_app_runinfo.m_pdevice_commu);
-
-	pdevice_commu->package_event_fetch();
-}
-
 void application::self_calib_handle(void *pdata)
 {
 	application *papplication  			= static_cast<application *> (pdata);
@@ -435,13 +436,13 @@ void application::self_calib_handle(void *pdata)
     	papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
     			enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(10*def_TIME_1_SECOND));
 
-    	pruninfo->ucSensorRunMode = MODE_SENSOR_WASH;
+    	pruninfo->ucSensorRunMode                       = MODE_SENSOR_WASH;
     }
     	break;
 
     case MODE_SENSOR_WASH:
     {
-    	pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_L, NULL);
+    	pdevice_pwm->ioctl(PWM_IOC_HEAT_FORCE_H, NULL);
     	pdevice_pwm->ioctl(PWM_IOC_MEASURE_ON, NULL);
 
     	//更改定时器超时时间：1秒
@@ -457,7 +458,7 @@ void application::self_calib_handle(void *pdata)
 #ifdef LOGGER
         LOG_TRACE << "self-calib timer - m_uiCalibRecTimeGap:" << pruninfo->m_uiCalibRecTimeGap << "s";
 #endif
-    	pruninfo->ucSensorRunMode = MODE_CALIB_HUMI;
+    	pruninfo->ucSensorRunMode                       = MODE_CALIB_HUMI;
     }
     	break;
 
@@ -478,14 +479,12 @@ void application::self_calib_handle(void *pdata)
             
 			papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
 					enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
-            //        enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_TIME_1_MINUTE));
             
 			//Switch to normal measure
-			pruninfo->ucSensorRunMode = MODE_MEASURE_PARA;
+			pruninfo->ucSensorRunMode                   = MODE_MEASURE_PARA;
 #ifdef LOGGER
             LOG_TRACE << "MODE_CALIB_HUMI complete, now mode = MODE_MEASURE_PARA";
             LOG_TRACE << "self-calib timer: 8 hour";
-            //LOG_TRACE << "self-calib timer: 1 minute";
 #endif
 		}else {
             papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
@@ -503,7 +502,7 @@ void application::self_calib_handle(void *pdata)
 		papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
 				enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
 		//Switch to normal measure
-		pruninfo->ucSensorRunMode = MODE_MEASURE_PARA;
+		pruninfo->ucSensorRunMode                       = MODE_MEASURE_PARA;
     }
     	break;
     }
@@ -512,19 +511,19 @@ void application::self_calib_handle(void *pdata)
 
 portBASE_TYPE application::run()
 {
-	device_ad   *pdevice_ad 			= static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
+	device_ad   *pdevice_ad 			                = static_cast<device_ad *>(m_app_runinfo.m_pdevice_ad);
 	eventloop   t_loop;
 	channel     t_channel_ad(&t_loop, pdevice_ad);
 
-	//m_app_runinfo.m_startupcalib 		= false;
-    m_app_runinfo.m_startupcalib 		= true;
+	//m_app_runinfo.m_startupcalib 		                = false;
+    m_app_runinfo.m_startupcalib 		                = true;
     //消除未使用的变量警告
-	m_peventloop 				        = &t_loop;
+	m_peventloop 				                        = &t_loop;
 #ifdef LOGGER
 	LOG_TRACE << "register self calib timer";
 #endif
 	//注册定时器
-    m_app_runinfo.m_handle_period 		= 
+    m_app_runinfo.m_handle_period 		                = 
             t_loop.run_every((true == m_app_runinfo.m_startupcalib)?(def_TIME_1_MINUTE):(def_SELF_CALIB_TIME),
                                                 self_calib_handle,
                                                 this,
@@ -536,8 +535,8 @@ portBASE_TYPE application::run()
 	t_channel_ad.enableReading();
 
 	//初始化相关状态变量
-	m_app_runinfo.ucSensorRunMode		= MODE_MEASURE_PARA;
-	m_app_runinfo.ucADC1RunStus			= ADC_T;
+	m_app_runinfo.ucSensorRunMode		                = MODE_MEASURE_PARA;
+	m_app_runinfo.ucADC1RunStus			                = ADC_T;
 	//控制AD设备产生虚假可读事件  让AD通道的回调函数被调用
 	pdevice_ad->ioctl(AD_IOC_FAKE_READABLE, NULL);
 
@@ -554,8 +553,8 @@ application  *papplication_watch;
 
 int main(void)
 {
-    application  *papplication      	= singleton<application>::instance();
-    papplication_watch              	= papplication;
+    application  *papplication      	                = singleton<application>::instance();
+    papplication_watch              	                = papplication;
     
     //bsp startup
     bsp_startup();

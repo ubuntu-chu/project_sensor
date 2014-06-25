@@ -16,7 +16,7 @@ device_commu::~device_commu()
 
 }
 
-portBASE_TYPE device_commu::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
+enum PROC_CMD_STAT device_commu::process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer)
 {
 	if (CMD_READ == dir){
 		switch (phase){
@@ -28,7 +28,7 @@ portBASE_TYPE device_commu::process_command(enum PROC_CMD dir, enum PROC_PHASE p
 			if (0 != m_pprotocol->unpack(reinterpret_cast<uint8 *>(device_buffer.m_pbuf_recv), 
                 device_buffer.m_recv_actual_size)) {
 				API_DeviceControl(m_pdevice, COMMU_IOC_RX_ENTER, NULL);
-				return -1;
+				return PROC_CMD_STAT_ERR;
 			}
 			break;
 
@@ -56,7 +56,7 @@ portBASE_TYPE device_commu::process_command(enum PROC_CMD dir, enum PROC_PHASE p
 		device::process_command(dir, phase, device_buffer);
 	}
 
-	return 0;
+	return PROC_CMD_STAT_OK;
 }
 
 portBASE_TYPE device_commu::package_event_fetch(void)

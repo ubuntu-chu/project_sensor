@@ -17,6 +17,13 @@ enum PROC_CMD{
 	CMD_POLL,
 };
 
+enum PROC_CMD_STAT{
+	PROC_CMD_STAT_OK 		= 0,
+	PROC_CMD_STAT_ERR,
+	//仅用于ioctl函数中  用于device层的抽象设备拦截一些特殊的ioc命令
+	PROC_CMD_STAT_CAPTURE,
+};
+
 struct device_buffer{
     char               *m_pbuf_recv;                //设备内用于接收的缓冲区
     //指向设备内接收缓冲区的实际数据位置   设备可能对接收到的数据进行处理生成了新的数据 此指针指向最新的数据
@@ -46,7 +53,7 @@ public:
 	DevicePoll_TYPE poll(void);
 	uint8	device_stat_get(void);
 	uint8	device_is_valid(void);
-	virtual portBASE_TYPE process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
+	virtual enum PROC_CMD_STAT process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
     //portBASE_TYPE   name_set(const char *pname);
     portDEVHANDLE_TYPE handle_get(void)
     {

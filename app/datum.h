@@ -128,7 +128,7 @@ typedef struct __SENSOR_INFO
     char   strSensorHardwareVer[24];
     char   strSensorSoftwareVer[24];
     char   chksum;
-} SENSOR_INFO;
+}SENSOR_INFO;
 
 typedef struct __SENSOR_PARA
 {

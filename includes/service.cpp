@@ -4,17 +4,53 @@
 #include 	 "../bsp/driver/drv_interface.h"
 
 
-static tick_t 		s_tick		= 0;
+static tick_t 		s_tick;
+static tick_t 		s_tick_for_xtime;
+//wall time
+static time_t		xtime;
+
+void sv_xtime_set(time_t time)
+{
+	portCPSR_TYPE	level 		= sv_hw_interrupt_disable();
+	xtime    					= time;
+	sv_hw_interrupt_enable(level);
+}
+
+time_t sv_xtime_get(void)
+{
+	time_t time;
+    
+    portCPSR_TYPE	level 		= sv_hw_interrupt_disable();
+    time                        = xtime;
+	sv_hw_interrupt_enable(level);
+    
+    return time;
+}
+
+int gettimeofday(struct timeval *tp, void *ignore)
+{
+    if (tp != NULL){
+        tp->tv_sec                  = sv_xtime_get();
+        //在LOG_IN_EMBEDED宏定义的前提下 unit: ms
+        //在LOG_IN_EMBEDED宏未定义的前提下 unit: us
+		tp->tv_usec                 = (s_tick%TICK_PER_SECOND)*kAccuracyPerSecond/TICK_PER_SECOND;
+    }
+
+	return 0;
+}
 
 static void sv_tick_init(void)
 {
     s_tick                      = 0;
+    s_tick_for_xtime            = 0;
+    xtime						= 0;
 }
 
 tick_t sv_tick_get(void)
 {
 	return s_tick;
 }
+
 void sv_tick_set(tick_t tick)
 {
 	portCPSR_TYPE	level 		= sv_hw_interrupt_disable();
@@ -24,7 +60,13 @@ void sv_tick_set(tick_t tick)
 
 void sv_tick_increase(void)
 {
-	s_tick++;
+    s_tick++;
+    s_tick_for_xtime++;
+    if (s_tick_for_xtime >= TICK_PER_SECOND){
+        //update wall time
+        s_tick_for_xtime                    = 0;
+        xtime++;
+    }    
 	t_timer_manage.timer_check();
 }
 

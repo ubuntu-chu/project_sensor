@@ -54,7 +54,7 @@ typedef portCPSR_TYPE								sv_base_t;
 
 //时间类型定义
 typedef unsigned long long int 					time_t;
-typedef time_t    				                    tick_t;
+typedef uint32    				                    tick_t;
 //typedef int 										size_t;
 /* maximum value of base type */
 //#define UINT8_MAX                    				0xff            /**< Maxium number of UINT8 */

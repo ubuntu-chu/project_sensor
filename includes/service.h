@@ -731,6 +731,8 @@ void sv_startup(void);
 tick_t sv_tick_get(void);
 void sv_tick_set(tick_t tick);
 void sv_tick_increase(void);
+void sv_xtime_set(time_t time);
+int gettimeofday(struct timeval *tp, void *ignore);
 
 #ifdef __cplusplus
 }

@@ -70,11 +70,7 @@ Warning
 Returns ADCxDAT even if it does not contain new data.
 */
 
-static int uxADC1Data[def_AD_SAMPLE_LEN]; // ADC1 Data, updated in ADC1 interrupt
-//volatile unsigned char ucADC0Status;  // ADC status, updated in ADC0 interrupt
-//volatile unsigned char ucADC1Status;  // ADC status, updated in ADC1 interrupt
-//volatile unsigned char ucADC0NewData; // New data flag, set in ADC0 interrupt
-//volatile unsigned char ucADC0RunStus;
+static volatile int uxADC1Data[def_AD_SAMPLE_LEN]; // ADC1 Data, updated in ADC1 interrupt
 
 enum adc_status{
 	ADC_STAT_NONE = 0,
@@ -84,7 +80,6 @@ enum adc_status{
 };
 
 volatile enum adc_status 	adc_stat 		= ADC_STAT_NONE;
-uint8			adc_stage;
 
 void AD_DMAINIT(void)
 {
@@ -162,7 +157,7 @@ void ADC1_Init(void)
     AdcFlt(pADI_ADC1,125,0,FLT_NORMAL|ADCFLT_NOTCH2);   //49.4Hz
 
     AdcDmaCon(ADC1DMAREAD,1);     // Call function to init ADc1 for DMA reads
-	AdcDmaReadSetup(ADC1DMAREAD,DMA_SIZE_WORD|DMA_DSTINC_WORD|DMA_SRCINC_NO|DMA_BASIC,def_AD_SAMPLE_LEN,uxADC1Data);
+	AdcDmaReadSetup(ADC1DMAREAD,DMA_SIZE_WORD|DMA_DSTINC_WORD|DMA_SRCINC_NO|DMA_BASIC,def_AD_SAMPLE_LEN, (int *)uxADC1Data);
     //NVIC_EnableIRQ(ADC1_IRQn); // Enable ADC interrupt
     NVIC_EnableIRQ(DMA_ADC1_IRQn);
 
@@ -263,8 +258,6 @@ portuBASE_TYPE drv_adregister(void){
 
 static DeviceStatus_TYPE _drv_devinit(pDeviceAbstract pdev)
 {
-	AD_DMAINIT();
-
 	return DEVICE_OK;
 }
 
@@ -282,6 +275,8 @@ between writing to ADCMDE and writing to the offset or gain register.
 
 static DeviceStatus_TYPE _drv_devopen(pDeviceAbstract pdev, uint16 oflag){
     
+    AD_DMAINIT();
+    ADC0_Init();
 	ADC1_Init();
     adc_stat 								= ADC_STAT_NONE;
     return DEVICE_OK;
@@ -293,6 +288,18 @@ static portSSIZE_TYPE _drv_devwrite(pDeviceAbstract pdev, portOFFSET_TYPE pos, c
     return size;
 }
 #endif
+
+float GetAvarageValue(int iAry[],char cnt)
+{
+    unsigned char i;
+    float fVal;
+    for(i=0;i<cnt;i++)
+    {
+        fVal += (iAry[i]);
+    }
+
+    return (fVal/cnt);
+}
 
 static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, void* buffer, portSIZE_TYPE size){
   
@@ -306,10 +313,22 @@ static portSSIZE_TYPE _drv_devread(pDeviceAbstract pdev, portOFFSET_TYPE pos, vo
 		return 0;
 	}
 	adc_stat 								= ADC_STAT_NONE;
-	if (size > sizeof(uxADC1Data)){
-		size								= sizeof(uxADC1Data);
+#ifdef		def_AVARAGE_IN_READ
+	{
+		float fadc 							= GetAvarageValue((int *)uxADC1Data, def_AD_SAMPLE_LEN);
+		if (size > sizeof(fadc)){
+			size							= sizeof(fadc);
+		}
+		*(float *)ptr 						= fadc;
 	}
-	memcpy((char *)ptr, (char *)uxADC1Data, size);
+#else
+	{
+		if (size > sizeof(uxADC1Data)){
+			size							= sizeof(uxADC1Data);
+		}
+		memcpy((char *)ptr, (char *)uxADC1Data, size);
+	}
+#endif
 
     return size;
 }
@@ -328,19 +347,16 @@ static DeviceStatus_TYPE _drv_ioctl(pDeviceAbstract pdev, uint8 cmd, void *args)
     switch (cmd) {
 	case AD_IOC_START_RTD_ADC:
 
-		adc_stage								= AD_IOC_START_RTD_ADC;
 		ADC1_StartRTD_ADC();
 		break;
 
 	case AD_IOC_START_RHS_ADC:
 
-		adc_stage								= AD_IOC_START_RHS_ADC;
 		ADC1_StartRHS_ADC();
 		break;
 
 	case AD_IOC_START_PRS_ADC:
 
-		adc_stage								= AD_IOC_START_PRS_ADC;
 		ADC1_StartPRS_ADC();
 		break;
 

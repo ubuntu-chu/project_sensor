@@ -10,13 +10,6 @@ using std::snprintf;
 
 #define TM_YEAR_BASE 1900	/** from tzfile.h */
 
-#ifdef LOG_IN_EMBEDED
-static const long int kMilliSecondsPerSecond = 1000;
-static const long int kSecondsPerSecond      = kMilliSecondsPerSecond;
-#else
-static const long int kMicroSecondsPerSecond = 1000*1000;
-static const long int kSecondsPerSecond      = kMicroSecondsPerSecond;
-#endif
 
 class Timestamp
 //class Timestamp : public copyable
@@ -56,7 +49,7 @@ public:
 		return microSecondsSinceEpoch_;
 	}
 	time_t secondsSinceEpoch() const {
-		return static_cast<time_t>(microSecondsSinceEpoch_ / kSecondsPerSecond);
+		return static_cast<time_t>(microSecondsSinceEpoch_ / kAccuracyPerSecond);
 	}
 
 	///
@@ -89,7 +82,7 @@ inline bool operator==(Timestamp lhs, Timestamp rhs)
 inline double timeDifference(Timestamp high, Timestamp low)
 {
   time_t diff = high.microSecondsSinceEpoch() - low.microSecondsSinceEpoch();
-  return static_cast<double>(diff) / kSecondsPerSecond;
+  return static_cast<double>(diff) / kAccuracyPerSecond;
 }
 
 ///
@@ -99,7 +92,7 @@ inline double timeDifference(Timestamp high, Timestamp low)
 ///
 inline Timestamp addTime(Timestamp timestamp, double seconds)
 {
-  time_t delta = static_cast<time_t>(seconds * kSecondsPerSecond);
+  time_t delta = static_cast<time_t>(seconds * kAccuracyPerSecond);
   return Timestamp(timestamp.microSecondsSinceEpoch() + delta);
 }
 
@@ -153,7 +146,6 @@ time_t mktime(struct tm * const t);
 char *asctime_r(const struct tm *t, char *buf);
 char *asctime(const struct tm *timeptr);
 char *ctime(const time_t *timep);
-int gettimeofday(struct timeval *tp, void *ignore);
 char *strptime(const char *buf, const char *fmt, struct tm *tm);
 
 #endif

@@ -33,6 +33,7 @@ public:
                             m_handle_rx((timer_handle_type)-1)
     {
         buf_queue_init(&m_buf_queue);
+        tx_status_set(TX_STAT_IDLE);
     };
 	virtual ~transceiver(){};
 

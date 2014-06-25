@@ -55,39 +55,8 @@ enum{
     AD_IOC_MAX_NO,
 };
 
-
-//extern volatile unsigned char ucADC0NewData;// New data flag, set in ADC0 int.
-extern volatile unsigned char ucADC1NewData;// New data flag, set in ADC1 int.
-//extern volatile unsigned char ucADC0RunStus;
-extern volatile unsigned char ucADC1RunStus;
-
-
-void AFE_Init(void);
-
-void ADC0_Init(void);
-int ADC0_GetSglADC_RTD(void);
-int ADC0_GetSglADC_RHS(void);
-//void ADC0_StartRHD_ADC(void);
-//float ADC0_GetADC(void);
-//float ADC0_GetADC_RHS(void);
-//float ADC0_GetADC_RHR(void);
-//float ADC0_GetADC_RHD(void);
-
-void ADC1_Init(void);
-void ADC1_StartRTD_ADC(void);
-void ADC1_StartPRS_ADC(void);
-void ADC1_StartRHS_ADC(void);
-float ADC1_GetADC(void);
-float ADC1_GetADC_Temp(void);
-float ADC1_GetADC_Pres(void);
-float ADC1_GetADC_RHS(void);
-
-
-
-
-
-
-
+#define		def_AVARAGE_IN_READ
+float GetAvarageValue(int iAry[],char cnt);
 
 /******************************************************************************
  *                            文件接口函数声明

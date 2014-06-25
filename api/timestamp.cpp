@@ -10,8 +10,8 @@ Timestamp::Timestamp(time_t microSecondsSinceEpoch)
 string Timestamp::toString() const
 {
   char buf[32] = {0};
-  time_t seconds = microSecondsSinceEpoch_ / kSecondsPerSecond;
-  time_t microseconds = microSecondsSinceEpoch_ % kSecondsPerSecond;
+  time_t seconds = microSecondsSinceEpoch_ / kAccuracyPerSecond;
+  time_t microseconds = microSecondsSinceEpoch_ % kAccuracyPerSecond;
   snprintf(buf, sizeof(buf)-1, "%d.%06d ", seconds, microseconds);
   return buf;
 }
@@ -19,8 +19,8 @@ string Timestamp::toString() const
 string Timestamp::toFormattedString() const
 {
   char buf[32] = {0};
-  time_t seconds = static_cast<time_t>(microSecondsSinceEpoch_ / kSecondsPerSecond);
-  int microseconds = static_cast<int>(microSecondsSinceEpoch_ % kSecondsPerSecond);
+  time_t seconds = static_cast<time_t>(microSecondsSinceEpoch_ / kAccuracyPerSecond);
+  int microseconds = static_cast<int>(microSecondsSinceEpoch_ % kAccuracyPerSecond);
   struct tm tm_time;
   gmtime_r(&seconds, &tm_time);
 
@@ -37,7 +37,7 @@ Timestamp Timestamp::now()
   gettimeofday(&tv, NULL);
   time_t seconds = tv.tv_sec;
   
-  return Timestamp(seconds * kSecondsPerSecond + tv.tv_usec);
+  return Timestamp(seconds * kAccuracyPerSecond + tv.tv_usec);
 }
 
 Timestamp Timestamp::invalid()
@@ -686,19 +686,5 @@ _conv_num(unsigned char **buf, int *dest, int llim, int ulim)
 
 
 
-int gettimeofday(struct timeval *tp, void *ignore)
-{
-    if (tp != NULL){
-        time_t  sec                 = sv_tick_get()/TICK_PER_SECOND;
-        time_t  mod                 = sv_tick_get()%TICK_PER_SECOND;
-        
-        tp->tv_sec                  = sec;
-        //在LOG_IN_EMBEDED宏定义的前提下 unit: ms
-        //在LOG_IN_EMBEDED宏未定义的前提下 unit: us
-		tp->tv_usec                 = mod*kSecondsPerSecond/TICK_PER_SECOND;
-    }
-
-	return 0;
-}
 
 #endif

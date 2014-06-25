@@ -18,7 +18,7 @@ public:
     device_commu(class protocol *pprotocol);
     virtual ~device_commu();
 	portBASE_TYPE package_event_fetch(void);
-    virtual portBASE_TYPE process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
+    virtual enum PROC_CMD_STAT process_command(enum PROC_CMD dir, enum PROC_PHASE phase, struct device_buffer &device_buffer);
 private:
     device_commu(const device_commu &other);
     device_commu &operator =(const device_commu &other);
