@@ -66,6 +66,11 @@ portBASE_TYPE timer_queue::timer_ioctl(timer_handle_type handle, enum timer_ioc 
 
 		rt 	= t_timer_manage.timer_restart(handle, reinterpret_cast<uint32>(pparam));
 		break;
+    
+    case enum_TIMER_IOC_TIMEOUT:
+
+		rt 	= t_timer_manage.timer_timeout(handle, reinterpret_cast<uint32>(pparam));
+		break;
 
 	case enum_TIMER_IOC_STOP:
 

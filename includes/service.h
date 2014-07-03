@@ -111,6 +111,7 @@ struct sv_ipc_object
 #define SV_TIMER_FLAG_SOFT_TIMER        0x4             /**< soft timer,the timer's callback function will be called in event loop. */
 
 #define SV_TIMER_FLAG_TIMEOUT           0x10             /**< timeout in one shot timer */
+#define SV_TIMER_FLAG_HANDLING          0x20             /**< timeout handler in server */
 
 /**
  * timer structure
@@ -155,6 +156,7 @@ public:
 	sv_err_t timer_stop(timer_handle_type handle);
     sv_err_t timer_restart(timer_handle_type handle);
 	sv_err_t timer_restart(timer_handle_type handle, uint32 expired_ms);
+    sv_err_t timer_timeout(timer_handle_type handle, uint32 expired_ms);
 	portBASE_TYPE timer_expired(timer_handle_type handle);
 
     portBASE_TYPE timer_started(timer_handle_type handle)

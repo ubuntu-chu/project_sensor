@@ -91,6 +91,7 @@ private:
 	static portBASE_TYPE package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo);
 	static void pendsv_handle(void *pdata);
 	static void self_calib_handle(void *pdata);
+    static void period_handle(void *pdata);
 
 	static int event_handle_ad(void *pvoid, int event_type, class buffer &buf, class Timestamp &ts);
 

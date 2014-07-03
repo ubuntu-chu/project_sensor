@@ -14,7 +14,7 @@
 void debug_output(const char* msg, int len)
 {
 	uart_tx(DBG_UART, (uint8 *)msg, len);
-}
+} 
 #endif
 
 portBASE_TYPE application::package_event_handler(void *pvoid, enum protocol_phase phase, class protocol_info *pinfo)
@@ -434,7 +434,7 @@ void application::self_calib_handle(void *pdata)
 #endif
     	//更改定时器超时时间：10秒
     	papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
-    			enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(10*def_TIME_1_SECOND));
+    			enum_TIMER_IOC_TIMEOUT, (void *)(10*def_TIME_1_SECOND));
 
     	pruninfo->ucSensorRunMode                       = MODE_SENSOR_WASH;
     }
@@ -454,7 +454,7 @@ void application::self_calib_handle(void *pdata)
         
         //重设定时器
     	papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
-    			enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
+    			enum_TIMER_IOC_TIMEOUT, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
 #ifdef LOGGER
         LOG_TRACE << "self-calib timer - m_uiCalibRecTimeGap:" << pruninfo->m_uiCalibRecTimeGap << "s";
 #endif
@@ -478,17 +478,16 @@ void application::self_calib_handle(void *pdata)
 
             
 			papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
-					enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
+					enum_TIMER_IOC_TIMEOUT, (void *)(def_SELF_CALIB_TIME));
             
 			//Switch to normal measure
 			pruninfo->ucSensorRunMode                   = MODE_MEASURE_PARA;
 #ifdef LOGGER
             LOG_TRACE << "MODE_CALIB_HUMI complete, now mode = MODE_MEASURE_PARA";
-            LOG_TRACE << "self-calib timer: 8 hour";
 #endif
 		}else {
             papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
-					enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
+					enum_TIMER_IOC_TIMEOUT, (void *)(pruninfo->m_uiCalibRecTimeGap*def_TIME_1_SECOND));
 #ifdef LOGGER
             LOG_TRACE << "self-calib timer - m_uiCalibRecTimeGap:" << pruninfo->m_uiCalibRecTimeGap << "s";
 #endif
@@ -500,12 +499,19 @@ void application::self_calib_handle(void *pdata)
     {
     	//出现异常状态
 		papplication->m_peventloop->timer_ioctl(pruninfo->m_handle_period,
-				enum_TIMER_IOC_RESTART_WITH_TIME, (void *)(def_SELF_CALIB_TIME));
+				enum_TIMER_IOC_TIMEOUT, (void *)(def_SELF_CALIB_TIME));
 		//Switch to normal measure
 		pruninfo->ucSensorRunMode                       = MODE_MEASURE_PARA;
     }
     	break;
     }
+}
+
+void application::period_handle(void *pdata)
+{
+    #ifdef LOGGER
+        LOG_TRACE << "---------------------1 hour timeout occured!-------------------------";
+    #endif
     cpu_led_toggle();
 }
 
@@ -529,6 +535,16 @@ portBASE_TYPE application::run()
                                                 this,
                                                 "self calib handle");
     ASSERT(m_app_runinfo.m_handle_period != (timer_handle_type)-1);
+    
+    {
+        timer_handle_type 			handle_1hour;
+        
+        handle_1hour    = t_loop.run_every(def_TIME_1_HOUR,
+                                                period_handle,
+                                                this,
+                                                "1 hour handle");
+        ASSERT(handle_1hour != (timer_handle_type)-1);
+    }
 
     //AD通道初始化
 	t_channel_ad.event_handle_register(&application::event_handle_ad, this);
@@ -548,6 +564,7 @@ portBASE_TYPE application::run()
 
 	return 0;
 }
+
 
 application  *papplication_watch;
 
