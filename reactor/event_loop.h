@@ -13,6 +13,7 @@ class timer_queue;
 enum timer_ioc{
 	enum_TIMER_IOC_RESTART	= 0,
 	enum_TIMER_IOC_RESTART_WITH_TIME,
+    enum_TIMER_IOC_TIMEOUT,
 	enum_TIMER_IOC_STOP,
 	enum_TIMER_IOC_UNREGISTER,
 };

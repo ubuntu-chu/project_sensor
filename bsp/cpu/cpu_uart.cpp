@@ -308,11 +308,7 @@ public:
         portBASE_TYPE   rt = transceiver::push(c);
         
         if (0 == rt){
-            if (0 == byte_timer_started()){
-                byte_timer_start();
-            }else{
-                byte_timer_restart();
-            }
+            byte_timer_restart();
         }
         return rt;
     }

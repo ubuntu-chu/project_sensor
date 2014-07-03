@@ -397,7 +397,7 @@ static void _sv_timer_init(sv_timer_t timer,
 	timer->parent.flag  = flag;
 
 	/* set deactivated */
-	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT);
+	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT|SV_TIMER_FLAG_HANDLING);
 
 	timer->timeout_func = timeout;
 	timer->parameter    = parameter;
@@ -520,7 +520,7 @@ sv_err_t sv_timer_stop(sv_timer_t timer)
 	sv_hw_interrupt_enable(level);
 
 	/* change stat */
-	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED|SV_TIMER_FLAG_TIMEOUT);
+	timer->parent.flag &= ~(SV_TIMER_FLAG_ACTIVATED);
 
 	return -SV_EOK;
 }
@@ -624,21 +624,18 @@ bool timer_manage::timer_unregister(struct sv_timer *ptimer)
 	if (handle >= m_size){
 		return false;
 	}
-	m_bitmap 								&= ~(1UL << handle);
-
-    return true;
+    return timer_unregister(handle);
 }
 
 sv_err_t timer_manage::timer_start(timer_handle_type handle, uint32 expired_ms)
 {
-	tick_t            tick  = sv_tick_from_millisecond(expired_ms);
+    sv_err_t 	rt          = timer_timeout(handle, expired_ms);
     
-    //防止超时tick回绕情况出现
-    if ((handle >= m_size) || (tick >= (TICK_MAX/2))) {
-		return -SV_EPARAM;
-	}
-	m_timer[handle].init_tick 				= tick;
-	return sv_timer_start(&m_timer[handle]);
+    if (rt == -SV_EOK){
+        rt                  =  timer_start(handle);
+    }
+    
+    return rt;
 }
 
 sv_err_t timer_manage::timer_start(timer_handle_type handle)
@@ -657,32 +654,51 @@ sv_err_t timer_manage::timer_stop(timer_handle_type handle)
 	return sv_timer_stop(&m_timer[handle]);
 }
 
+sv_err_t timer_manage::timer_timeout(timer_handle_type handle, uint32 expired_ms)
+{
+    tick_t            tick  = sv_tick_from_millisecond(expired_ms);
+    
+    //防止超时tick回绕情况出现
+    if ((handle >= m_size) || (tick >= (TICK_MAX/2))) {
+		return -SV_EPARAM;
+	}
+	m_timer[handle].init_tick 				= tick;
+    
+    return -SV_EOK;
+}
+
+//周期性定时器且在超时处理函数中 禁止调用restart与start   即使调用也会产生调用失败
+//仅仅对init_tick的设置成功
+//restart函数  在定时器启动的情况下  先停止 再启动
+//             在定时器未启动的情况下 相当于start函数
 sv_err_t timer_manage::timer_restart(timer_handle_type handle)
 {
 	sv_base_t level;
 	sv_err_t 	rt;
 
-	if (handle >= m_size) {
+	if ((SV_TIMER_FLAG_HANDLING|SV_TIMER_FLAG_PERIODIC) == 
+        (m_timer[handle].parent.flag & (SV_TIMER_FLAG_HANDLING|SV_TIMER_FLAG_PERIODIC))){
+        return -SV_EIO;
+    } 
+    if (handle >= m_size) {
 		return -SV_EPARAM;
 	}
 	level = sv_hw_interrupt_disable() ;
-	if (-SV_EOK == (rt = sv_timer_stop (&m_timer[handle]))){
-		rt 	= sv_timer_start(&m_timer[handle]);
-	}
+	sv_timer_stop (&m_timer[handle]);
+    rt 	    = sv_timer_start(&m_timer[handle]);
 	sv_hw_interrupt_enable(level);
 	return rt;
 }
 
 sv_err_t timer_manage::timer_restart(timer_handle_type handle, uint32 expired_ms)
 {
-	tick_t            tick  = sv_tick_from_millisecond(expired_ms);
-
-    //防止超时tick回绕情况出现
-    if ((handle >= m_size) || (tick >= (TICK_MAX/2))) {
-		return -SV_EPARAM;
-	}
-	m_timer[handle].init_tick 				= tick;
-	return timer_restart(handle);
+	sv_err_t 	rt          = timer_timeout(handle, expired_ms);
+    
+    if (rt == -SV_EOK){
+        rt                  =  timer_restart(handle);
+    }
+    
+    return rt;
 }
 
 portBASE_TYPE timer_manage::timer_expired(timer_handle_type handle)
@@ -701,10 +717,11 @@ void timer_manage::timer_handle(list_head_t *list_head)
 	sv_base_t level;
 
 	level = sv_hw_interrupt_disable();
-	current_tick 							= sv_tick_get();
+	
 	while (!list_empty(list_head)) {
 		t = list_entry(list_head->m_next, struct sv_timer, list);
 
+        current_tick 							    = sv_tick_get();
 		/*
 		 * It supposes that the new tick shall less than the half duration of
 		 * tick max. timer->timeout_tick值回绕处理 ((current_tick - t->timeout_tick) < TICK_MAX / 2)
@@ -714,25 +731,29 @@ void timer_manage::timer_handle(list_head_t *list_head)
 			/* remove timer from timer list firstly */
 			list_remove(&(t->list));
 
+            //置位timeout标志
+            t->parent.flag                          |= SV_TIMER_FLAG_TIMEOUT;
             /* call timeout function */
             if (NULL != t->timeout_func){
+                t->parent.flag                      |= SV_TIMER_FLAG_HANDLING;
                 sv_hw_interrupt_enable(level);
                 t->timeout_func(t->parameter);
                 level = sv_hw_interrupt_disable();
+                t->parent.flag                      &= ~SV_TIMER_FLAG_HANDLING;
             }
-
-			/* re-get tick */
-			current_tick = sv_tick_get();
-
-			if ((t->parent.flag & SV_TIMER_FLAG_PERIODIC)
-					&& (t->parent.flag & SV_TIMER_FLAG_ACTIVATED)) {
-				/* start it */
-				t->parent.flag &= ~SV_TIMER_FLAG_ACTIVATED;
-				sv_timer_start(t);
-			} else {
+            //周期性定时器
+			if (t->parent.flag & SV_TIMER_FLAG_PERIODIC){
+				//在超时处理函数没有被stop
+                if (t->parent.flag & SV_TIMER_FLAG_ACTIVATED){
+                    /* start it */
+                    t->parent.flag                  &= ~SV_TIMER_FLAG_ACTIVATED;
+                    //sv_timer_start函数中清除SV_TIMER_FLAG_TIMEOUT标志位
+                    sv_timer_start(t);
+                }
+            //单次触发定时器 在超时处理函数中 没有调用start/restart函数
+			} else if (t->parent.flag & SV_TIMER_FLAG_TIMEOUT){
 				/* stop timer */
-				t->parent.flag &= ~SV_TIMER_FLAG_ACTIVATED;
-				t->parent.flag |= SV_TIMER_FLAG_TIMEOUT;
+				t->parent.flag                      &= ~SV_TIMER_FLAG_ACTIVATED;
 				//对于event loop下的 单次软定时器   超时自动回收定时器资源
 				if (list_head == &m_soft_timer_list){
 					timer_unregister(t);
